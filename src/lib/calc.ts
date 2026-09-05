@@ -58,6 +58,30 @@ export function totalPrevMonth(txs: Transaction[], now: Date = new Date()): Cent
   return totalBetween(txs, startOfMonth(prev), endOfMonth(prev));
 }
 
+/** Income (money in) between two dates. */
+export function incomeBetween(txs: Transaction[], start: Date, end: Date): Cents {
+  const s = start.getTime();
+  const e = end.getTime();
+  return Money.sum(
+    txs
+      .filter((t) => t.direction === "income")
+      .filter((t) => {
+        const time = new Date(t.date).getTime();
+        return time >= s && time <= e;
+      })
+      .map((t) => t.amount),
+  );
+}
+
+export function incomeThisMonth(txs: Transaction[], now: Date = new Date()): Cents {
+  return incomeBetween(txs, startOfMonth(now), endOfMonth(now));
+}
+
+/** Savings this month = income − expenses (can be negative). */
+export function savingsThisMonth(txs: Transaction[], now: Date = new Date()): Cents {
+  return Money.subtract(incomeThisMonth(txs, now), totalThisMonth(txs, now));
+}
+
 export type Direction = "up" | "down" | "flat";
 export interface Comparison {
   direction: Direction;

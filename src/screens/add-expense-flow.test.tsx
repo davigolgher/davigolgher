@@ -32,7 +32,7 @@ describe("Flow: add an expense", () => {
   it("starts empty (from zero)", () => {
     render(<TestApp />);
     expect(screen.getByText("This month")).toBeInTheDocument();
-    expect(screen.getByText("No expenses yet. Add one to get started.")).toBeInTheDocument();
+    expect(screen.getByText("No transactions yet. Add one to get started.")).toBeInTheDocument();
   });
 
   it("adds an expense via the Add Expense button and shows it", async () => {

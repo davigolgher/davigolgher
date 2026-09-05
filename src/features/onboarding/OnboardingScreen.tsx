@@ -113,25 +113,44 @@ function Paywall({ eyebrow, title, rows }: { eyebrow: string; title: string; row
 }
 
 function BudgetQuiz({ onPick, onSkip }: { onPick: (cents: number) => void; onSkip: () => void }) {
-  const options = [1000, 3000, 5000, 10000];
+  const [val, setVal] = useState("");
+  const num = Math.max(0, Number(val.replace(/[^\d.]/g, "")) || 0);
   return (
     <div className="text-center">
       <p className="text-eyebrow uppercase text-chalk-faint">Quick setup</p>
       <h1 className="mt-2 text-[1.75rem] font-bold leading-tight tracking-tight text-chalk">What's your monthly budget?</h1>
-      <p className="mx-auto mt-3 max-w-[18rem] text-[15px] text-chalk-mute">We'll track your spending against it. You can change this anytime.</p>
-      <div className="mt-8 grid grid-cols-2 gap-3">
-        {options.map((v) => (
+      <p className="mx-auto mt-3 max-w-[18rem] text-[15px] text-chalk-mute">Enter your own amount — you can change it anytime in Settings.</p>
+
+      <div className="mx-auto mt-8 flex max-w-[16rem] items-center justify-center gap-1 border-b border-line-strong pb-3">
+        <span className="text-4xl font-semibold text-chalk">$</span>
+        <input
+          inputMode="decimal"
+          autoFocus
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          placeholder="0"
+          aria-label="Monthly budget"
+          className="w-full min-w-0 bg-transparent text-center text-4xl font-semibold tracking-tight text-chalk tnum placeholder:text-chalk-faint focus:outline-none"
+        />
+      </div>
+
+      <div className="mt-5 flex flex-wrap justify-center gap-2">
+        {[1000, 2000, 3000, 5000].map((v) => (
           <button
             key={v}
             type="button"
-            onClick={() => onPick(toCents(v))}
-            className="rounded-card border border-line-strong bg-ink-850 py-5 text-lg font-semibold tabular-nums text-chalk transition-colors hover:bg-ink-800"
+            onClick={() => setVal(String(v))}
+            className="rounded-pill border border-line-strong px-4 py-1.5 text-[13px] font-medium tabular-nums text-chalk-mute transition-colors hover:text-chalk"
           >
             ${v.toLocaleString("en-US")}
           </button>
         ))}
       </div>
-      <button type="button" onClick={onSkip} className="mt-6 text-[13px] font-medium text-chalk-mute hover:text-chalk">
+
+      <Button variant="primary" size="lg" fullWidth className="mt-8" disabled={num <= 0} onClick={() => onPick(toCents(num))}>
+        Continue
+      </Button>
+      <button type="button" onClick={onSkip} className="mt-4 text-[13px] font-medium text-chalk-mute hover:text-chalk">
         Decide later
       </button>
     </div>

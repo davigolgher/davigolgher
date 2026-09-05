@@ -5,6 +5,7 @@ import { categoryBreakdown, monthlyTotals } from "@/lib/reports";
 import { currencyByCode } from "@/data/currencies";
 import { cn } from "@/lib/cn";
 import { ScreenHeader, DashedEmpty, Skeleton } from "@/components/ui";
+import { Donut } from "@/components/Donut";
 import { FREQUENCY_LABEL } from "@/lib/recurrence";
 
 /** A single labeled horizontal bar (monochrome). Value is text, not color-only. */
@@ -63,15 +64,7 @@ export function ReportsScreen() {
 
       <section>
         <SectionLabel>Spending by category</SectionLabel>
-        {categories.length > 0 ? (
-          <div className="space-y-6">
-            {categories.map((c) => (
-              <BarRow key={c.category} label={c.category} value={money.format(c.total)} pct={c.pct} barPct={c.pct} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[15px] text-chalk-mute">No spending yet.</p>
-        )}
+        {categories.length > 0 ? <Donut slices={categories} /> : <p className="text-[15px] text-chalk-mute">No spending yet.</p>}
       </section>
 
       <section>

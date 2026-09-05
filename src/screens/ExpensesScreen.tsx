@@ -10,21 +10,21 @@ import { useModals } from "@/features/modals/ModalsProvider";
 export function ExpensesScreen() {
   const { data, loading } = useStore();
   const money = useMoney();
-  const { openAddExpense, openEditExpense } = useModals();
+  const { openAddExpense, openDetails } = useModals();
 
   const expenses = useMemo(
     () => [...data.transactions].sort((a, b) => +new Date(b.date) - +new Date(a.date)),
     [data.transactions],
   );
-  const total = Money.sum(expenses.map((t) => t.amount));
+  const total = Money.sum(expenses.filter((t) => t.direction === "expense").map((t) => t.amount));
 
   if (loading) return <ExpensesSkeleton />;
 
   return (
     <div className="pb-4">
       <ScreenHeader
-        eyebrow={`${expenses.length} ${expenses.length === 1 ? "entry" : "entries"} · ${money.format(total)}`}
-        title="Daily Expenses"
+        eyebrow={`${expenses.length} ${expenses.length === 1 ? "item" : "items"} · ${money.format(total)} spent`}
+        title="Transactions"
         action={
           <Button variant="primary" size="sm" pill leadingIcon={<PlusIcon size={17} strokeWidth={2.2} />} onClick={openAddExpense}>
             Add Expense
@@ -34,12 +34,12 @@ export function ExpensesScreen() {
 
       <div className="mt-4 border-t border-line-soft">
         {expenses.length > 0 ? (
-          expenses.map((t) => <ExpenseRow key={t.id} transaction={t} onClick={() => openEditExpense(t)} />)
+          expenses.map((t) => <ExpenseRow key={t.id} transaction={t} onClick={() => openDetails(t)} />)
         ) : (
           <div className="flex flex-col items-center gap-5 py-16 text-center">
-            <p className="text-[15px] text-chalk-mute">You haven't logged any expenses yet.</p>
+            <p className="text-[15px] text-chalk-mute">No transactions yet.</p>
             <Button variant="primary" pill leadingIcon={<PlusIcon size={17} strokeWidth={2.2} />} onClick={openAddExpense}>
-              Add your first expense
+              Add your first transaction
             </Button>
           </div>
         )}

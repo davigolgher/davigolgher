@@ -1,7 +1,7 @@
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
-import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "@/lib/calc";
+import { incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
 import { Button, ScreenHeader, StatCard, Skeleton } from "@/components/ui";
 import { PlusIcon } from "@/components/icons";
 import { ExpenseRow } from "@/components/rows";
@@ -11,16 +11,16 @@ import { useModals } from "@/features/modals/ModalsProvider";
 export function HomeScreen() {
   const { data, now, loading } = useStore();
   const money = useMoney();
-  const { openAddExpense, openEditExpense } = useModals();
+  const { openAddExpense, openDetails } = useModals();
 
   if (loading) return <HomeSkeleton />;
 
   const txs = data.transactions;
   const spent = totalThisMonth(txs, now);
+  const income = incomeThisMonth(txs, now);
+  const savings = savingsThisMonth(txs, now);
   const budget = data.budgets.find((b) => b.scope === "total")?.limit ?? 0;
   const remaining = Money.clampMin(Money.subtract(budget, spent));
-  const subsMonthly = subscriptionsMonthlyTotal(data.subscriptions);
-  const activeCount = activeSubscriptions(data.subscriptions).length;
   const recent = [...txs].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 5);
 
   return (
@@ -36,10 +36,10 @@ export function HomeScreen() {
       />
 
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Total spent" value={money.format(spent)} />
-        <StatCard label="Monthly budget" value={money.format(budget)} />
-        <StatCard label="Active subscriptions" value={activeCount} sub={`${money.format(subsMonthly)} / mo`} />
-        <StatCard label="Remaining budget" value={money.format(remaining)} />
+        <StatCard label="Income" value={money.format(income)} />
+        <StatCard label="Spent" value={money.format(spent)} />
+        <StatCard label="Savings" value={money.format(savings)} sub={savings < 0 ? "Spending over income" : "Income − spending"} />
+        <StatCard label="Remaining budget" value={money.format(remaining)} sub={`of ${money.format(budget)}`} />
       </div>
 
       <StreakCard />
@@ -49,11 +49,11 @@ export function HomeScreen() {
         {recent.length > 0 ? (
           <div>
             {recent.map((t) => (
-              <ExpenseRow key={t.id} transaction={t} onClick={() => openEditExpense(t)} />
+              <ExpenseRow key={t.id} transaction={t} onClick={() => openDetails(t)} />
             ))}
           </div>
         ) : (
-          <p className="py-6 text-[15px] text-chalk-mute">No expenses yet. Add one to get started.</p>
+          <p className="py-6 text-[15px] text-chalk-mute">No transactions yet. Add one to get started.</p>
         )}
       </section>
     </div>

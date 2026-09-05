@@ -70,6 +70,8 @@ export interface NewTransactionInput {
   categoryId: string;
   date: string;
   note?: string;
+  merchant?: string;
+  direction?: "expense" | "income";
 }
 
 export interface StoreValue {
@@ -122,14 +124,16 @@ export function StoreProvider({
       importing,
 
       addTransaction(input) {
+        const direction = input.direction ?? "expense";
         const tx: Transaction = {
           id: newId("tx"),
           amount: Math.abs(Math.trunc(input.amount)),
-          direction: "expense",
-          description: input.description.trim() || "Expense",
-          categoryId: input.categoryId.trim() || "Uncategorized",
+          direction,
+          description: input.description.trim() || (direction === "income" ? "Income" : "Expense"),
+          categoryId: input.categoryId.trim() || (direction === "income" ? "Income" : "Uncategorized"),
           date: input.date,
           note: input.note?.trim() || undefined,
+          merchant: input.merchant?.trim() || undefined,
           currency: state.preferences.currency,
           source: "manual",
         };

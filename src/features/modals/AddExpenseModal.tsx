@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, AmountField, Input, Button, useToast } from "@/components/ui";
+import { Modal, AmountField, Input, Button, Segmented, useToast } from "@/components/ui";
 import { TrashIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/data/store";
@@ -12,11 +12,15 @@ export interface AddExpenseModalProps {
   editing?: Transaction | null;
 }
 
+type Dir = "expense" | "income";
+
 export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps) {
   const { data, addTransaction, updateTransaction, deleteTransaction } = useStore();
   const { toast } = useToast();
 
+  const [direction, setDirection] = useState<Dir>("expense");
   const [amount, setAmount] = useState(0);
+  const [merchant, setMerchant] = useState("");
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString());
   const [note, setNote] = useState("");
@@ -24,37 +28,68 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
   useEffect(() => {
     if (!open) return;
     if (editing) {
+      setDirection(editing.direction);
       setAmount(editing.amount);
+      setMerchant(editing.merchant ?? "");
       setCategory(editing.categoryId);
       setDate(editing.date);
       setNote(editing.note ?? "");
     } else {
+      setDirection("expense");
       setAmount(0);
+      setMerchant("");
       setCategory("");
       setDate(new Date().toISOString());
       setNote("");
     }
   }, [open, editing]);
 
+  const isIncome = direction === "income";
   const canSave = amount > 0;
 
   const handleSave = () => {
     if (!canSave) return;
-    const label = category.trim() || "Expense";
+    const label = category.trim() || (isIncome ? "Income" : "Expense");
+    const fields = {
+      amount,
+      direction,
+      description: label,
+      categoryId: label,
+      date,
+      note: note.trim() || undefined,
+      merchant: merchant.trim() || undefined,
+    };
     if (editing) {
-      updateTransaction({ ...editing, amount, description: label, categoryId: label, date, note: note.trim() || undefined });
-      toast({ message: "Expense updated" });
+      updateTransaction({ ...editing, ...fields });
+      toast({ message: isIncome ? "Income updated" : "Expense updated" });
     } else {
-      addTransaction({ amount, description: label, categoryId: label, date, note });
-      toast({ message: "Expense added" });
+      addTransaction(fields);
+      toast({ message: isIncome ? "Income added" : "Expense added" });
     }
     onClose();
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "Edit expense" : "Add expense"}>
+    <Modal open={open} onClose={onClose} title={editing ? "Edit transaction" : isIncome ? "Add income" : "Add expense"}>
       <div className="space-y-4">
+        <Segmented
+          aria-label="Type"
+          options={[
+            { value: "expense", label: "Expense" },
+            { value: "income", label: "Income" },
+          ]}
+          value={direction}
+          onChange={(v) => setDirection(v as Dir)}
+        />
+
         <AmountField value={amount} onChange={setAmount} autoFocus />
+
+        <Input
+          placeholder={isIncome ? "From (source)" : "To whom (merchant)"}
+          value={merchant}
+          onChange={(e) => setMerchant(e.target.value)}
+          aria-label={isIncome ? "Source" : "Merchant"}
+        />
 
         <div>
           <Input placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category" />
@@ -86,7 +121,7 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
         <Input placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note" />
 
         <Button variant="primary" size="lg" fullWidth disabled={!canSave} onClick={handleSave}>
-          {editing ? "Save changes" : "Save expense"}
+          {editing ? "Save changes" : isIncome ? "Save income" : "Save expense"}
         </Button>
 
         {editing && (
@@ -96,11 +131,11 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
             leadingIcon={<TrashIcon size={17} />}
             onClick={() => {
               deleteTransaction(editing.id);
-              toast({ message: "Expense deleted" });
+              toast({ message: "Deleted" });
               onClose();
             }}
           >
-            Delete expense
+            Delete
           </Button>
         )}
       </div>

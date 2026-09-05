@@ -23,6 +23,8 @@ export interface Transaction {
   categoryId: CategoryId;
   date: string; // ISO
   note?: string;
+  /** Who it was paid to / received from (e.g. "Dunkin'"). */
+  merchant?: string;
   currency: string;
   source?: "manual" | "gmail";
 }
