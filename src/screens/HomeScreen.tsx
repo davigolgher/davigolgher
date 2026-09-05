@@ -5,6 +5,7 @@ import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "
 import { Button, ScreenHeader, StatCard, Skeleton } from "@/components/ui";
 import { PlusIcon } from "@/components/icons";
 import { ExpenseRow } from "@/components/rows";
+import { StreakCard } from "@/components/StreakCard";
 import { useModals } from "@/features/modals/ModalsProvider";
 
 export function HomeScreen() {
@@ -40,6 +41,8 @@ export function HomeScreen() {
         <StatCard label="Active subscriptions" value={activeCount} sub={`${money.format(subsMonthly)} / mo`} />
         <StatCard label="Remaining budget" value={money.format(remaining)} />
       </div>
+
+      <StreakCard />
 
       <section>
         <p className="mb-1 text-eyebrow uppercase text-chalk-faint">Recent</p>

@@ -8,6 +8,7 @@ export { Input } from "./Input";
 export { Select } from "./Select";
 export type { SelectOption } from "./Select";
 export { Modal } from "./Modal";
+export { BottomSheet } from "./BottomSheet";
 export { Skeleton, SkeletonText } from "./Skeleton";
 export { ProgressBar } from "./ProgressBar";
 export { Switch } from "./Switch";

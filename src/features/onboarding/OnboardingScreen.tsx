@@ -1,0 +1,180 @@
+import { useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
+import { toCents } from "@/lib/money";
+import { useStore } from "@/data/store";
+import { useFlow } from "@/features/flow/FlowProvider";
+import { Button } from "@/components/ui";
+import { BarChartIcon, CheckIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
+
+type Step = "preview1" | "preview2" | "quiz" | "value" | "trust" | "pay";
+const STEPS: Step[] = ["preview1", "preview2", "quiz", "value", "trust", "pay"];
+
+export function OnboardingScreen() {
+  const { subscribe } = useFlow();
+  const { setMonthlyBudget } = useStore();
+  const [i, setI] = useState(0);
+  const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
+  const step = STEPS[i];
+
+  const next = () => (i < STEPS.length - 1 ? setI(i + 1) : subscribe());
+  const skipToPaywall = () => setI(STEPS.indexOf("value"));
+
+  return (
+    <div className="app-shell flex min-h-full flex-col px-6 pb-8 pt-safe">
+      {/* progress */}
+      <div className="flex items-center gap-1.5 py-4">
+        {STEPS.map((s, idx) => (
+          <span key={s} className={cn("h-1 flex-1 rounded-full transition-colors", idx <= i ? "bg-chalk" : "bg-ink-700")} />
+        ))}
+      </div>
+
+      <div className="flex flex-1 flex-col justify-center py-4">
+        {step === "preview1" && (
+          <Hero icon={<WalletIcon size={30} />} title="Log spending in seconds" body="Add an expense with just an amount and a tap. No clutter, no friction." />
+        )}
+        {step === "preview2" && (
+          <Hero icon={<BarChartIcon size={30} />} title="See where your money goes" body="A clear monthly picture and a category breakdown — always up to date." />
+        )}
+        {step === "quiz" && <BudgetQuiz onPick={(cents) => { setMonthlyBudget(cents); next(); }} onSkip={next} />}
+        {step === "value" && (
+          <Paywall
+            eyebrow="What you get"
+            title="Everything in Wallet Flow"
+            rows={[
+              { icon: <WalletIcon size={18} />, text: "Unlimited expenses & subscriptions" },
+              { icon: <BarChartIcon size={18} />, text: "Category reports & monthly trends" },
+              { icon: <MailIcon size={18} />, text: "Auto-import purchases from Gmail" },
+              { icon: <RepeatIcon size={18} />, text: "Renewal reminders so nothing slips" },
+            ]}
+          />
+        )}
+        {step === "trust" && (
+          <Paywall
+            eyebrow="Built for trust"
+            title="Your money, private by design"
+            rows={[
+              { icon: <ShieldIcon size={18} />, text: "Your data stays yours — never sold" },
+              { icon: <CheckIcon size={18} />, text: "Cancel anytime, right from Settings" },
+              { icon: <CheckIcon size={18} />, text: "7-day free trial — no charge today" },
+              { icon: <CheckIcon size={18} />, text: "Loved by people taking control of spending" },
+            ]}
+          />
+        )}
+        {step === "pay" && <PlanChooser plan={plan} onPlan={setPlan} />}
+      </div>
+
+      {/* actions */}
+      <div className="space-y-3">
+        {step !== "quiz" && (
+          <Button variant="primary" size="lg" fullWidth onClick={next}>
+            {step === "pay" ? "Start 7-day free trial" : "Continue"}
+          </Button>
+        )}
+        {(step === "preview1" || step === "preview2") && (
+          <button type="button" onClick={skipToPaywall} className="mx-auto block text-[13px] font-medium text-chalk-mute hover:text-chalk">
+            Skip
+          </button>
+        )}
+        {step === "pay" && (
+          <p className="text-center text-[12px] text-chalk-faint">
+            No charge today · cancel anytime. Payment is processed at launch (Stripe).
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Hero({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
+  return (
+    <div className="text-center">
+      <span className="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-[22px] bg-ink-800 text-chalk ring-1 ring-line">{icon}</span>
+      <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-chalk">{title}</h1>
+      <p className="mx-auto mt-3 max-w-[20rem] text-[15px] leading-relaxed text-chalk-mute">{body}</p>
+    </div>
+  );
+}
+
+function Paywall({ eyebrow, title, rows }: { eyebrow: string; title: string; rows: { icon: ReactNode; text: string }[] }) {
+  return (
+    <div>
+      <p className="text-eyebrow uppercase text-chalk-faint">{eyebrow}</p>
+      <h1 className="mt-2 text-[1.75rem] font-bold leading-tight tracking-tight text-chalk">{title}</h1>
+      <ul className="mt-7 space-y-4">
+        {rows.map((r, idx) => (
+          <li key={idx} className="flex items-center gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-800 text-chalk ring-1 ring-line">{r.icon}</span>
+            <span className="text-[15px] text-chalk">{r.text}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BudgetQuiz({ onPick, onSkip }: { onPick: (cents: number) => void; onSkip: () => void }) {
+  const options = [1000, 3000, 5000, 10000];
+  return (
+    <div className="text-center">
+      <p className="text-eyebrow uppercase text-chalk-faint">Quick setup</p>
+      <h1 className="mt-2 text-[1.75rem] font-bold leading-tight tracking-tight text-chalk">What's your monthly budget?</h1>
+      <p className="mx-auto mt-3 max-w-[18rem] text-[15px] text-chalk-mute">We'll track your spending against it. You can change this anytime.</p>
+      <div className="mt-8 grid grid-cols-2 gap-3">
+        {options.map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onPick(toCents(v))}
+            className="rounded-card border border-line-strong bg-ink-850 py-5 text-lg font-semibold tabular-nums text-chalk transition-colors hover:bg-ink-800"
+          >
+            ${v.toLocaleString("en-US")}
+          </button>
+        ))}
+      </div>
+      <button type="button" onClick={onSkip} className="mt-6 text-[13px] font-medium text-chalk-mute hover:text-chalk">
+        Decide later
+      </button>
+    </div>
+  );
+}
+
+function PlanChooser({ plan, onPlan }: { plan: "monthly" | "yearly"; onPlan: (p: "monthly" | "yearly") => void }) {
+  return (
+    <div>
+      <p className="text-eyebrow uppercase text-chalk-faint">Choose your plan</p>
+      <h1 className="mt-2 text-[1.75rem] font-bold leading-tight tracking-tight text-chalk">Start your free trial</h1>
+      <div className="mt-7 space-y-3">
+        <PlanCard active={plan === "yearly"} onClick={() => onPlan("yearly")} name="Yearly" price="$39.99 / year" note="Best value · 2 months free" badge="Save 33%" />
+        <PlanCard active={plan === "monthly"} onClick={() => onPlan("monthly")} name="Monthly" price="$4.99 / month" note="Flexible, cancel anytime" />
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({ active, onClick, name, price, note, badge }: { active: boolean; onClick: () => void; name: string; price: string; note: string; badge?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-card border p-4 text-left transition-colors",
+        active ? "border-chalk bg-ink-800" : "border-line-strong bg-ink-850 hover:bg-ink-800",
+      )}
+    >
+      <span>
+        <span className="flex items-center gap-2">
+          <span className="text-[15px] font-semibold text-chalk">{name}</span>
+          {badge && <span className="rounded-pill bg-chalk px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-950">{badge}</span>}
+        </span>
+        <span className="mt-0.5 block text-[13px] text-chalk-mute">{note}</span>
+      </span>
+      <span className="flex items-center gap-3">
+        <span className="text-[15px] font-semibold tabular-nums text-chalk">{price}</span>
+        <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded-full border", active ? "border-chalk bg-chalk text-ink-950" : "border-line-strong text-transparent")}>
+          <CheckIcon size={13} />
+        </span>
+      </span>
+    </button>
+  );
+}

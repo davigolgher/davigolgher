@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Modal, AmountField, Input, Button, useToast } from "@/components/ui";
 import { TrashIcon } from "@/components/icons";
+import { cn } from "@/lib/cn";
 import { useStore } from "@/data/store";
 import type { Transaction } from "@/data/types";
 import { toDateInput, fromDateInput } from "./dateInput";
@@ -55,18 +56,30 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
       <div className="space-y-4">
         <AmountField value={amount} onChange={setAmount} autoFocus />
 
-        <Input
-          placeholder="Category"
-          list="category-suggestions"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          aria-label="Category"
-        />
-        <datalist id="category-suggestions">
-          {data.categories.map((c) => (
-            <option key={c.id} value={c.label} />
-          ))}
-        </datalist>
+        <div>
+          <Input placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category" />
+          {data.categories.length > 0 && (
+            <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 no-scrollbar">
+              {data.categories.map((c) => {
+                const active = category.trim().toLowerCase() === c.label.toLowerCase();
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setCategory(c.label)}
+                    className={cn(
+                      "shrink-0 rounded-pill border px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                      active ? "border-transparent bg-chalk text-ink-950" : "border-line-strong text-chalk-mute hover:text-chalk",
+                    )}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <Input type="date" aria-label="Date" value={toDateInput(date)} onChange={(e) => setDate(fromDateInput(e.target.value))} />
 

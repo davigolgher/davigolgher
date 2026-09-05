@@ -27,7 +27,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <div
         className={cn(
           "flex items-center gap-2 rounded-field border bg-ink-850 px-4 transition-colors duration-150",
-          "focus-within:border-chalk/30 focus-within:ring-2 focus-within:ring-chalk/10",
+          "focus-within:border-chalk/50",
           error ? "border-chalk/40" : "border-line-strong",
         )}
       >

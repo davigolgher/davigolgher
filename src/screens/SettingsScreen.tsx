@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useStore } from "@/data/store";
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES } from "@/data/currencies";
-import { Alert, Button, Input, ScreenHeader, Select, useToast } from "@/components/ui";
-import { CheckIcon, CloseIcon, LogOutIcon, MailIcon, PlusIcon } from "@/components/icons";
+import { Alert, Button, Input, ScreenHeader, Select, Switch, useToast } from "@/components/ui";
+import { BellIcon, CheckIcon, CloseIcon, LogOutIcon, MailIcon, PlusIcon } from "@/components/icons";
+import { useFlow } from "@/features/flow/FlowProvider";
 
 function SectionLabel({ children }: { children: string }) {
   return <p className="mb-3 text-eyebrow uppercase text-chalk-faint">{children}</p>;
@@ -13,6 +14,7 @@ export function SettingsScreen() {
   const { data, importing, setMonthlyBudget, setCurrency, addCategory, removeCategory, connectGmail, disconnectGmail, importFromGmail } =
     useStore();
   const { toast } = useToast();
+  const flow = useFlow();
 
   const currentBudget = data.budgets.find((b) => b.scope === "total")?.limit ?? 0;
   const [budget, setBudget] = useState(String(toMain(currentBudget)));
@@ -126,9 +128,28 @@ export function SettingsScreen() {
         )}
       </section>
 
+      <section>
+        <SectionLabel>Reminders</SectionLabel>
+        <div className="space-y-3">
+          <Switch
+            label="Daily spending reminder"
+            description="A gentle nudge to log your expenses."
+            checked={flow.reminders}
+            onChange={(on) => {
+              flow.setReminders(on);
+              toast({ message: on ? "Reminders on" : "Reminders off", icon: <BellIcon size={18} /> });
+            }}
+          />
+          <Alert title="On device">
+            Push notifications (like Duolingo's) are delivered by the installed app — they turn on with the native build
+            (Expo push + your backend). This toggle saves your preference for then.
+          </Alert>
+        </div>
+      </section>
+
       <button
         type="button"
-        onClick={() => toast({ message: "Sign out needs an auth backend (coming with Supabase)." })}
+        onClick={() => flow.reset()}
         className="flex items-center gap-2.5 text-[15px] text-chalk-mute transition-colors hover:text-chalk"
       >
         <LogOutIcon size={18} /> Sign out
