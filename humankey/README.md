@@ -133,6 +133,17 @@ python tools/walkthrough.py       # o sistema narrado passo a passo
 maquina do usuario, o que o servidor responde, e o que fica no disco. E o
 caminho mais rapido pra entender o mecanismo sem ler codigo.
 
+### Ver alguem usando
+
+`exemplo/` traz a **SemBot**, uma rede social sem bots escrita como um cliente
+qualquer escreveria - servico separado, banco proprio, sem contrato com
+ninguem. Ela nao pede e-mail, senha nem telefone: pede um cracha anonimo. Veja
+[exemplo/README.md](exemplo/README.md).
+
+```bash
+.venv/bin/python exemplo/sembot.py     # http://localhost:8001
+```
+
 Passkey so funciona em `localhost` ou HTTPS - regra do navegador, nao limitacao
 daqui.
 
@@ -207,4 +218,5 @@ tests/test_flow.py      27 testes da Parte 1 e da infraestrutura
 tests/test_personhood.py 16 testes da Parte 2
 tests/test_sdk_math.js  paridade navegador x servidor
 tools/walkthrough.py    o sistema narrado passo a passo, com valores reais
+exemplo/sembot.py       app de exemplo: uma rede social sem bots (um cliente)
 ```

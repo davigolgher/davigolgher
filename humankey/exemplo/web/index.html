@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SemBot - rede social sem bots</title>
+<style>
+  :root{--bg:#10131a;--card:#191d27;--fg:#e8eef7;--dim:#8d97a8;--line:#2b3140;
+        --ok:#42c26a;--bad:#f2616a;--accent:#7aa2ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif}
+  main{max-width:720px;margin:0 auto;padding:28px 16px 64px}
+  h1{font-size:22px;margin:0 0 2px} h1 span{color:var(--accent)}
+  h2{font-size:12px;margin:0 0 12px;letter-spacing:.08em;
+     text-transform:uppercase;color:var(--dim)}
+  .sub{color:var(--dim);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:18px;margin-bottom:16px}
+  label{display:block;color:var(--dim);margin:0 0 5px;font-size:13px}
+  input,textarea{width:100%;font:inherit;padding:10px 12px;border-radius:8px;
+       background:#10131a;color:var(--fg);border:1px solid var(--line);
+       margin-bottom:10px;resize:vertical}
+  textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  button{font:inherit;padding:10px 16px;border-radius:8px;cursor:pointer;
+         border:1px solid var(--line);background:#232936;color:var(--fg)}
+  button.primary{background:#2a5bd7;border-color:#3b6ce8;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  pre{background:#10131a;border:1px solid var(--line);border-radius:8px;
+      padding:12px;overflow-x:auto;font-size:12px;color:var(--dim);
+      white-space:pre-wrap;word-break:break-word;margin:10px 0 0}
+  .hint{color:var(--dim);font-size:12.5px;margin-top:10px}
+  .post{border-top:1px solid var(--line);padding:11px 0}
+  .post:first-of-type{border-top:0}
+  .quem{color:var(--accent);font-weight:600}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+  a{color:var(--accent)}
+  code{background:#10131a;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Sem<span>Bot</span></h1>
+  <p class="sub">Uma rede social que <b>nao tem bot</b> e <b>nao sabe quem voce
+     e</b>. Normalmente voce escolhe uma das duas.</p>
+
+  <div class="card">
+    <h2>Entrar</h2>
+    <p class="hint" style="margin-top:0">
+      A SemBot nao pede e-mail, senha nem telefone. Ela pede um <b>cracha
+      anonimo</b>. Pegue um no
+      <a href="http://localhost:8000" target="_blank" rel="noopener">Banco Exemplo</a>
+      (Parte 2 &rarr; "Pegar crachas" &rarr; "Copiar 1 cracha") e cole aqui.
+    </p>
+    <label for="apelido">Apelido (invente qualquer um)</label>
+    <input id="apelido" placeholder="ex.: pinguim42" maxlength="24">
+    <label for="badge">Cracha anonimo (JSON colado)</label>
+    <textarea id="badge" rows="4" placeholder='{"epoch": ..., "token": "...", "signature": "..."}'></textarea>
+    <div class="row"><button id="entrar" class="primary">Criar conta</button></div>
+    <div id="res-entrar"></div>
+  </div>
+
+  <div class="card" id="area-post" hidden>
+    <h2>Postar</h2>
+    <textarea id="texto" rows="2" maxlength="280" placeholder="o que voce quer dizer?"></textarea>
+    <div class="row"><button id="postar" class="primary">Postar</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Linha do tempo</h2>
+    <div id="timeline" class="hint">carregando...</div>
+  </div>
+
+  <div class="card">
+    <h2>O banco de dados da SemBot, aberto</h2>
+    <p class="hint" style="margin-top:0">Procure um e-mail. Procure um nome.
+       Procure qualquer coisa que ligue uma conta a uma pessoa real.</p>
+    <div class="row"><button id="ver-banco">Ver tudo que a SemBot guarda</button></div>
+    <pre id="banco">-</pre>
+  </div>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

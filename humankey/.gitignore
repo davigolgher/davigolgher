@@ -8,3 +8,4 @@ demo_tenant.json
 server_secret.bin
 *.pem
 *.key
+sembot.db

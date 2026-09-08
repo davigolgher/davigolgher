@@ -63,7 +63,18 @@ $("btn-badges").onclick = async () => {
          usar. Isso e matematica, nao politica de privacidade.</p>
       <pre>${badges.map((b, i) =>
         `cracha ${i + 1}: ${b.token}\n  assinatura: ${b.signature.slice(0, 60)}...`
-      ).join("\n")}</pre>`);
+      ).join("\n")}</pre>
+      <div class="row"><button id="copiar">Copiar 1 cracha</button>
+        <span id="copiado" class="hint"></span></div>
+      <p class="hint">Cole num site que use o humankey - por exemplo a SemBot,
+         em <code>localhost:8001</code>. Ele vira uma conta la, sem que aquele
+         site descubra nada sobre voce.</p>`);
+    $("copiar").onclick = () => {
+      const b = badges.shift();
+      refreshBadges();
+      navigator.clipboard.writeText(JSON.stringify(b));
+      $("copiado").textContent = "copiado - restam " + badges.length;
+    };
   } catch (e) { fail(e.message); }
 };
 

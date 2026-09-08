@@ -19,4 +19,8 @@ node tests/test_sdk_math.js "$VEC"
 rm -f "$VEC"
 
 echo
+echo "=== Exemplo de integracao (SemBot) ==="
+.venv/bin/python exemplo/teste_exemplo.py
+
+echo
 echo "TUDO VERDE"
