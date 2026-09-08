@@ -50,9 +50,9 @@ def start_verify(user, action="login", context=None):
         "external_id": user, "action": action, "context": context or {}}).json()
 
 
-def finish_verify(s, a, **kw):
+def finish_verify(s, a, user="carlos@banco.com", **kw):
     return c.post("/v1/verifications/%s/complete" % s["verification_id"], json={
-        "client_secret": s["client_secret"],
+        "client_secret": s["client_secret"], "external_id": user,
         "credential": a.authenticate(s["options"], ORIGIN, **kw)})
 
 
@@ -92,7 +92,7 @@ print("\nATAQUE: cadastro fraco tentando operacao de alto valor")
 enroll("ana@banco.com", "self_asserted")  # ninguem conferiu quem e a Ana
 ana_auth, _ = enroll("ana2@banco.com", "self_asserted")
 s = start_verify("ana2@banco.com", "wire_transfer")
-r = finish_verify(s, ana_auth)
+r = finish_verify(s, ana_auth, "ana2@banco.com")
 d = c.post("/demo/approve", json={"token": r.json()["token"],
                                   "action": "wire_transfer",
                                   "min_enrollment": "identity_proofed"}).json()
@@ -117,7 +117,7 @@ check("desafio de uso unico", r2.status_code == 400, r2.text)
 print("\nATAQUE: adivinhar o client_secret")
 s = start_verify("carlos@banco.com", "login")
 r = c.post("/v1/verifications/%s/complete" % s["verification_id"], json={
-    "client_secret": "chute_errado",
+    "client_secret": "chute_errado", "external_id": "carlos@banco.com",
     "credential": carlos.authenticate(s["options"], ORIGIN)})
 check("client_secret errado rejeitado", r.status_code == 400, r.text)
 
@@ -164,6 +164,40 @@ r = c.post("/v1/verifications", headers={"Authorization": "Bearer hk_live_falsa"
 check("chave de API falsa e barrada", r.status_code == 401, r.text)
 r = c.post("/v1/verifications", headers=AUTH, json={"external_id": "ninguem@x.com"})
 check("usuario inexistente e barrado", r.status_code == 404, r.text)
+
+
+print("\nSEGURANCA DA INFRAESTRUTURA")
+r = c.get("/.well-known/jwks.json")
+h = r.headers
+check("cabecalhos de seguranca presentes",
+      h.get("X-Frame-Options") == "DENY" and "nosniff" in h.get("X-Content-Type-Options", "")
+      and "frame-ancestors 'none'" in h.get("Content-Security-Policy", ""), dict(h))
+check("JWKS nao expoe chave privada", "d" not in r.json()["keys"][0], r.text)
+
+r = c.post("/v1/verifications", headers=AUTH,
+           json={"external_id": "carlos@banco.com", "action": "login",
+                 "context": {"lixo": "A" * 200000}})
+check("corpo grande demais e barrado", r.status_code in (400, 413), r.status_code)
+
+s = start_verify("carlos@banco.com", "login")
+r = finish_verify(s, carlos, user="ana2@banco.com")
+check("external_id trocado e rejeitado", r.status_code == 400, r.text)
+
+for _ in range(25):
+    last = c.post("/v1/verifications", headers=AUTH,
+                  json={"external_id": "carlos@banco.com", "action": "login"})
+check("rate limit por usuario dispara", last.status_code == 429, last.status_code)
+
+ok, bad = store.audit_verify()
+check("cadeia de auditoria integra", ok, bad)
+with store.connect() as con:
+    con.execute("UPDATE audit SET detail = 'adulterado' WHERE seq = 1")
+ok, bad = store.audit_verify()
+check("adulteracao do log e detectada", ok is False and bad == 1, (ok, bad))
+
+import sqlite3 as _s
+dump = "\n".join(_s.connect(os.environ["HUMANKEY_DB"]).iterdump())
+check("nenhum e-mail persistido no banco", "carlos@banco.com" not in dump)
 
 
 print("\n%d passaram, %d falharam" % (len(PASS), len(FAIL)))

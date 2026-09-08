@@ -1,179 +1,204 @@
 # humankey
 
-Um servico que outras empresas plugam no sistema delas pra saber que tem uma
-**pessoa real e cadastrada** do outro lado. Tipo o Stripe, mas em vez de
-cobrar, prova presenca humana.
+**A camada de confianca da internet, sem transformar a internet num banco de
+identidades.**
 
-Nao usa camera. Nao analisa video. Nao tenta descobrir se uma imagem foi
-gerada por IA - isso e uma corrida que o detector sempre perde, porque o
-adversario treina contra ele.
+Duas perguntas diferentes precisam de mecanismos diferentes. Quase todo mundo
+tenta responder as duas com a mesma coisa - normalmente uma foto do seu rosto -
+e por isso acaba construindo exatamente o banco de dados que nao deveria existir.
 
-## A ideia, em uma frase
+| | Pergunta | Mecanismo | Resolve |
+|---|---|---|---|
+| **Parte 1** | Voce e *o Carlos*? | Passkey (WebAuthn) | Deepfake em chamada, golpe do CFO, fraude de identidade |
+| **Parte 2** | Voce e *gente*, sem me dizer quem? | Assinatura cega (Chaum) | Bot em rede social, perfil falso, avaliacao comprada |
 
-Em vez de tentar *olhar* pra pessoa, o sistema **faz o aparelho dela provar
-que ela e ela**.
+As duas compartilham o mesmo cadastro e **nunca** compartilham dado entre si.
+E essa separacao que faz a privacidade ser uma propriedade matematica em vez de
+uma promessa num rodape.
 
-## Como funciona
+## O que nao fazemos: detectar IA
 
-**Uma vez, no cadastro:** o celular da pessoa cria um par de chaves. A chave
-privada nasce e morre dentro do chip de seguranca do aparelho - nao sai por
-cabo, nem por print, nem se a pessoa quiser. O servidor guarda so a chave
-publica, que sozinha nao serve pra se passar por ninguem.
+Nao analisamos video procurando artefato de geracao. Essa corrida o detector
+perde por construcao - todo detector publicado vira funcao de aptidao pro
+proximo gerador, e detectores treinados num pipeline caem pra quase aleatorio
+num modelo tres meses mais novo.
 
-**Toda vez que precisa verificar:**
+Nos invertemos a pergunta. Em vez de "esse video e falso?", que voce sempre
+perde, perguntamos **"cade a prova?"**. Prova nao envelhece com o avanco dos
+geradores.
 
-1. O backend da empresa pede um desafio, preso a uma acao especifica.
-2. O celular da pessoa pede digital / Face ID / PIN - **no aparelho dela**.
-3. O celular assina o desafio.
-4. O servidor confere e emite um cracha assinado, valido por 2 minutos.
+---
 
-## Por que isso derruba o deepfake
+## Parte 1 - Prova de identidade
 
-O golpista consegue copiar **o rosto** e **a voz**. Nao consegue copiar **a
-chave**, porque ela esta trancada no celular da vitima.
+O celular da pessoa cria um par de chaves. A privada nasce e morre dentro do
+chip de seguranca; nao sai por cabo, nem por print, nem se a pessoa quiser.
 
-Nao importa o quanto o video esteja perfeito: sem assinatura, nao passa. A
-pergunta deixou de ser "esse video e real?" (que voce sempre perde) e passou a
-ser "cade a prova?".
+Quando a empresa precisa verificar:
 
-Isso esta testado. O teste `celular do golpista rejeitado` faz exatamente esse
-ataque.
+1. O backend dela pede um desafio, **preso a uma acao especifica**.
+2. O celular pede digital / Face ID / PIN - no aparelho da pessoa.
+3. O celular assina.
+4. Nos conferimos e emitimos um cracha assinado, valido por 2 minutos.
 
-## Por que passkey e nao codigo por SMS
+**Por que isso derruba o deepfake:** o golpista clona o rosto e a voz. Nao clona
+a chave, que esta trancada no celular da vitima. Nao importa o quanto o video
+esteja perfeito - sem assinatura, nao passa.
+
+### Por que passkey e nao codigo por SMS
 
 | | Codigo por SMS | Passkey |
 |---|---|---|
-| Golpista liga e pede pra voce ler | **funciona** | nao tem o que ler |
-| Clonagem de chip | **funciona** | nao usa telefonia |
+| Golpista liga e pede pra voce ler | **funciona** | nao existe codigo pra ler |
+| Clonagem de chip (SIM swap) | **funciona** | nao usa telefonia |
 | Site clonado | **funciona** | a chave e presa ao dominio real |
 | Custo por uso | por mensagem | zero |
 
-Nao existe codigo pra ser lido em voz alta. E o que torna a passkey resistente
-a phishing por definicao, e nao por treinamento do usuario.
-
-## O ponto onde tudo pode dar errado: o cadastro
+### O ponto onde tudo pode dar errado: o cadastro
 
 **A seguranca inteira vale o quanto vale o momento do cadastro.** Se o golpista
-conseguir se cadastrar como "Carlos" no primeiro dia, todas as verificacoes
-depois vao dar verde - e estarao corretas, do ponto de vista do sistema. Ele e
-o Carlos agora.
+se cadastrar como "Carlos" no primeiro dia, todas as verificacoes depois darao
+verde - e estarao corretas, do ponto de vista do sistema.
 
-Por isso o nivel de cadastro viaja **dentro do token**, e a empresa decide o
-que exigir pra cada operacao:
+Por isso o nivel do cadastro viaja **dentro do cracha**:
 
-| Nivel | O que foi conferido | Serve pra |
-|---|---|---|
-| `self_asserted` | nada - a pessoa se cadastrou sozinha | entrar no sistema |
-| `vouched` | alguem da empresa confirmou (RH, gestor) | operacoes internas |
-| `identity_proofed` | documento conferido, presencial ou video | transferencia, contrato |
+| Nivel | O que foi conferido | NIST | Serve pra |
+|---|---|---|---|
+| `self_asserted` | nada | IAL1 | entrar no sistema |
+| `vouched` | alguem da empresa confirmou | ~IAL1+ | operacoes internas |
+| `identity_proofed` | documento conferido | IAL2 | transferencia, cracha anonimo |
 
-Na demo, um usuario `self_asserted` **e barrado** ao tentar aprovar R$ 25
-milhoes, mesmo com a assinatura perfeitamente valida. E o comportamento certo.
+Na demo, um usuario `self_asserted` **e barrado** ao aprovar R$ 25 milhoes,
+mesmo com assinatura perfeitamente valida. E o comportamento certo.
 
-## O que este sistema NAO prova
+---
 
-Tres limites reais, nao ressalvas de rodape:
+## Parte 2 - Prova de humanidade anonima
 
-1. **Nao prova que o rosto na tela e daquela pessoa.** Prova que o dono do
-   celular cadastrado participou. Por isso voce trava a *aprovacao*, nao o
-   video - ninguem transfere 25 milhoes sem alguem assinar.
-2. **Contra robo/IA, da responsabilizacao, nao presenca.** Prova que existe
-   uma pessoa real e identificada por tras da conta. Nao prova que foi ela quem
-   digitou aquela frase agora. Pra quase todo caso de empresa, responsabilizacao
-   e o que se quer de verdade.
-3. **Passkey sincronizada existe em mais de um aparelho.** iPhone e Android
-   sincronizam passkeys pela conta (iCloud / Google). Comodo pro usuario, mas
-   significa que a chave esta em todo aparelho logado naquela conta. O campo
-   `device_type` diz qual e o caso; pra operacao critica, exija
-   `single_device`.
+Aqui esta a parte que quase ninguem constroi, e que responde a linha
+"idealmente sem que todo mundo abra mao da privacidade".
+
+**O truque, em portugues:**
+
+1. Voce sorteia um numero secreto e o fecha num envelope opaco.
+2. O emissor assina **por cima do envelope**, sem ver o que tem dentro.
+3. Voce tira o envelope. A assinatura continua valida no numero de dentro.
+4. Voce mostra esse numero assinado em qualquer site.
+
+**O que ninguem consegue fazer:**
+
+- O **site** nao descobre quem voce e - recebe um numero aleatorio assinado.
+- O **emissor** nao descobre onde voce usou - nunca viu aquele numero.
+- **Nem os dois juntos**, porque nao existe nada em comum entre o que cada um
+  viu.
+
+Isso e matematica (assinatura cega, Chaum 1982), nao politica de privacidade.
+Os testes em `tests/test_personhood.py` verificam essas afirmacoes uma a uma.
+
+### Tres ataques que o design precisou tratar
+
+**Marcacao pelo emissor.** Se o emissor usasse uma chave diferente por pessoa, a
+assinatura entregaria a identidade. Por isso existe a **epoca**: uma unica chave
+publica por semana, valida pra todo mundo. Se aparecerem duas chaves ativas na
+mesma epoca, e emissor malicioso - e da pra provar.
+
+**Cruzamento entre sites.** Se o mesmo cracha pudesse ser gasto em dois sites,
+os dois poderiam comparar o valor e concluir "e a mesma pessoa". Por isso o uso
+e unico **global**, nao por escopo.
+
+**Fazenda de humanos falsos.** Cracha anonimo exige cadastro
+`identity_proofed`, e ha teto por pessoa por epoca. Sem isso, um golpista com
+mil e-mails viraria mil "humanos verificados".
+
+### A ressalva honesta
+
+O teto e de **5 crachas por pessoa por semana**. Isso significa que uma pessoa
+pode criar ate 5 contas por semana no conjunto de todos os sites. Nao e "um
+humano, uma conta" - e "um humano, poucas contas", que ja destroi a economia de
+fazenda de bots sem exigir identificacao em cada site. Aumentar o teto melhora
+a usabilidade e piora a resistencia a spam: e um botao de produto, nao um
+detalhe tecnico.
+
+---
 
 ## Rodar
 
 ```bash
-./run.sh                       # http://localhost:8000
-.venv/bin/python tests/test_flow.py
+./run.sh          # http://localhost:8000
+./run_tests.sh    # 43 testes
 ```
 
-Passkey so funciona em `localhost` ou HTTPS - e uma regra do navegador, nao
-uma limitacao daqui.
+Passkey so funciona em `localhost` ou HTTPS - regra do navegador, nao limitacao
+daqui.
 
-Na demo: cadastre uma passkey, depois tente "Entrar" e "Aprovar transferencia".
-Repare que o token do login **nao** aprova a transferencia.
+Na demo: cadastre a passkey, tente as duas acoes da Parte 1, depois pegue
+crachas anonimos e use em dois sites ficticios. Repare no que cada site aprende.
 
 ## Testes
 
-19 testes, dos quais 9 sao ataques concretos. `tests/authenticator.py` e um
-celular de mentira em Python: guarda uma chave, monta o `authenticatorData`,
-assina. Da pra forjar respostas invalidas de proposito.
+**43 testes, 20 deles ataques concretos.** `tests/authenticator.py` e um celular
+de mentira em Python: guarda uma chave, monta o `authenticatorData` e assina -
+o que permite forjar respostas invalidas de proposito.
 
 ```
-FLUXO NORMAL                     cadastro, verificacao, aprovacao
-reusar assinatura de login       token de 'login' nao aprova transferencia
-cadastro fraco                   'self_asserted' barrado em alto valor
-celular do golpista              rejeitado  <- o caso do deepfake
-replay                           desafio e de uso unico
-client_secret errado             rejeitado
-assinar sem biometria            rejeitado
-passkey de outro usuario         rejeitada
-desafio expirado                 rejeitado
-token de outra empresa           rejeitado
+PARTE 1
+  celular do golpista               rejeitado   <- o caso do deepfake
+  reusar assinatura de login        rejeitado
+  replay do mesmo desafio           rejeitado
+  assinar sem biometria             rejeitado
+  passkey de outro usuario          rejeitada
+  external_id trocado               rejeitado
+  desafio expirado                  rejeitado
+  token de outra empresa            rejeitado
+
+PARTE 2
+  double spend                      barrado
+  mesmo cracha em outro site        barrado (impede cruzamento)
+  assinatura forjada                rejeitada
+  cadastro fraco pedindo cracha     barrado
+  token de login virando cracha     barrado
+  teto por epoca                    barrado
+  chave unica por epoca             conferido (defesa contra marcacao)
+
+INFRAESTRUTURA
+  cabecalhos de seguranca           presentes
+  corpo grande demais               barrado
+  rate limit por usuario            dispara
+  adulteracao do log de auditoria   detectada
+  nenhum e-mail persistido          conferido no dump do banco
 ```
 
-Se um desses passar quando nao deveria, e buraco de seguranca real - nao e
-"so um teste vermelho".
+Mais a paridade matematica entre o SDK do navegador e o servidor: se o
+full-domain hash divergir num byte, nenhuma assinatura confere - e o sintoma
+seria so "assinatura invalida", impossivel de diagnosticar em producao.
 
-## Como uma empresa cliente integra
+## Privacidade e conformidade
 
-No backend dela (a chave de API nunca chega no navegador):
+Ver **[PRIVACY.md](PRIVACY.md)** - inventario do que e e do que nao e guardado,
+LGPD, GDPR, BIPA, mapeamento NIST 800-63-3, retencao, e o que falta antes do
+primeiro cliente real.
 
-```python
-r = requests.post("https://api.humankey.com/v1/verifications",
-                  headers={"Authorization": f"Bearer {API_KEY}"},
-                  json={"external_id": "carlos@banco.com",
-                        "action": "wire_transfer",
-                        "context": {"amount_brl": 25000000}})
-# devolve r.json()["client_secret"] pro navegador
-```
+A estrategia em uma frase: **a forma mais barata de nao vazar um dado e nao ter
+aquele dado.** Nenhuma biometria, nenhum e-mail, nenhuma senha. Se o banco
+inteiro vazar, o atacante ganha identificadores opacos e chaves publicas.
 
-No site dela:
+## Seguranca
 
-```html
-<script src="https://js.humankey.com/humankey.js"></script>
-<script>
-  const { token } = await humankey.verify({ start: "/meu-backend/aprovar" });
-  // manda o token pro backend
-</script>
-```
-
-De volta no backend, conferindo o cracha:
-
-```python
-claims = jwt.decode(token, chave_publica_do_jwks, algorithms=["ES256"],
-                    audience=MEU_TENANT_ID, issuer="https://humankey.com")
-if claims["action"] == "wire_transfer" and claims["enrollment"] == "identity_proofed":
-    liberar()
-```
+Ver **[SECURITY.md](SECURITY.md)** - modelo de ameaca, o que esta defendido, e a
+lista honesta do que **nao** esta implementado (recuperacao de conta, rotacao de
+chave, HSM, rate limiting distribuido, conferencia real de documento).
 
 ## Arquivos
 
 ```
-app/main.py            a API (cadastro, verificacao) + o backend de demo
-app/store.py           SQLite: empresas, usuarios, passkeys, desafios, auditoria
-app/tokens.py          assina e confere o cracha (JWT ES256) + JWKS
-web/humankey.js        o SDK que a empresa cola no site dela
-web/demo.html          site ficticio de um banco, pra ver o fluxo rodando
-tests/authenticator.py celular de mentira, pra testar sem aparelho
-tests/test_flow.py     19 testes, 9 deles sao ataques
+app/main.py             API das duas partes + backend de demo
+app/store.py            SQLite com minimizacao de PII, rate limit, auditoria encadeada
+app/tokens.py           cracha assinado (JWT ES256) + JWKS
+app/personhood.py       assinatura cega RSA com full-domain hash
+web/humankey.js         SDK: WebAuthn + a matematica cega em BigInt
+web/demo.html/.js       site ficticio pra ver o fluxo inteiro
+tests/authenticator.py  celular de mentira, pra testar sem aparelho
+tests/test_flow.py      27 testes da Parte 1 e da infraestrutura
+tests/test_personhood.py 16 testes da Parte 2
+tests/test_sdk_math.js  paridade navegador x servidor
 ```
-
-## Proximos passos
-
-1. **Recuperacao de conta.** O usuario perdeu o celular. Este e o caminho que
-   todo golpista vai atacar primeiro, porque e o elo mais fraco de qualquer
-   sistema de autenticacao. Exija o mesmo nivel de conferencia do cadastro
-   original - nunca menos.
-2. **Mais de uma passkey por pessoa**, pra ninguem ficar trancado do lado de fora.
-3. **Webhook** avisando a empresa cliente de cada verificacao.
-4. **Limite de tentativas** por usuario e por chave de API.
-5. **Nivel `identity_proofed` de verdade**: hoje a empresa so declara o nivel.
-   Falta integrar conferencia de documento.

@@ -3,3 +3,8 @@ __pycache__/
 *.db
 signing_key.pem
 demo_tenant.json
+
+# segredos - NUNCA versionar
+server_secret.bin
+*.pem
+*.key
