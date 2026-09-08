@@ -124,9 +124,14 @@ detalhe tecnico.
 ## Rodar
 
 ```bash
-./run.sh          # http://localhost:8000
-./run_tests.sh    # 52 verificacoes
+./run.sh                          # a demo em http://localhost:8000
+./run_tests.sh                    # 52 verificacoes
+python tools/walkthrough.py       # o sistema narrado passo a passo
 ```
+
+`tools/walkthrough.py` roda o sistema inteiro e narra cada passo: o que sai da
+maquina do usuario, o que o servidor responde, e o que fica no disco. E o
+caminho mais rapido pra entender o mecanismo sem ler codigo.
 
 Passkey so funciona em `localhost` ou HTTPS - regra do navegador, nao limitacao
 daqui.
@@ -201,4 +206,5 @@ tests/authenticator.py  celular de mentira, pra testar sem aparelho
 tests/test_flow.py      27 testes da Parte 1 e da infraestrutura
 tests/test_personhood.py 16 testes da Parte 2
 tests/test_sdk_math.js  paridade navegador x servidor
+tools/walkthrough.py    o sistema narrado passo a passo, com valores reais
 ```
