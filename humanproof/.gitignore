@@ -1,5 +1,0 @@
-.venv/
-__pycache__/
-sessions/*.json
-sessions_synthetic/
-out/
