@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banco Exemplo - demo do humankey</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--fg:#e6edf3;--dim:#8b949e;--line:#30363d;
+        --ok:#3fb950;--bad:#f85149;--warn:#d29922;--blue:#58a6ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif}
+  main{max-width:820px;margin:0 auto;padding:28px 16px 64px}
+  h1{font-size:19px;margin:0 0 4px}
+  h2{font-size:14px;margin:0 0 12px;color:var(--blue);
+     text-transform:uppercase;letter-spacing:.06em}
+  .sub{color:var(--dim);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:18px;margin-bottom:16px}
+  label{display:block;color:var(--dim);margin:0 0 5px;font-size:13px}
+  input,select{width:100%;font:inherit;padding:9px 11px;border-radius:8px;
+       background:#0d1117;color:var(--fg);border:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  button{font:inherit;padding:10px 16px;border-radius:8px;cursor:pointer;
+         border:1px solid var(--line);background:#21262d;color:var(--fg)}
+  button.primary{background:#238636;border-color:#2ea043;font-weight:600}
+  button.danger{background:#8b2c25;border-color:#a5352c;font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  pre{background:#0d1117;border:1px solid var(--line);border-radius:8px;
+      padding:12px;overflow-x:auto;font-size:12px;color:var(--dim);margin:12px 0 0}
+  .verdict{font-size:16px;font-weight:700;margin-bottom:6px}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .hint{color:var(--dim);font-size:12.5px;margin-top:10px}
+  ul{margin:8px 0 0;padding-left:18px;color:var(--dim);font-size:13px}
+  code{background:#0d1117;padding:1px 5px;border-radius:4px;font-size:12.5px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Banco Exemplo</h1>
+  <p class="sub">Site ficticio de um cliente que instalou o humankey.
+     Tudo que precisou foi uma tag <code>&lt;script&gt;</code> e duas chamadas
+     no backend.</p>
+
+  <div class="card">
+    <h2>1. Cadastro (uma vez por pessoa)</h2>
+    <div class="grid">
+      <div>
+        <label for="user">Usuario</label>
+        <input id="user" value="carlos@bancoexemplo.com">
+      </div>
+      <div>
+        <label for="level">Como a identidade foi conferida</label>
+        <select id="level">
+          <option value="self_asserted">self_asserted - ninguem conferiu nada</option>
+          <option value="vouched">vouched - o RH confirmou que e ele</option>
+          <option value="identity_proofed">identity_proofed - documento conferido</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <button id="btn-enroll" class="primary">Cadastrar passkey</button>
+    </div>
+    <p class="hint">O aparelho vai pedir sua digital, Face ID ou PIN. A chave
+       privada nasce e morre dentro dele - o servidor so recebe a chave publica,
+       que sozinha nao serve pra se passar por ninguem.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Usar</h2>
+    <div class="row">
+      <button id="btn-login">Entrar no sistema</button>
+      <button id="btn-wire" class="danger">Aprovar transferencia de R$ 25.000.000</button>
+    </div>
+    <p class="hint">Cada botao cria um desafio <b>preso aquela acao</b>. A
+       assinatura do "entrar" nao aprova transferencia nenhuma, mesmo sendo da
+       mesma pessoa, no mesmo minuto.</p>
+  </div>
+
+  <div id="out"></div>
+
+  <div class="card">
+    <h2>Log de auditoria</h2>
+    <div class="row"><button id="btn-audit">Atualizar</button></div>
+    <pre id="audit">-</pre>
+  </div>
+</main>
+
+<script src="/static/humankey.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const out = $("out");
+
+function show(html) { out.innerHTML = `<div class="card">${html}</div>`; }
+function fail(msg) { show(`<div class="verdict bad">Erro</div><pre>${msg}</pre>`); }
+
+$("btn-enroll").onclick = async () => {
+  try {
+    const r = await humankey.enroll({ start: "/demo/enroll", body: {
+      external_id: $("user").value, display: $("user").value,
+      enrollment_level: $("level").value } });
+    show(`<div class="verdict ok">Passkey cadastrada</div>
+      <pre>nivel de cadastro : ${r.enrollment}
+tipo de passkey   : ${r.device_type}${r.device_type === "multi_device"
+  ? "  (sincroniza entre aparelhos via iCloud/Google)" : "  (presa a este aparelho)"}
+credential_id     : ${r.credential_id.slice(0, 24)}...</pre>`);
+  } catch (e) { fail(e.message); }
+};
+
+async function run(action, minEnrollment, context) {
+  try {
+    const r = await humankey.verify({ start: "/demo/verify",
+      body: { external_id: $("user").value, action, context: context || {} } });
+
+    // Aqui o navegador so repassa o token. Quem decide e o backend.
+    const d = await (await fetch("/demo/approve", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: r.token, action,
+                             min_enrollment: minEnrollment }) })).json();
+
+    show(`<div class="verdict ${d.approved ? "ok" : "warn"}">
+        ${d.approved ? "APROVADO" : "NEGADO"}
+      </div>
+      <div style="color:var(--dim)">${d.reason}</div>
+      <pre>${JSON.stringify(d.claims || {}, null, 2)}</pre>
+      <p class="hint">O token acima e assinado. O backend conferiu com a chave
+         publica de <code>/.well-known/jwks.json</code> - ele nao confiou em
+         nada que veio do navegador.</p>`);
+  } catch (e) { fail(e.message); }
+}
+
+$("btn-login").onclick = () => run("login", "self_asserted");
+$("btn-wire").onclick = () => run("wire_transfer", "identity_proofed",
+                                  { amount_brl: 25000000, to: "conta 4471-2" });
+
+$("btn-audit").onclick = async () => {
+  const r = await (await fetch("/demo/audit")).json();
+  $("audit").textContent = r.events.map((e) =>
+    `${new Date(e.at * 1000).toLocaleTimeString("pt-BR")}  ${e.event.padEnd(14)} ${e.detail || ""}`
+  ).join("\n") || "(vazio)";
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.db
+signing_key.pem
+demo_tenant.json
