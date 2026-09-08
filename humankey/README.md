@@ -125,7 +125,7 @@ detalhe tecnico.
 
 ```bash
 ./run.sh          # http://localhost:8000
-./run_tests.sh    # 43 testes
+./run_tests.sh    # 52 verificacoes
 ```
 
 Passkey so funciona em `localhost` ou HTTPS - regra do navegador, nao limitacao
@@ -136,7 +136,7 @@ crachas anonimos e use em dois sites ficticios. Repare no que cada site aprende.
 
 ## Testes
 
-**43 testes, 20 deles ataques concretos.** `tests/authenticator.py` e um celular
+**52 verificacoes automatizadas, 16 delas ataques concretos.** `tests/authenticator.py` e um celular
 de mentira em Python: guarda uma chave, monta o `authenticatorData` e assina -
 o que permite forjar respostas invalidas de proposito.
 

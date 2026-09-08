@@ -3,8 +3,13 @@ const $ = (id) => document.getElementById(id);
 const out = $("out");
 let badges = [];      // na vida real: guardados no aparelho do usuario
 
+/* A demo e o molde que a empresa cliente vai copiar. Entao nada de jogar
+ * dado de terceiro em innerHTML, mesmo com a CSP bloqueando script inline:
+ * o padrao errado viaja pro codigo dos outros. */
+const esc = (v) => String(v).replace(/[&<>"']/g,
+  (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const show = (h) => { out.innerHTML = `<div class="card">${h}</div>`; };
-const fail = (m) => show(`<div class="verdict bad">Erro</div><pre>${m}</pre>`);
+const fail = (m) => show(`<div class="verdict bad">Erro</div><pre>${esc(m)}</pre>`);
 const user = () => $("user").value;
 
 function refreshBadges() {
@@ -31,12 +36,13 @@ async function act(action, minEnrollment, context) {
     body: { external_id: user(), action, context: context || {} } });
   const d = await (await fetch("/demo/approve", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: r.token, action, min_enrollment: minEnrollment }),
+    body: JSON.stringify({ token: r.token, action, min_enrollment: minEnrollment,
+                           expect_context: context || {} }),
   })).json();
   show(`<div class="verdict ${d.approved ? "ok" : "warn"}">
       ${d.approved ? "APROVADO" : "NEGADO"}</div>
-    <div style="color:var(--dim)">${d.reason}</div>
-    <pre>${JSON.stringify(d.claims || {}, null, 2)}</pre>`);
+    <div style="color:var(--dim)">${esc(d.reason)}</div>
+    <pre>${esc(JSON.stringify(d.claims || {}, null, 2))}</pre>`);
   return r.token;
 }
 
@@ -68,7 +74,7 @@ async function useAt(scope, siteLabel) {
     refreshBadges();
     show(`<div class="verdict ok">${siteLabel}: conta criada</div>
       <p class="hint">O que <b>${scope}</b> aprendeu sobre voce:</p>
-      <pre>${JSON.stringify(r, null, 2)}</pre>
+      <pre>${esc(JSON.stringify(r, null, 2))}</pre>
       <p class="hint">Repare no que <b>nao</b> esta ai: nome, e-mail, de qual
          banco veio, nem um identificador que sirva pra cruzar com outro site.
          O cracha e de uso unico global exatamente pra que dois sites nao
@@ -87,7 +93,7 @@ $("btn-double").onclick = async () => {
     fail("PROBLEMA: o cracha foi aceito duas vezes");
   } catch (e) {
     show(`<div class="verdict ok">Reuso bloqueado</div>
-      <pre>${e.message}</pre>
+      <pre>${esc(e.message)}</pre>
       <p class="hint">E o que impede tanto a fraude (uma pessoa, mil contas)
          quanto o cruzamento entre sites.</p>`);
   }

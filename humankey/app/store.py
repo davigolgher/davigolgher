@@ -120,6 +120,15 @@ CREATE TABLE IF NOT EXISTS personhood_spent (
   spent_at   INTEGER NOT NULL
 );
 
+-- Crachas ja consumidos, pra impedir que a MESMA aprovacao valha duas vezes
+-- dentro dos 120 s de validade. Sem isto, um proxy que capture o token aprova
+-- duas transferencias com uma assinatura so.
+CREATE TABLE IF NOT EXISTS used_tokens (
+  jti     TEXT PRIMARY KEY,
+  exp     INTEGER NOT NULL,
+  used_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_chal_exp  ON challenges(expires_at);
 CREATE INDEX IF NOT EXISTS idx_audit_ten ON audit(tenant_id, seq DESC);
 """
@@ -300,6 +309,8 @@ def purge_expired(older_than_seconds=86400):
     with connect() as con:
         cur = con.execute("DELETE FROM challenges WHERE expires_at < ?",
                           (now() - older_than_seconds,))
+        con.execute("DELETE FROM used_tokens WHERE exp < ?",
+                    (now() - older_than_seconds,))
         return cur.rowcount
 
 
@@ -407,6 +418,23 @@ def add_issued(user_id, epoch, n, limit):
             "UPDATE personhood_issued SET count = count + ? WHERE user_id = ?"
             " AND epoch = ? AND count + ? <= ?", (n, user_id, epoch, n, limit))
         return cur.rowcount == 1
+
+
+def consume_jti(jti, exp):
+    """Consome um cracha da Parte 1. False se ja foi usado.
+
+    O cracha e assinado e tem prazo curto, mas prazo curto nao e uso unico:
+    dentro da janela ele vale quantas vezes for apresentado. Quem integra
+    PRECISA consumir o jti antes de agir - e o mesmo cuidado que se toma com
+    um numero de autorizacao de pagamento.
+    """
+    try:
+        with connect() as con:
+            con.execute("INSERT INTO used_tokens (jti, exp, used_at) VALUES (?,?,?)",
+                        (jti, exp, now()))
+        return True
+    except sqlite3.IntegrityError:
+        return False
 
 
 def spend(spend_id, scope, epoch):

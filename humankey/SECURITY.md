@@ -19,8 +19,8 @@ de producao. A secao "ainda nao implementado" e a mais importante das tres.
 
 ## Defesas implementadas e testadas
 
-Cada item abaixo tem teste correspondente em `tests/`. 43 testes, dos quais 20
-sao ataques concretos.
+Cada item abaixo tem teste correspondente em `tests/`. 52 verificacoes automatizadas, das quais 16 sao
+ataques concretos.
 
 **Autenticacao (Parte 1)**
 - WebAuthn com `user_verification=required` no cadastro e na verificacao: um
@@ -91,3 +91,30 @@ nao e "so um teste vermelho".
 
 Achou uma falha? Nao abra issue publica. Escreva para o mantenedor com passos
 de reproducao. Prazo alvo: resposta em 72 h, correcao em 90 dias.
+
+## Achados da revisao de seguranca desta versao
+
+Uma revisao adversarial do proprio codigo encontrou tres coisas reais. Todas
+foram corrigidas e cobertas por teste - ficam registradas aqui porque sao
+exatamente os erros que quem integrar tende a repetir.
+
+**1. Prazo curto nao e uso unico.** O cracha da Parte 1 vale 120 s. Dentro
+dessa janela, ele era aceito quantas vezes fosse apresentado - o que aprovaria
+duas transferencias com uma assinatura so. Corrigido com consumo de `jti`
+(`store.consume_jti`). **Quem integra precisa fazer o mesmo do lado dele**: o
+cracha e como um numero de autorizacao de pagamento, se gasta uma vez.
+
+**2. Amarrar o contexto nao serve se ninguem conferir.** O cracha carrega
+`ctx` com o valor e o destino da operacao, mas o backend de referencia nao
+comparava esse `ctx` com a operacao real. Um cracha assinado para "transferir
+R$ 10" aprovaria "transferir R$ 25 milhoes". Corrigido: `demo_approve` agora
+exige `expect_context` e recusa divergencia.
+
+**3. `innerHTML` com dado de terceiro no codigo de exemplo.** A CSP sem
+`unsafe-inline` ja bloqueava execucao, entao nao era exploravel - mas a demo e
+o molde que o cliente copia, e o padrao errado viaja. Corrigido com escape
+explicito.
+
+Alem disso, `server_secret.bin` chegou a ser versionado por engano num commit
+local e foi removido antes de qualquer push; o `.gitignore` agora cobre
+`server_secret.bin`, `*.pem` e `*.key`.

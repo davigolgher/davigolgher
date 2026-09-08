@@ -324,6 +324,17 @@ class RedeemRequest(BaseModel):
     scope: str = Field(min_length=1, max_length=128)       # ex.: "twitter.com"
 
 
+@app.options("/v1/personhood/redeem")
+def personhood_redeem_preflight():
+    """Preflight do CORS: qualquer site precisa conseguir chamar isto do
+    navegador. Sem credencial, entao liberar a origem nao expoe nada."""
+    return JSONResponse({}, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "600"})
+
+
 @app.post("/v1/personhood/redeem")
 def personhood_redeem(body: RedeemRequest):
     """Qualquer site chama isto. Nao precisa de chave de API, e de proposito:
@@ -352,7 +363,9 @@ def personhood_redeem(body: RedeemRequest):
         # o mesmo cracha e descobrir que e a mesma pessoa.
         raise HTTPException(409, "cracha ja usado")
 
-    return {"ok": True, "human": True, "scope": body.scope, "epoch": body.epoch}
+    return JSONResponse(
+        {"ok": True, "human": True, "scope": body.scope, "epoch": body.epoch},
+        headers={"Access-Control-Allow-Origin": "*"})
 
 
 # ------------------------------------------------------------ auxiliares
@@ -424,6 +437,7 @@ class DemoApprove(BaseModel):
     token: str
     action: str
     min_enrollment: str = "self_asserted"
+    expect_context: dict = {}
 
 
 @app.post("/demo/approve")
@@ -447,6 +461,21 @@ def demo_approve(body: DemoApprove):
                 "reason": "esta operacao exige cadastro '%s', mas este usuario "
                           "foi cadastrado como '%s'"
                           % (body.min_enrollment, claims["enrollment"])}
+
+    # Amarrar o contexto no cracha nao serve de nada se quem recebe nao
+    # CONFERIR. Sem esta comparacao, um cracha assinado para "transferir 10
+    # reais" aprovaria "transferir 25 milhoes".
+    if body.expect_context and claims.get("ctx") != body.expect_context:
+        return {"approved": False, "claims": claims,
+                "reason": "o cracha foi assinado para outra operacao: %s"
+                          % json.dumps(claims.get("ctx"))}
+
+    # Uso unico. Prazo curto nao e uso unico: dentro dos 120 s o mesmo cracha
+    # aprovaria duas transferencias.
+    if not store.consume_jti(claims["jti"], claims["exp"]):
+        return {"approved": False, "claims": claims,
+                "reason": "este cracha ja foi usado (replay bloqueado)"}
+
     return {"approved": True, "claims": claims,
             "reason": "assinatura valida, biometria confirmada, cadastro suficiente"}
 

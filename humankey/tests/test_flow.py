@@ -166,6 +166,27 @@ r = c.post("/v1/verifications", headers=AUTH, json={"external_id": "ninguem@x.co
 check("usuario inexistente e barrado", r.status_code == 404, r.text)
 
 
+print("\nATAQUE: reapresentar o MESMO cracha (replay dentro da validade)")
+s = start_verify("carlos@banco.com", "wire_transfer", {"amount_brl": 1000})
+tok = finish_verify(s, carlos).json()["token"]
+body = {"token": tok, "action": "wire_transfer", "min_enrollment": "identity_proofed",
+        "expect_context": {"amount_brl": 1000}}
+first = c.post("/demo/approve", json=body).json()
+second = c.post("/demo/approve", json=body).json()
+check("primeira apresentacao aprova", first["approved"] is True, first)
+check("segunda apresentacao do mesmo cracha e barrada",
+      second["approved"] is False and "ja foi usado" in second["reason"], second)
+
+
+print("\nATAQUE: cracha de R$ 10 aprovando R$ 25 milhoes")
+s = start_verify("carlos@banco.com", "wire_transfer", {"amount_brl": 10})
+tok = finish_verify(s, carlos).json()["token"]
+d = c.post("/demo/approve", json={
+    "token": tok, "action": "wire_transfer", "min_enrollment": "identity_proofed",
+    "expect_context": {"amount_brl": 25000000}}).json()
+check("contexto divergente e barrado", d["approved"] is False, d)
+
+
 print("\nSEGURANCA DA INFRAESTRUTURA")
 r = c.get("/.well-known/jwks.json")
 h = r.headers
