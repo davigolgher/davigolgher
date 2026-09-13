@@ -1,7 +1,6 @@
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
-import { cn } from "@/lib/cn";
 import { incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
 import { Button, ScreenHeader, StatCard, Skeleton } from "@/components/ui";
 import { PlusIcon } from "@/components/icons";
@@ -40,18 +39,18 @@ export function HomeScreen() {
         }
       />
 
-      {/* Budget hero — mesh gradient, big number, status pill */}
-      <div className={cn("relative overflow-hidden rounded-card border border-line p-5", overBudget ? "mesh-amber" : "mesh-green")}>
+      {/* Budget hero — big number, status pill, spend progress (monochrome) */}
+      <div className="rounded-card border border-line bg-ink-850 p-5">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-eyebrow uppercase text-chalk/55">{hasBudget ? "Budget remaining" : "Spent this month"}</p>
-          <span className="rounded-pill bg-ink-950/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-chalk ring-1 ring-white/50 backdrop-blur-sm">
+          <p className="text-eyebrow uppercase text-chalk-faint">{hasBudget ? "Budget remaining" : "Spent this month"}</p>
+          <span className="rounded-pill bg-ink-800 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-chalk-soft ring-1 ring-line">
             {status}
           </span>
         </div>
         <p className="mt-6 text-[2.75rem] font-bold leading-none tracking-tight text-chalk tnum">
           {money.format(hasBudget ? remaining : spent)}
         </p>
-        <p className="mt-2 text-[13px] text-chalk/70 tnum">
+        <p className="mt-2 text-[13px] text-chalk-mute tnum">
           {!hasBudget
             ? "Set a monthly budget in Settings"
             : overBudget
@@ -59,8 +58,8 @@ export function HomeScreen() {
               : `${money.format(spent)} spent of ${money.format(budget)}`}
         </p>
         {hasBudget && (
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-pill bg-ink-950/15">
-            <div className="h-full rounded-pill bg-chalk/80 transition-[width] duration-500 ease-premium" style={{ width: `${Math.max(3, pct)}%` }} />
+          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-pill bg-ink-750">
+            <div className="h-full rounded-pill bg-chalk transition-[width] duration-500 ease-premium" style={{ width: `${Math.max(3, pct)}%` }} />
           </div>
         )}
       </div>
