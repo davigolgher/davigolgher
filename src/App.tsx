@@ -62,6 +62,28 @@ function RatingGate() {
 
 function Gate() {
   const flow = useFlow();
+
+  // Return from a real Stripe Payment Link redirect (?checkout=success[&plan=…]).
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const co = params.get("checkout");
+      if (!co) return;
+      if (co === "success") {
+        const plan = params.get("plan");
+        flow.subscribe(plan === "monthly" || plan === "yearly" ? plan : undefined);
+      }
+      params.delete("checkout");
+      params.delete("plan");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+    } catch {
+      /* ignore */
+    }
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!flow.signedUp) return <SignUpScreen />;
   if (!flow.subscribed) return <OnboardingScreen />;
   return (

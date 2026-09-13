@@ -5,6 +5,8 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
  * localStorage so the flow is only shown once. This is UI/local state; real
  * auth + payment happen with the backend (Supabase) / native (Expo, Stripe).
  */
+export type PlanId = "monthly" | "yearly";
+
 export interface FlowState {
   signedUp: boolean;
   subscribed: boolean;
@@ -12,6 +14,7 @@ export interface FlowState {
   ratingDone: boolean;
   reminders: boolean;
   email?: string;
+  plan?: PlanId;
 }
 
 const KEY = "walletflow.flow.v1";
@@ -35,7 +38,7 @@ function read(): FlowState {
 
 interface FlowContextValue extends FlowState {
   signUp: (email?: string) => void;
-  subscribe: () => void;
+  subscribe: (plan?: PlanId) => void;
   finishTutorial: () => void;
   finishRating: () => void;
   setReminders: (on: boolean) => void;
@@ -63,7 +66,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       signUp: (email) => update({ signedUp: true, email }),
-      subscribe: () => update({ subscribed: true }),
+      subscribe: (plan) => update({ subscribed: true, ...(plan ? { plan } : {}) }),
       finishTutorial: () => update({ tutorialDone: true }),
       finishRating: () => update({ ratingDone: true }),
       setReminders: (on) => update({ reminders: on }),

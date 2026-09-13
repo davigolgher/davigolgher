@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP } from "@/config/app";
 import { BottomSheet, Button, useToast } from "@/components/ui";
 import { useFlow } from "@/features/flow/FlowProvider";
 
@@ -24,7 +25,7 @@ export function RatingSheet({ open, onClose }: { open: boolean; onClose: () => v
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Enjoying Wallet Flow?" description="How would you rate the app?">
+    <BottomSheet open={open} onClose={onClose} title={`Enjoying ${APP.name}?`} description="How would you rate the app?">
       <div className="flex justify-center gap-2 py-2" role="radiogroup" aria-label="Rating">
         {[1, 2, 3, 4, 5].map((n) => {
           const filled = (hover || rating) >= n;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { APP } from "@/config/app";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui";
 import { BarChartIcon, PlusIcon, RepeatIcon, WalletIcon } from "@/components/icons";
@@ -37,7 +38,7 @@ export function TutorialOverlay() {
             Skip
           </button>
           <Button variant="primary" onClick={() => (last ? finishTutorial() : setI(i + 1))}>
-            {last ? "Start using Wallet Flow" : "Next"}
+            {last ? `Start using ${APP.name}` : "Next"}
           </Button>
         </div>
       </div>

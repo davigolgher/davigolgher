@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { APP, STRIPE } from "@/config/app";
 import { useStore } from "@/data/store";
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES } from "@/data/currencies";
 import { Alert, Button, Input, ScreenHeader, Select, Switch, useToast } from "@/components/ui";
 import { BellIcon, CheckIcon, CloseIcon, LogOutIcon, MailIcon, PlusIcon } from "@/components/icons";
 import { useFlow } from "@/features/flow/FlowProvider";
+import { GmailConnect } from "@/features/gmail/GmailConnect";
 
 function SectionLabel({ children }: { children: string }) {
   return <p className="mb-3 text-eyebrow uppercase text-chalk-faint">{children}</p>;
@@ -19,7 +21,9 @@ export function SettingsScreen() {
   const currentBudget = data.budgets.find((b) => b.scope === "total")?.limit ?? 0;
   const [budget, setBudget] = useState(String(toMain(currentBudget)));
   const [category, setCategory] = useState("");
+  const [gmailOpen, setGmailOpen] = useState(false);
   const gmail = data.preferences.gmailConnected;
+  const planLabel = flow.plan === "monthly" ? `${STRIPE.monthlyPrice}/month` : `${STRIPE.yearlyPrice}/year`;
 
   const saveBudget = () => {
     setMonthlyBudget(toCents(Math.max(0, Number(budget) || 0)));
@@ -114,14 +118,7 @@ export function SettingsScreen() {
         ) : (
           <div className="space-y-3">
             <p className="text-[15px] text-chalk-mute">Automatically turn purchase receipt emails into expenses.</p>
-            <Button
-              variant="secondary"
-              leadingIcon={<MailIcon size={18} />}
-              onClick={() => {
-                connectGmail();
-                toast({ message: "Gmail connected (demo)" });
-              }}
-            >
+            <Button variant="secondary" leadingIcon={<MailIcon size={18} />} onClick={() => setGmailOpen(true)}>
               Connect Gmail
             </Button>
           </div>
@@ -147,6 +144,32 @@ export function SettingsScreen() {
         </div>
       </section>
 
+      <section>
+        <SectionLabel>Subscription</SectionLabel>
+        <div className="space-y-3">
+          <div className="rounded-card border border-line bg-ink-850 p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[15px] font-semibold text-chalk">{APP.name} Premium</p>
+                <p className="mt-0.5 text-[13px] text-chalk-mute">
+                  {planLabel} · {STRIPE.trialDays}-day free trial
+                </p>
+              </div>
+              <span className="shrink-0 rounded-pill bg-ink-800 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-chalk-mute ring-1 ring-line">
+                Trial
+              </span>
+            </div>
+            <p className="mt-3 border-t border-line-soft pt-3 text-[12px] text-chalk-faint">
+              Billing secured by <span className="font-semibold text-chalk-mute">Stripe</span>.
+            </p>
+          </div>
+          <Alert title="Manage billing">
+            Changing or canceling a live subscription opens the Stripe customer portal — that needs a backend with your Stripe
+            secret key (never in this app).
+          </Alert>
+        </div>
+      </section>
+
       <button
         type="button"
         onClick={() => flow.reset()}
@@ -154,6 +177,18 @@ export function SettingsScreen() {
       >
         <LogOutIcon size={18} /> Sign out
       </button>
+
+      <GmailConnect
+        open={gmailOpen}
+        email={flow.email}
+        onClose={() => setGmailOpen(false)}
+        onAllow={() => {
+          setGmailOpen(false);
+          connectGmail();
+          importFromGmail();
+          toast({ message: "Gmail connected", icon: <CheckIcon size={18} /> });
+        }}
+      />
     </div>
   );
 }

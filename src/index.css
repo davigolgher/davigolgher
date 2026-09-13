@@ -27,6 +27,18 @@
     @apply outline-none ring-2 ring-chalk/40 ring-offset-2 ring-offset-ink-950;
   }
 
+  /* Text fields show focus through their own rounded border/underline, so the
+     rectangular focus ring is suppressed on them — no square box over the
+     rounded field line. Buttons and links keep the ring for accessibility. */
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible {
+    @apply outline-none ring-0 ring-offset-0;
+  }
+
   button {
     -webkit-tap-highlight-color: transparent;
   }

@@ -66,6 +66,15 @@ export default {
           from: { opacity: "0", transform: "translateY(12px) scale(0.98)" },
           to: { opacity: "1", transform: "translateY(0) scale(1)" },
         },
+        flame: {
+          "0%, 100%": { transform: "scale(1) rotate(-1.5deg)", opacity: "0.85" },
+          "50%": { transform: "scale(1.14) rotate(1.5deg)", opacity: "1" },
+        },
+        "pop-in": {
+          "0%": { transform: "scale(0.4)", opacity: "0" },
+          "70%": { transform: "scale(1.12)" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
       },
       animation: {
         shimmer: "shimmer 1.8s ease-in-out infinite",
@@ -73,6 +82,8 @@ export default {
         "fade-up": "fade-up 250ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "scale-in": "scale-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "toast-in": "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        flame: "flame 1.5s ease-in-out infinite",
+        "pop-in": "pop-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

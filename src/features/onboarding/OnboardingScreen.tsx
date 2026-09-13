@@ -1,31 +1,60 @@
 import { useState, type ReactNode } from "react";
+import { APP, STRIPE } from "@/config/app";
 import { cn } from "@/lib/cn";
 import { toCents } from "@/lib/money";
 import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
+import { StripeCheckout } from "@/features/billing/StripeCheckout";
 import { Button } from "@/components/ui";
-import { BarChartIcon, CheckIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
+import { BarChartIcon, CheckIcon, ChevronLeftIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
 
 type Step = "preview1" | "preview2" | "quiz" | "value" | "trust" | "pay";
 const STEPS: Step[] = ["preview1", "preview2", "quiz", "value", "trust", "pay"];
 
 export function OnboardingScreen() {
-  const { subscribe } = useFlow();
+  const { subscribe, reset, email } = useFlow();
   const { setMonthlyBudget } = useStore();
   const [i, setI] = useState(0);
   const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const step = STEPS[i];
 
-  const next = () => (i < STEPS.length - 1 ? setI(i + 1) : subscribe());
+  const next = () => (i < STEPS.length - 1 ? setI(i + 1) : subscribe(plan));
+  // Back one step; from the very first step, back out to sign-up.
+  const prev = () => (i > 0 ? setI(i - 1) : reset());
   const skipToPaywall = () => setI(STEPS.indexOf("value"));
+
+  const startCheckout = () => {
+    const link = plan === "yearly" ? STRIPE.yearlyPaymentLink : STRIPE.monthlyPaymentLink;
+    if (link) {
+      // Real Stripe Payment Link — hand off to Stripe's hosted checkout.
+      try {
+        window.location.assign(link);
+        return;
+      } catch {
+        /* fall back to the in-app form */
+      }
+    }
+    setCheckoutOpen(true);
+  };
 
   return (
     <div className="app-shell flex min-h-full flex-col px-6 pb-8 pt-safe">
-      {/* progress */}
-      <div className="flex items-center gap-1.5 py-4">
-        {STEPS.map((s, idx) => (
-          <span key={s} className={cn("h-1 flex-1 rounded-full transition-colors", idx <= i ? "bg-chalk" : "bg-ink-700")} />
-        ))}
+      {/* back + progress */}
+      <div className="flex items-center gap-3 py-4">
+        <button
+          type="button"
+          onClick={prev}
+          aria-label="Go back"
+          className="-ml-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-chalk-mute transition-colors hover:bg-ink-800 hover:text-chalk"
+        >
+          <ChevronLeftIcon size={22} />
+        </button>
+        <div className="flex flex-1 items-center gap-1.5">
+          {STEPS.map((s, idx) => (
+            <span key={s} className={cn("h-1 flex-1 rounded-full transition-colors", idx <= i ? "bg-chalk" : "bg-ink-700")} />
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col justify-center py-4">
@@ -39,7 +68,7 @@ export function OnboardingScreen() {
         {step === "value" && (
           <Paywall
             eyebrow="What you get"
-            title="Everything in Wallet Flow"
+            title={`Everything in ${APP.name}`}
             rows={[
               { icon: <WalletIcon size={18} />, text: "Unlimited expenses & subscriptions" },
               { icon: <BarChartIcon size={18} />, text: "Category reports & monthly trends" },
@@ -66,8 +95,8 @@ export function OnboardingScreen() {
       {/* actions */}
       <div className="space-y-3">
         {step !== "quiz" && (
-          <Button variant="primary" size="lg" fullWidth onClick={next}>
-            {step === "pay" ? "Start 7-day free trial" : "Continue"}
+          <Button variant="primary" size="lg" fullWidth onClick={step === "pay" ? startCheckout : next}>
+            {step === "pay" ? `Start ${STRIPE.trialDays}-day free trial` : "Continue"}
           </Button>
         )}
         {(step === "preview1" || step === "preview2") && (
@@ -77,10 +106,21 @@ export function OnboardingScreen() {
         )}
         {step === "pay" && (
           <p className="text-center text-[12px] text-chalk-faint">
-            No charge today · cancel anytime. Payment is processed at launch (Stripe).
+            No charge today · cancel anytime. Secure payment by Stripe.
           </p>
         )}
       </div>
+
+      <StripeCheckout
+        open={checkoutOpen}
+        plan={plan}
+        email={email}
+        onClose={() => setCheckoutOpen(false)}
+        onPaid={(p) => {
+          setCheckoutOpen(false);
+          subscribe(p);
+        }}
+      />
     </div>
   );
 }
