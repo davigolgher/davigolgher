@@ -4,7 +4,6 @@ import { cn } from "@/lib/cn";
 import { toCents } from "@/lib/money";
 import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
-import { StripeCheckout } from "@/features/billing/StripeCheckout";
 import { Button } from "@/components/ui";
 import { BarChartIcon, CheckIcon, ChevronLeftIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
 
@@ -12,11 +11,10 @@ type Step = "preview1" | "preview2" | "quiz" | "value" | "trust" | "pay";
 const STEPS: Step[] = ["preview1", "preview2", "quiz", "value", "trust", "pay"];
 
 export function OnboardingScreen() {
-  const { subscribe, reset, email } = useFlow();
+  const { subscribe, reset } = useFlow();
   const { setMonthlyBudget } = useStore();
   const [i, setI] = useState(0);
   const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const step = STEPS[i];
 
   const next = () => (i < STEPS.length - 1 ? setI(i + 1) : subscribe(plan));
@@ -24,18 +22,20 @@ export function OnboardingScreen() {
   const prev = () => (i > 0 ? setI(i - 1) : reset());
   const skipToPaywall = () => setI(STEPS.indexOf("value"));
 
-  const startCheckout = () => {
+  const startTrial = () => {
     const link = plan === "yearly" ? STRIPE.yearlyPaymentLink : STRIPE.monthlyPaymentLink;
     if (link) {
-      // Real Stripe Payment Link — hand off to Stripe's hosted checkout.
+      // Once a real Stripe Payment Link is set (created outside the app for the
+      // App Store), hand off to Stripe's hosted checkout.
       try {
         window.location.assign(link);
         return;
       } catch {
-        /* fall back to the in-app form */
+        /* fall through */
       }
     }
-    setCheckoutOpen(true);
+    // No live link yet — start the free trial and go straight into the app.
+    subscribe(plan);
   };
 
   return (
@@ -95,7 +95,7 @@ export function OnboardingScreen() {
       {/* actions */}
       <div className="space-y-3">
         {step !== "quiz" && (
-          <Button variant="primary" size="lg" fullWidth onClick={step === "pay" ? startCheckout : next}>
+          <Button variant="primary" size="lg" fullWidth onClick={step === "pay" ? startTrial : next}>
             {step === "pay" ? `Start ${STRIPE.trialDays}-day free trial` : "Continue"}
           </Button>
         )}
@@ -106,21 +106,10 @@ export function OnboardingScreen() {
         )}
         {step === "pay" && (
           <p className="text-center text-[12px] text-chalk-faint">
-            No charge today · cancel anytime. Secure payment by Stripe.
+            No charge today · cancel anytime. Payment is set up later (Stripe).
           </p>
         )}
       </div>
-
-      <StripeCheckout
-        open={checkoutOpen}
-        plan={plan}
-        email={email}
-        onClose={() => setCheckoutOpen(false)}
-        onPaid={(p) => {
-          setCheckoutOpen(false);
-          subscribe(p);
-        }}
-      />
     </div>
   );
 }

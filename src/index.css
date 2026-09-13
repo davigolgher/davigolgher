@@ -80,6 +80,33 @@
   .app-shell {
     @apply mx-auto w-full max-w-app;
   }
+
+  /* Soft mesh gradients (inspired by health-dashboard hero cards). Pastel enough
+     that dark `chalk` text stays legible. Swap the class to change the accent. */
+  .mesh-green {
+    background-color: #e9fbe6;
+    background-image:
+      radial-gradient(120% 120% at 12% 14%, #e4fbad 0%, transparent 46%),
+      radial-gradient(120% 120% at 90% 6%, #c2f2d6 0%, transparent 46%),
+      radial-gradient(150% 150% at 82% 104%, #5fe08f 0%, transparent 56%),
+      radial-gradient(130% 130% at 2% 96%, #cbf774 0%, transparent 52%);
+  }
+  .mesh-amber {
+    background-color: #fdeedd;
+    background-image:
+      radial-gradient(120% 120% at 12% 14%, #ffe6b0 0%, transparent 46%),
+      radial-gradient(120% 120% at 90% 10%, #ffd3a6 0%, transparent 48%),
+      radial-gradient(150% 150% at 82% 104%, #ff9a63 0%, transparent 56%),
+      radial-gradient(130% 130% at 2% 96%, #ffe0ad 0%, transparent 52%);
+  }
+  .mesh-blue {
+    background-color: #edf1fc;
+    background-image:
+      radial-gradient(120% 120% at 12% 14%, #dde6ff 0%, transparent 46%),
+      radial-gradient(120% 120% at 90% 8%, #d0e1ff 0%, transparent 48%),
+      radial-gradient(150% 150% at 82% 104%, #96b0ff 0%, transparent 56%),
+      radial-gradient(130% 130% at 2% 96%, #e2d9ff 0%, transparent 52%);
+  }
 }
 
 @layer utilities {
