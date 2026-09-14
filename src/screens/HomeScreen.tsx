@@ -65,7 +65,7 @@ export function HomeScreen() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Income" value={money.format(income)} sub="This month" />
+        <StatCard label="Income" value={money.format(income)} sub="Received" />
         <StatCard label="Savings" value={money.format(savings)} sub={savings < 0 ? "Spending over income" : "Income − spending"} />
       </div>
 

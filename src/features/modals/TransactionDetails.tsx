@@ -49,6 +49,20 @@ export function TransactionDetails({ tx, open, onClose, onEdit, onDelete }: Tran
         {tx.source === "gmail" && <Row label="Source" value="Imported from Gmail" />}
       </div>
 
+      {tx.receipt && (
+        <div className="mt-4">
+          <p className="mb-2 text-eyebrow uppercase text-chalk-faint">Receipt</p>
+          {tx.receipt.type.startsWith("image/") ? (
+            <img src={tx.receipt.dataUrl} alt="Receipt" className="w-full rounded-card-sm border border-line" />
+          ) : (
+            <div className="flex items-center gap-3 rounded-card-sm border border-line bg-ink-850 p-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-ink-800 text-[10px] font-semibold text-chalk-mute">PDF</span>
+              <span className="min-w-0 flex-1 truncate text-[14px] text-chalk">{tx.receipt.name}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 flex gap-3">
         <Button
           variant="ghost"

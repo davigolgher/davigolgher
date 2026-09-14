@@ -4,8 +4,9 @@
  * sample purchases. Wire to a backend to persist.
  */
 import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
-import type { AppData, Budget, Category, Preferences, Subscription, SubscriptionStatus, Transaction } from "./types";
+import type { AppData, Budget, Category, Preferences, Receipt, Subscription, SubscriptionStatus, Transaction } from "./types";
 import { createInitialData, gmailSampleExpenses } from "./mock";
+import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
 
 let fallbackSeq = Date.now();
 const newId = (p = "id") =>
@@ -22,7 +23,8 @@ type Action =
   | { type: "upsert-budget"; budget: Budget }
   | { type: "add-category"; category: Category }
   | { type: "remove-category"; id: string }
-  | { type: "update-prefs"; prefs: Partial<Preferences> };
+  | { type: "update-prefs"; prefs: Partial<Preferences> }
+  | { type: "reset-all" };
 
 function reducer(state: AppData, action: Action): AppData {
   switch (action.type) {
@@ -59,9 +61,22 @@ function reducer(state: AppData, action: Action): AppData {
       return { ...state, categories: state.categories.filter((c) => c.id !== action.id) };
     case "update-prefs":
       return { ...state, preferences: { ...state.preferences, ...action.prefs } };
+    case "reset-all":
+      return createInitialData();
     default:
       return state;
   }
+}
+
+/** Clean the free-text fields of a transaction before it enters the store. */
+function cleanTx(tx: Transaction): Transaction {
+  return {
+    ...tx,
+    description: sanitizeText(tx.description),
+    categoryId: sanitizeText(tx.categoryId),
+    merchant: tx.merchant ? sanitizeText(tx.merchant) : undefined,
+    note: tx.note ? sanitizeMultiline(tx.note) : undefined,
+  };
 }
 
 export interface NewTransactionInput {
@@ -72,6 +87,7 @@ export interface NewTransactionInput {
   note?: string;
   merchant?: string;
   direction?: "expense" | "income";
+  receipt?: Receipt;
 }
 
 export interface StoreValue {
@@ -92,6 +108,8 @@ export interface StoreValue {
   connectGmail: () => void;
   disconnectGmail: () => void;
   importFromGmail: () => void;
+  /** Erase all in-memory data (used by "Delete account"). */
+  deleteAccount: () => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -125,30 +143,35 @@ export function StoreProvider({
 
       addTransaction(input) {
         const direction = input.direction ?? "expense";
+        const description = sanitizeText(input.description);
+        const categoryId = sanitizeText(input.categoryId);
+        const merchant = sanitizeText(input.merchant ?? "");
+        const note = sanitizeMultiline(input.note ?? "");
         const tx: Transaction = {
           id: newId("tx"),
           amount: Math.abs(Math.trunc(input.amount)),
           direction,
-          description: input.description.trim() || (direction === "income" ? "Income" : "Expense"),
-          categoryId: input.categoryId.trim() || (direction === "income" ? "Income" : "Uncategorized"),
+          description: description || (direction === "income" ? "Income" : "Expense"),
+          categoryId: categoryId || (direction === "income" ? "Income" : "Uncategorized"),
           date: input.date,
-          note: input.note?.trim() || undefined,
-          merchant: input.merchant?.trim() || undefined,
+          note: note || undefined,
+          merchant: merchant || undefined,
           currency: state.preferences.currency,
           source: "manual",
+          receipt: input.receipt,
         };
         dispatch({ type: "add-tx", tx });
         return tx;
       },
-      updateTransaction: (tx) => dispatch({ type: "update-tx", tx }),
+      updateTransaction: (tx) => dispatch({ type: "update-tx", tx: cleanTx(tx) }),
       deleteTransaction: (id) => dispatch({ type: "delete-tx", id }),
 
       addSubscription(sub) {
-        const created: Subscription = { ...sub, id: newId("sub") };
+        const created: Subscription = { ...sub, id: newId("sub"), name: sanitizeText(sub.name) };
         dispatch({ type: "add-sub", sub: created });
         return created;
       },
-      updateSubscription: (sub) => dispatch({ type: "update-sub", sub }),
+      updateSubscription: (sub) => dispatch({ type: "update-sub", sub: { ...sub, name: sanitizeText(sub.name) } }),
       deleteSubscription: (id) => dispatch({ type: "set-sub-status", id, status: "archived" }),
 
       setMonthlyBudget: (limitCents) =>
@@ -157,7 +180,7 @@ export function StoreProvider({
           budget: { id: "bud_total", scope: "total", label: "Monthly budget", limit: Math.max(0, Math.trunc(limitCents)) },
         }),
       addCategory: (name) => {
-        const label = name.trim();
+        const label = sanitizeText(name);
         if (!label) return;
         dispatch({ type: "add-category", category: { id: newId("cat"), label, custom: true } });
       },
@@ -177,6 +200,7 @@ export function StoreProvider({
           setImporting(false);
         }, 900);
       },
+      deleteAccount: () => dispatch({ type: "reset-all" }),
     };
   }, [state, now, loading, importing]);
 

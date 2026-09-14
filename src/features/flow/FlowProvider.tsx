@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { sanitizeText } from "@/lib/sanitize";
 
 /**
  * User funnel state (sign-up → paywall → tutorial → rating), persisted in
@@ -65,7 +66,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const value = useMemo<FlowContextValue>(
     () => ({
       ...state,
-      signUp: (email) => update({ signedUp: true, email }),
+      signUp: (email) => update({ signedUp: true, email: email ? sanitizeText(email, 320) : undefined }),
       subscribe: (plan) => update({ subscribed: true, ...(plan ? { plan } : {}) }),
       finishTutorial: () => update({ tutorialDone: true }),
       finishRating: () => update({ ratingDone: true }),

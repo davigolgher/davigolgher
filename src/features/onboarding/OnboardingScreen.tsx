@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { APP, STRIPE } from "@/config/app";
 import { cn } from "@/lib/cn";
 import { toCents } from "@/lib/money";
+import { safeHttpUrl } from "@/lib/sanitize";
 import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
 import { Button } from "@/components/ui";
@@ -23,10 +24,11 @@ export function OnboardingScreen() {
   const skipToPaywall = () => setI(STEPS.indexOf("value"));
 
   const startTrial = () => {
-    const link = plan === "yearly" ? STRIPE.yearlyPaymentLink : STRIPE.monthlyPaymentLink;
+    // Once a real Stripe Payment Link is set (created outside the app for the
+    // App Store), hand off to Stripe's hosted checkout. Only https links are
+    // followed, so a bad config value can't become a script/redirect vector.
+    const link = safeHttpUrl(plan === "yearly" ? STRIPE.yearlyPaymentLink : STRIPE.monthlyPaymentLink);
     if (link) {
-      // Once a real Stripe Payment Link is set (created outside the app for the
-      // App Store), hand off to Stripe's hosted checkout.
       try {
         window.location.assign(link);
         return;

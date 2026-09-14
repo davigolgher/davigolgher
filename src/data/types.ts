@@ -15,6 +15,14 @@ export interface Category {
   custom?: boolean;
 }
 
+/** An attached receipt file, validated client-side (see lib/upload). */
+export interface Receipt {
+  name: string;
+  type: string;
+  /** In-memory data URL (no backend storage yet). */
+  dataUrl: string;
+}
+
 export interface Transaction {
   id: ID;
   amount: Cents;
@@ -27,6 +35,7 @@ export interface Transaction {
   merchant?: string;
   currency: string;
   source?: "manual" | "gmail";
+  receipt?: Receipt;
 }
 
 export type SubscriptionStatus = "active" | "paused" | "canceled" | "archived" | "trial";
