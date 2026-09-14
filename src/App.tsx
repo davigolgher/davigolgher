@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/data/store";
 import { ToastProvider } from "@/components/ui";
+import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
+import { fetchBilling, isActive, type BillingRow } from "@/lib/backend/billing";
 import { FlowProvider, useFlow } from "@/features/flow/FlowProvider";
 import { ModalsProvider } from "@/features/modals/ModalsProvider";
 import { SignUpScreen } from "@/features/onboarding/SignUpScreen";
@@ -60,8 +62,35 @@ function RatingGate() {
   return <RatingSheet open={open} onClose={() => setOpen(false)} />;
 }
 
+function Splash() {
+  return (
+    <div className="flex min-h-full items-center justify-center">
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-chalk/30 border-t-chalk" aria-label="Loading" />
+    </div>
+  );
+}
+
 function Gate() {
   const flow = useFlow();
+  const auth = useAuth();
+  const [billing, setBilling] = useState<BillingRow | null>(null);
+
+  // Connected mode: read the user's subscription status from the billing table.
+  useEffect(() => {
+    if (!auth.configured || !auth.userId) {
+      setBilling(null);
+      return;
+    }
+    let ok = true;
+    fetchBilling()
+      .then((b) => {
+        if (ok) setBilling(b);
+      })
+      .catch(() => {});
+    return () => {
+      ok = false;
+    };
+  }, [auth.configured, auth.userId]);
 
   // Return from a real Stripe Payment Link redirect (?checkout=success[&plan=…]).
   useEffect(() => {
@@ -84,8 +113,13 @@ function Gate() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!flow.signedUp) return <SignUpScreen />;
-  if (!flow.subscribed) return <OnboardingScreen />;
+  // Connected mode: the real Supabase session decides sign-in. Local mode: the funnel flag.
+  if (auth.configured && auth.loading) return <Splash />;
+  const signedUp = auth.configured ? Boolean(auth.session) : flow.signedUp;
+
+  if (!signedUp) return <SignUpScreen />;
+  const subscribed = auth.configured ? isActive(billing) || flow.subscribed : flow.subscribed;
+  if (!subscribed) return <OnboardingScreen />;
   return (
     <>
       <AppRoutes />
@@ -97,14 +131,16 @@ function Gate() {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <ToastProvider>
-        <FlowProvider>
-          <ModalsProvider>
-            <Gate />
-          </ModalsProvider>
-        </FlowProvider>
-      </ToastProvider>
-    </StoreProvider>
+    <AuthProvider>
+      <StoreProvider>
+        <ToastProvider>
+          <FlowProvider>
+            <ModalsProvider>
+              <Gate />
+            </ModalsProvider>
+          </FlowProvider>
+        </ToastProvider>
+      </StoreProvider>
+    </AuthProvider>
   );
 }

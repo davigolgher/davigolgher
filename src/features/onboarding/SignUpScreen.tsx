@@ -1,19 +1,71 @@
 import { useState } from "react";
 import { APP } from "@/config/app";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, useToast } from "@/components/ui";
 import { LogoMark } from "@/components/brand/Logo";
 import { MailIcon } from "@/components/icons";
 import { useFlow } from "@/features/flow/FlowProvider";
 import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
+import { isSupabaseConfigured } from "@/lib/backend/client";
+import { sendMagicLink, signInWithProvider } from "@/lib/backend/auth";
 
 /**
- * Sign-up gate shown before the app. Email / Google / Apple.
- * NOTE: real accounts need a backend — these proceed locally for now.
+ * Sign-up gate shown before the app. Email (magic link) / Google / Apple.
+ * Connected mode uses Supabase Auth; local demo mode proceeds without a backend.
  */
 export function SignUpScreen() {
   const { signUp } = useFlow();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const connected = isSupabaseConfigured;
+
+  const submitEmail = async () => {
+    const value = email.trim();
+    if (!value || busy) return;
+    if (!connected) {
+      signUp(value);
+      return;
+    }
+    setBusy(true);
+    try {
+      await sendMagicLink(value);
+      setSent(true);
+    } catch (err) {
+      toast({ message: (err as Error)?.message || "Couldn't send the sign-in link." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const withProvider = async (p: "google" | "apple") => {
+    if (!connected) {
+      signUp();
+      return;
+    }
+    try {
+      await signInWithProvider(p); // redirects to the provider
+    } catch (err) {
+      toast({ message: (err as Error)?.message || "Sign-in failed." });
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="app-shell flex min-h-full flex-col justify-center px-6 py-10 text-center">
+        <LogoMark size={44} className="mx-auto text-chalk" />
+        <h1 className="mt-5 text-3xl font-bold tracking-tight text-chalk">Check your email</h1>
+        <p className="mx-auto mt-3 max-w-[20rem] text-[15px] leading-relaxed text-chalk-mute">
+          We sent a sign-in link to <span className="font-medium text-chalk">{email.trim()}</span>. Open it on this device to
+          continue.
+        </p>
+        <Button variant="ghost" fullWidth className="mt-8" onClick={() => setSent(false)}>
+          Use a different email
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell flex min-h-full flex-col justify-center px-6 py-10">
@@ -27,11 +79,11 @@ export function SignUpScreen() {
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (email.trim()) signUp(email.trim());
+          void submitEmail();
         }}
       >
         <Input type="email" inputMode="email" autoComplete="email" placeholder="Email address" aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Button type="submit" variant="primary" size="lg" fullWidth disabled={!email.trim()} leadingIcon={<MailIcon size={18} />}>
+        <Button type="submit" variant="primary" size="lg" fullWidth disabled={!email.trim() || busy} loading={busy} leadingIcon={<MailIcon size={18} />}>
           Continue with email
         </Button>
       </form>
@@ -41,10 +93,10 @@ export function SignUpScreen() {
       </div>
 
       <div className="space-y-3">
-        <Button variant="secondary" size="lg" fullWidth onClick={() => signUp()} leadingIcon={<GoogleGlyph />}>
+        <Button variant="secondary" size="lg" fullWidth onClick={() => void withProvider("google")} leadingIcon={<GoogleGlyph />}>
           Continue with Google
         </Button>
-        <Button variant="secondary" size="lg" fullWidth onClick={() => signUp()} leadingIcon={<AppleGlyph />}>
+        <Button variant="secondary" size="lg" fullWidth onClick={() => void withProvider("apple")} leadingIcon={<AppleGlyph />}>
           Continue with Apple
         </Button>
       </div>
@@ -59,8 +111,12 @@ export function SignUpScreen() {
           Privacy Policy
         </button>
         .
-        <br />
-        Real Google / Apple sign-in connects with the backend.
+        {!connected && (
+          <>
+            <br />
+            Real Google / Apple sign-in connects with the backend.
+          </>
+        )}
       </p>
 
       {legalDoc && <LegalViewer doc={legalDoc} onClose={() => setLegalDoc(null)} />}

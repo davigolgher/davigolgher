@@ -6,7 +6,9 @@ import { safeHttpUrl } from "@/lib/sanitize";
 import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
 import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
-import { Button } from "@/components/ui";
+import { isSupabaseConfigured } from "@/lib/backend/client";
+import { createCheckout } from "@/lib/backend/billing";
+import { Button, useToast } from "@/components/ui";
 import { BarChartIcon, CheckIcon, ChevronLeftIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
 
 type Step = "preview1" | "preview2" | "quiz" | "value" | "trust" | "pay";
@@ -15,6 +17,7 @@ const STEPS: Step[] = ["preview1", "preview2", "quiz", "value", "trust", "pay"];
 export function OnboardingScreen() {
   const { subscribe, reset } = useFlow();
   const { setMonthlyBudget } = useStore();
+  const { toast } = useToast();
   const [i, setI] = useState(0);
   const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
@@ -28,10 +31,19 @@ export function OnboardingScreen() {
   const prev = () => (i > 0 ? setI(i - 1) : reset());
   const skipToPaywall = () => setI(STEPS.indexOf("value"));
 
-  const startTrial = () => {
-    // Once a real Stripe Payment Link is set (created outside the app for the
-    // App Store), hand off to Stripe's hosted checkout. Only https links are
-    // followed, so a bad config value can't become a script/redirect vector.
+  const startTrial = async () => {
+    // Connected mode: create a Stripe Checkout Session via the Edge Function.
+    if (isSupabaseConfigured) {
+      try {
+        const url = await createCheckout(plan);
+        window.location.assign(url);
+        return;
+      } catch (e) {
+        toast({ message: (e as Error)?.message || "Couldn't start checkout." });
+        return;
+      }
+    }
+    // Otherwise, if a static Stripe Payment Link is configured, use it (https only).
     const link = safeHttpUrl(plan === "yearly" ? STRIPE.yearlyPaymentLink : STRIPE.monthlyPaymentLink);
     if (link) {
       try {
@@ -41,7 +53,7 @@ export function OnboardingScreen() {
         /* fall through */
       }
     }
-    // No live link yet — start the free trial and go straight into the app.
+    // Local demo — start the free trial and go straight into the app.
     subscribe(plan);
   };
 

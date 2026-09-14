@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { APP, STRIPE } from "@/config/app";
 import { useStore } from "@/data/store";
 import { toCents, toMain } from "@/lib/money";
@@ -10,13 +10,16 @@ import { useFlow } from "@/features/flow/FlowProvider";
 import { GmailConnect } from "@/features/gmail/GmailConnect";
 import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
 import { clearActivity } from "@/lib/activity";
+import { signOut } from "@/lib/backend/auth";
+import { isSupabaseConfigured } from "@/lib/backend/client";
+import { startGmailConnect, syncGmail } from "@/lib/backend/gmail";
 
 function SectionLabel({ children }: { children: string }) {
   return <p className="mb-3 text-eyebrow uppercase text-chalk-faint">{children}</p>;
 }
 
 export function SettingsScreen() {
-  const { data, importing, setMonthlyBudget, setCurrency, addCategory, removeCategory, connectGmail, disconnectGmail, importFromGmail, deleteAccount } =
+  const { data, importing, setMonthlyBudget, setCurrency, addCategory, removeCategory, connectGmail, disconnectGmail, importFromGmail, deleteAccount, refresh } =
     useStore();
   const { toast } = useToast();
   const flow = useFlow();
@@ -27,7 +30,47 @@ export function SettingsScreen() {
   const [gmailOpen, setGmailOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const gmail = data.preferences.gmailConnected;
+
+  // Toast + clean the URL after returning from the Gmail OAuth callback.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const g = params.get("gmail");
+    if (!g) return;
+    toast({ message: g === "connected" ? "Gmail connected" : "Gmail connection failed" });
+    params.delete("gmail");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Connect Gmail: real Google OAuth when connected, demo consent sheet otherwise.
+  const connectGmailAction = () => {
+    if (isSupabaseConfigured) {
+      startGmailConnect().catch((e) => toast({ message: (e as Error)?.message || "Couldn't connect Gmail." }));
+    } else {
+      setGmailOpen(true);
+    }
+  };
+
+  // Import: real sync (then re-hydrate) when connected, sample import otherwise.
+  const importAction = async () => {
+    if (!isSupabaseConfigured) {
+      importFromGmail();
+      return;
+    }
+    setSyncing(true);
+    try {
+      const n = await syncGmail();
+      refresh();
+      toast({ message: `Imported ${n} ${n === 1 ? "purchase" : "purchases"}` });
+    } catch (e) {
+      toast({ message: (e as Error)?.message || "Sync failed." });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const LEGAL_ROWS: [LegalDocId, string][] = [
     ["nutrition", "Privacy nutrition label"],
@@ -116,21 +159,28 @@ export function SettingsScreen() {
               <MailIcon size={18} className="text-chalk-mute" /> Gmail connected
             </div>
             <div className="flex gap-3">
-              <Button variant="primary" leadingIcon={<PlusIcon size={17} strokeWidth={2.2} />} loading={importing} onClick={importFromGmail}>
-                {importing ? "Importing…" : "Import purchases"}
+              <Button variant="primary" leadingIcon={<PlusIcon size={17} strokeWidth={2.2} />} loading={importing || syncing} onClick={importAction}>
+                {importing || syncing ? "Importing…" : "Import purchases"}
               </Button>
               <Button variant="ghost" onClick={disconnectGmail}>
                 Disconnect
               </Button>
             </div>
-            <Alert title="Demo import">
-              This pulls sample purchases to show the flow. Real Gmail access requires a backend (Gmail API + OAuth).
-            </Alert>
+            {isSupabaseConfigured ? (
+              <Alert title="Read-only import">
+                Reads recent receipt emails via the Gmail API and adds them as expenses. You can disconnect anytime here or in
+                your Google Account.
+              </Alert>
+            ) : (
+              <Alert title="Demo import">
+                This pulls sample purchases to show the flow. Connect a backend (Supabase + Google OAuth) for real Gmail import.
+              </Alert>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-[15px] text-chalk-mute">Automatically turn purchase receipt emails into expenses.</p>
-            <Button variant="secondary" leadingIcon={<MailIcon size={18} />} onClick={() => setGmailOpen(true)}>
+            <Button variant="secondary" leadingIcon={<MailIcon size={18} />} onClick={connectGmailAction}>
               Connect Gmail
             </Button>
           </div>
@@ -216,7 +266,10 @@ export function SettingsScreen() {
         <div className="space-y-4">
           <button
             type="button"
-            onClick={() => flow.reset()}
+            onClick={async () => {
+              await signOut();
+              flow.reset();
+            }}
             className="flex items-center gap-2.5 text-[15px] text-chalk-mute transition-colors hover:text-chalk"
           >
             <LogOutIcon size={18} /> Sign out
@@ -263,10 +316,11 @@ export function SettingsScreen() {
             size="lg"
             fullWidth
             leadingIcon={<TrashIcon size={17} />}
-            onClick={() => {
+            onClick={async () => {
               setConfirmDelete(false);
-              deleteAccount();
+              await deleteAccount();
               clearActivity();
+              await signOut();
               flow.reset();
               toast({ message: "Account deleted" });
             }}
