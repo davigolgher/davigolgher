@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/data/store";
 import { currentStreak, last7Days } from "@/lib/streak";
+import { activeDaySet } from "@/lib/activity";
 import { startOfDay } from "@/lib/format";
 
 function prefersReducedMotion() {
@@ -33,20 +34,33 @@ function useCountUp(target: number, duration = 800) {
   return value;
 }
 
-function Flame({ className }: { className?: string }) {
+/** Orange/red flame (Duolingo-style). Static — no flicker. */
+function Flame({ size = 22 }: { size?: number }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
-      <path d="M12.5 2c.6 2.7 2.3 4 3.6 5.6a6.5 6.5 0 1 1-9.1.4c.5.9 1.4 1.4 2.3 1.5-1.4-2.5.2-5.6 3.2-7.5z" opacity="0.9" />
-      <path d="M12 12.5c.9 1 1.6 1.8 1.6 3a2.6 2.6 0 1 1-4.2-2c.2.5.6.9 1.1 1-.7-1.2.3-2.3 1.5-2z" fill="#FFFFFF" opacity="0.5" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="flameOuter" x1="12" y1="1.5" x2="12" y2="22.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFB020" />
+          <stop offset="0.5" stopColor="#FF6A00" />
+          <stop offset="1" stopColor="#E4320B" />
+        </linearGradient>
+        <linearGradient id="flameInner" x1="12" y1="11" x2="12" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFE35A" />
+          <stop offset="1" stopColor="#FF8A00" />
+        </linearGradient>
+      </defs>
+      <path d="M12 1.6c1.1 3.3 3.1 4.8 4.4 6.7a7 7 0 1 1-10 .7c.9 1.2 2.1 1.8 3.1 1.8C7.6 8.1 9.2 4 12 1.6Z" fill="url(#flameOuter)" />
+      <path d="M12.1 11.7c1 1.1 1.7 2.1 1.7 3.4a2.9 2.9 0 1 1-4.7-2.2c.3.6.8 1 1.5 1.1-.8-1.3.3-2.5 1.5-2.3Z" fill="url(#flameInner)" />
     </svg>
   );
 }
 
-/** Gamified logging streak: current run + the last 7 days, animated. */
+/** Gamified streak: lights up from using the app; current run + the last 7 days. */
 export function StreakCard() {
   const { data, now } = useStore();
-  const streak = currentStreak(data.transactions, now);
-  const week = last7Days(data.transactions, now);
+  const active = activeDaySet(now);
+  const streak = currentStreak(data.transactions, now, active);
+  const week = last7Days(data.transactions, now, active);
   const display = useCountUp(streak);
 
   const today = startOfDay(now);
@@ -61,10 +75,10 @@ export function StreakCard() {
       <div>
         <p className="text-eyebrow uppercase text-chalk-faint">Streak</p>
         <p className="mt-1.5 flex items-center gap-1.5 text-[1.75rem] font-semibold leading-none tracking-tight text-chalk tnum">
-          {streak > 0 && <Flame className="origin-bottom animate-flame text-chalk" />}
+          {streak > 0 && <Flame />}
           {display} <span className="text-[15px] font-medium text-chalk-mute">{streak === 1 ? "day" : "days"}</span>
         </p>
-        <p className="mt-1.5 text-[13px] text-chalk-mute">{streak > 0 ? "Keep it going — log daily." : "Log an expense to start a streak."}</p>
+        <p className="mt-1.5 text-[13px] text-chalk-mute">{streak > 0 ? "Keep it going — open Flow daily." : "Open the app daily to build a streak."}</p>
       </div>
       <div className="flex shrink-0 gap-1.5" aria-hidden="true">
         {week.map((done, idx) => {

@@ -9,6 +9,7 @@ import { BellIcon, CheckIcon, ChevronRightIcon, CloseIcon, LogOutIcon, MailIcon,
 import { useFlow } from "@/features/flow/FlowProvider";
 import { GmailConnect } from "@/features/gmail/GmailConnect";
 import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
+import { clearActivity } from "@/lib/activity";
 
 function SectionLabel({ children }: { children: string }) {
   return <p className="mb-3 text-eyebrow uppercase text-chalk-faint">{children}</p>;
@@ -265,6 +266,7 @@ export function SettingsScreen() {
             onClick={() => {
               setConfirmDelete(false);
               deleteAccount();
+              clearActivity();
               flow.reset();
               toast({ message: "Account deleted" });
             }}
