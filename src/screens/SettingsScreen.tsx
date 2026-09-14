@@ -174,9 +174,18 @@ export function SettingsScreen() {
               Billing secured by <span className="font-semibold text-chalk-mute">Stripe</span>.
             </p>
           </div>
-          <Alert title="Manage billing">
-            Changing or canceling a live subscription opens the Stripe customer portal — that needs a backend with your Stripe
-            secret key (never in this app).
+          <div className="flex gap-3">
+            <Button variant="secondary" fullWidth onClick={() => toast({ message: "No purchases to restore" })}>
+              Restore purchases
+            </Button>
+            <Button variant="secondary" fullWidth onClick={() => toast({ message: "Manage in App Store · Subscriptions" })}>
+              Manage subscription
+            </Button>
+          </div>
+          <Alert title="Managing your subscription">
+            In the App Store build, subscriptions are managed and canceled in App Store · Subscriptions, and{" "}
+            <span className="font-semibold text-chalk-mute">Restore purchases</span> re-links a prior purchase via StoreKit.
+            (A web/Stripe subscription is managed in the Stripe customer portal via the backend.)
           </Alert>
         </div>
       </section>
@@ -244,6 +253,10 @@ export function SettingsScreen() {
         description="This permanently erases everything on this device — transactions, subscriptions, budgets, categories, and settings. This can't be undone."
       >
         <div className="space-y-3">
+          <p className="text-[12px] leading-relaxed text-chalk-mute">
+            If you have a paid subscription, cancel it in App Store · Subscriptions first — deleting your account here won't
+            stop App Store billing.
+          </p>
           <Button
             variant="primary"
             size="lg"

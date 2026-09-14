@@ -5,6 +5,7 @@ import { toCents } from "@/lib/money";
 import { safeHttpUrl } from "@/lib/sanitize";
 import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
+import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
 import { Button } from "@/components/ui";
 import { BarChartIcon, CheckIcon, ChevronLeftIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
 
@@ -16,7 +17,11 @@ export function OnboardingScreen() {
   const { setMonthlyBudget } = useStore();
   const [i, setI] = useState(0);
   const [plan, setPlan] = useState<"monthly" | "yearly">("yearly");
+  const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const step = STEPS[i];
+
+  const planPrice = plan === "yearly" ? STRIPE.yearlyPrice : STRIPE.monthlyPrice;
+  const planPeriod = plan === "yearly" ? "year" : "month";
 
   const next = () => (i < STEPS.length - 1 ? setI(i + 1) : subscribe(plan));
   // Back one step; from the very first step, back out to sign-up.
@@ -107,11 +112,26 @@ export function OnboardingScreen() {
           </button>
         )}
         {step === "pay" && (
-          <p className="text-center text-[12px] text-chalk-faint">
-            No charge today · cancel anytime. Payment is set up later (Stripe).
-          </p>
+          <div className="space-y-2 pt-1">
+            <p className="text-center text-[11px] leading-relaxed text-chalk-faint">
+              {STRIPE.trialDays}-day free trial, then {planPrice}/{planPeriod}. Your subscription auto-renews at {planPrice}/
+              {planPeriod} until canceled — manage or cancel anytime in Settings, at least 24 hours before the period ends.
+              Payment is charged at confirmation of purchase.
+            </p>
+            <div className="flex items-center justify-center gap-2 text-[11px] font-medium text-chalk-mute">
+              <button type="button" onClick={() => setLegalDoc("terms")} className="underline underline-offset-2 hover:text-chalk">
+                Terms of Use
+              </button>
+              <span aria-hidden="true">·</span>
+              <button type="button" onClick={() => setLegalDoc("privacy")} className="underline underline-offset-2 hover:text-chalk">
+                Privacy Policy
+              </button>
+            </div>
+          </div>
         )}
       </div>
+
+      {legalDoc && <LegalViewer doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </div>
   );
 }

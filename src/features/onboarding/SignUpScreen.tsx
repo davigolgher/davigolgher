@@ -4,6 +4,7 @@ import { Button, Input } from "@/components/ui";
 import { LogoMark } from "@/components/brand/Logo";
 import { MailIcon } from "@/components/icons";
 import { useFlow } from "@/features/flow/FlowProvider";
+import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
 
 /**
  * Sign-up gate shown before the app. Email / Google / Apple.
@@ -12,6 +13,7 @@ import { useFlow } from "@/features/flow/FlowProvider";
 export function SignUpScreen() {
   const { signUp } = useFlow();
   const [email, setEmail] = useState("");
+  const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
 
   return (
     <div className="app-shell flex min-h-full flex-col justify-center px-6 py-10">
@@ -48,10 +50,20 @@ export function SignUpScreen() {
       </div>
 
       <p className="mt-8 text-center text-[12px] leading-relaxed text-chalk-faint">
-        By continuing you agree to the Terms &amp; Privacy Policy.
+        By continuing you agree to the{" "}
+        <button type="button" onClick={() => setLegalDoc("terms")} className="underline underline-offset-2 hover:text-chalk">
+          Terms
+        </button>{" "}
+        &amp;{" "}
+        <button type="button" onClick={() => setLegalDoc("privacy")} className="underline underline-offset-2 hover:text-chalk">
+          Privacy Policy
+        </button>
+        .
         <br />
         Real Google / Apple sign-in connects with the backend.
       </p>
+
+      {legalDoc && <LegalViewer doc={legalDoc} onClose={() => setLegalDoc(null)} />}
     </div>
   );
 }
