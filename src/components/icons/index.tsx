@@ -74,6 +74,21 @@ export const CalendarIcon = make(
   </>,
   "CalendarIcon",
 );
+export const CameraIcon = make(
+  <>
+    <path d="M4 9a2 2 0 0 1 2-2h1.3l.9-1.4A1.5 1.5 0 0 1 9.4 5h5.2a1.5 1.5 0 0 1 1.2.6L16.7 7H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+    <circle cx="12" cy="13" r="3.2" />
+  </>,
+  "CameraIcon",
+);
+export const ImageIcon = make(
+  <>
+    <rect x="4" y="5" width="16" height="14" rx="2.5" />
+    <circle cx="9" cy="10" r="1.5" />
+    <path d="m5 17 4.5-4 3 2.4L16 12l3 3.4" />
+  </>,
+  "ImageIcon",
+);
 export const WalletIcon = make(
   <>
     <path d="M4 8a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v1" />

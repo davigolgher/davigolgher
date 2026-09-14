@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Modal, AmountField, Input, Button, Segmented, useToast } from "@/components/ui";
-import { CloseIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { CameraIcon, CloseIcon, ImageIcon, TrashIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/data/store";
 import type { Receipt, Transaction } from "@/data/types";
@@ -27,7 +27,8 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
   const [note, setNote] = useState("");
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const libraryRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -147,8 +148,10 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
         <Input placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note" />
 
         <div>
+          {/* Camera opens the camera on phones; library opens Photos/Files. */}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" aria-hidden="true" tabIndex={-1} onChange={onPickFile} />
           <input
-            ref={fileRef}
+            ref={libraryRef}
             type="file"
             accept="image/png,image/jpeg,image/webp,application/pdf"
             className="hidden"
@@ -174,9 +177,17 @@ export function AddExpenseModal({ open, onClose, editing }: AddExpenseModalProps
               </button>
             </div>
           ) : (
-            <Button type="button" variant="secondary" fullWidth leadingIcon={<PlusIcon size={17} strokeWidth={2.2} />} onClick={() => fileRef.current?.click()}>
-              Attach receipt (optional)
-            </Button>
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-chalk-soft">Receipt (optional)</p>
+              <div className="flex gap-3">
+                <Button type="button" variant="secondary" fullWidth leadingIcon={<CameraIcon size={18} />} onClick={() => cameraRef.current?.click()}>
+                  Take photo
+                </Button>
+                <Button type="button" variant="secondary" fullWidth leadingIcon={<ImageIcon size={18} />} onClick={() => libraryRef.current?.click()}>
+                  Library
+                </Button>
+              </div>
+            </div>
           )}
           {uploadErr && <p className="mt-1.5 text-[12px] text-chalk-soft">{uploadErr}</p>}
           <p className="mt-1.5 text-[12px] text-chalk-faint">JPG, PNG, WEBP or PDF · up to 8 MB.</p>
