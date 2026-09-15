@@ -1,0 +1,168 @@
+-- Flow — full schema (mirror of supabase/migrations/*, for one-paste in the Supabase SQL editor).
+-- The CLI path uses the individual migration files instead.
+
+-- Flow — schema + Row Level Security.
+-- Apply with `supabase db push` (CLI) or paste into the Supabase SQL editor.
+
+create extension if not exists "pgcrypto";
+
+-- profiles: 1:1 with auth.users, created automatically on sign-up.
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email) values (new.id, new.email)
+  on conflict (id) do nothing;
+  insert into public.preferences (user_id) values (new.id)
+  on conflict (user_id) do nothing;
+  insert into public.budgets (user_id, scope, label, "limit") values (new.id, 'total', 'Monthly budget', 0)
+  on conflict (user_id, scope) do nothing;
+  return new;
+end; $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- transactions (amounts are integer cents).
+create table if not exists public.transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount bigint not null,
+  direction text not null check (direction in ('expense','income')),
+  description text not null default '',
+  category text not null default '',
+  date timestamptz not null,
+  merchant text,
+  note text,
+  currency text not null default 'USD',
+  source text not null default 'manual' check (source in ('manual','gmail')),
+  receipt_path text,
+  created_at timestamptz not null default now()
+);
+create index if not exists transactions_user_date_idx on public.transactions (user_id, date desc);
+
+-- subscriptions.
+create table if not exists public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null default '',
+  amount bigint not null,
+  currency text not null default 'USD',
+  frequency text not null,
+  custom_interval_days int,
+  next_charge_at timestamptz,
+  status text not null default 'active',
+  category text,
+  reminders boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists subscriptions_user_idx on public.subscriptions (user_id);
+
+-- categories.
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  label text not null,
+  custom boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (user_id, label)
+);
+
+-- budgets (one row per scope; 'total' is the monthly budget).
+create table if not exists public.budgets (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  scope text not null default 'total',
+  label text not null default 'Monthly budget',
+  "limit" bigint not null default 0,
+  primary key (user_id, scope)
+);
+
+-- preferences (one row per user).
+create table if not exists public.preferences (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  currency text not null default 'USD',
+  locale text not null default 'en-US',
+  reminders boolean not null default false,
+  gmail_connected boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+-- billing (Stripe state — written only by the webhook via the service role).
+create table if not exists public.billing (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan text,
+  status text not null default 'inactive',
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  current_period_end timestamptz,
+  trial_end timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+-- gmail_tokens (refresh token — no client RLS policy, functions only).
+create table if not exists public.gmail_tokens (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  refresh_token text not null,
+  connected_at timestamptz not null default now()
+);
+
+-- ── Row Level Security ──────────────────────────────────────────────────────
+alter table public.profiles      enable row level security;
+alter table public.transactions  enable row level security;
+alter table public.subscriptions enable row level security;
+alter table public.categories    enable row level security;
+alter table public.budgets       enable row level security;
+alter table public.preferences   enable row level security;
+alter table public.billing       enable row level security;
+alter table public.gmail_tokens  enable row level security;
+
+create policy "profiles self" on public.profiles
+  for all using (auth.uid() = id) with check (auth.uid() = id);
+
+create policy "transactions owner" on public.transactions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "subscriptions owner" on public.subscriptions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "categories owner" on public.categories
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "budgets owner" on public.budgets
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "preferences owner" on public.preferences
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- billing: users may read their own row; only the service role writes it.
+create policy "billing read own" on public.billing
+  for select using (auth.uid() = user_id);
+
+-- gmail_tokens intentionally has NO policy: unreachable by anon/authed clients,
+-- accessible only to Edge Functions using the service role key.
+
+-- Private bucket for receipt files. Objects are stored under `<user_id>/<file>`,
+-- so `owner = auth.uid()` scopes access to the uploader.
+
+insert into storage.buckets (id, name, public)
+values ('receipts', 'receipts', false)
+on conflict (id) do nothing;
+
+create policy "receipts read own" on storage.objects
+  for select using (bucket_id = 'receipts' and owner = auth.uid());
+
+create policy "receipts insert own" on storage.objects
+  for insert with check (bucket_id = 'receipts' and owner = auth.uid());
+
+create policy "receipts delete own" on storage.objects
+  for delete using (bucket_id = 'receipts' and owner = auth.uid());
+
+-- Dedup key for Gmail-imported transactions (the Gmail message id).
+alter table public.transactions add column if not exists external_id text;
+
+create unique index if not exists transactions_user_external_idx
+  on public.transactions (user_id, external_id)
+  where external_id is not null;
