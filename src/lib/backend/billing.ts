@@ -1,6 +1,9 @@
 /** Billing helpers — talk to the Stripe Edge Functions and the billing table. */
 import { getSupabase } from "./client";
 
+/** Stripe is "on" only when a publishable key is set (so the paywall calls the checkout function). */
+export const isStripeConfigured = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim());
+
 export interface BillingRow {
   plan?: string | null;
   status: string;

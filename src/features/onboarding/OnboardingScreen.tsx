@@ -7,7 +7,7 @@ import { useStore } from "@/data/store";
 import { useFlow } from "@/features/flow/FlowProvider";
 import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
 import { isSupabaseConfigured } from "@/lib/backend/client";
-import { createCheckout } from "@/lib/backend/billing";
+import { createCheckout, isStripeConfigured } from "@/lib/backend/billing";
 import { Button, useToast } from "@/components/ui";
 import { BarChartIcon, CheckIcon, ChevronLeftIcon, MailIcon, RepeatIcon, ShieldIcon, WalletIcon } from "@/components/icons";
 
@@ -32,8 +32,10 @@ export function OnboardingScreen() {
   const skipToPaywall = () => setI(STEPS.indexOf("value"));
 
   const startTrial = async () => {
-    // Connected mode: create a Stripe Checkout Session via the Edge Function.
-    if (isSupabaseConfigured) {
+    // Connected AND Stripe set up → create a Checkout Session via the Edge Function.
+    // If Stripe isn't configured yet, fall through and just start the trial locally
+    // (so the app is usable before billing is wired).
+    if (isSupabaseConfigured && isStripeConfigured) {
       try {
         const url = await createCheckout(plan);
         window.location.assign(url);
