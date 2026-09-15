@@ -80,7 +80,7 @@ export function StreakCard() {
         </p>
         <p className="mt-1.5 text-[13px] text-chalk-mute">{streak > 0 ? "Keep it going — open Flow daily." : "Open the app daily to build a streak."}</p>
       </div>
-      <div className="flex shrink-0 gap-1.5" aria-hidden="true">
+      <div className="flex shrink-0 gap-1.5 pr-1" aria-hidden="true">
         {week.map((done, idx) => {
           const isToday = idx === week.length - 1;
           return (

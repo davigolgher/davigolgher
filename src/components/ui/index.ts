@@ -15,6 +15,7 @@ export { Switch } from "./Switch";
 export { Alert } from "./Alert";
 export { ToastProvider, useToast } from "./Toast";
 export { StatCard } from "./StatCard";
+export { FitText } from "./FitText";
 export { AmountField } from "./AmountField";
 export { Segmented } from "./Segmented";
 export type { SegmentedOption } from "./Segmented";

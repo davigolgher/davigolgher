@@ -2,7 +2,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
 import { incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
-import { Button, ScreenHeader, StatCard, Skeleton } from "@/components/ui";
+import { Button, FitText, ScreenHeader, StatCard, Skeleton } from "@/components/ui";
 import { PlusIcon } from "@/components/icons";
 import { ExpenseRow } from "@/components/rows";
 import { StreakCard } from "@/components/StreakCard";
@@ -47,9 +47,9 @@ export function HomeScreen() {
             {status}
           </span>
         </div>
-        <p className="mt-6 text-[2.75rem] font-bold leading-none tracking-tight text-chalk tnum">
+        <FitText maxRem={2.75} minRem={1.3} className="mt-6" spanClassName="font-bold leading-none tracking-tight text-chalk tnum">
           {money.format(hasBudget ? remaining : spent)}
-        </p>
+        </FitText>
         <p className="mt-2 text-[13px] text-chalk-mute tnum">
           {!hasBudget
             ? "Set a monthly budget in Settings"
