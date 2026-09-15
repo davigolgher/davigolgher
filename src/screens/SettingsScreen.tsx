@@ -200,10 +200,6 @@ export function SettingsScreen() {
               toast({ message: on ? "Reminders on" : "Reminders off", icon: <BellIcon size={18} /> });
             }}
           />
-          <Alert title="On device">
-            Push notifications (like Duolingo's) are delivered by the installed app — they turn on with the native build
-            (Expo push + your backend). This toggle saves your preference for then.
-          </Alert>
         </div>
       </section>
 

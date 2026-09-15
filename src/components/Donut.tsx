@@ -1,4 +1,5 @@
 import { useMoney } from "@/lib/useMoney";
+import { FitText } from "@/components/ui";
 import type { CategorySlice } from "@/lib/reports";
 
 // Monochrome ramp (dark → light). Identity is also carried by the labels/%,
@@ -40,7 +41,9 @@ export function Donut({ slices }: { slices: CategorySlice[] }) {
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[1.1rem] font-semibold tracking-tight text-chalk tnum">{money.format(total)}</span>
+            <FitText maxRem={1.1} minRem={0.6} className="mx-auto max-w-[6.5rem] text-center" spanClassName="font-semibold tracking-tight text-chalk tnum">
+              {money.format(total)}
+            </FitText>
             <span className="text-[11px] uppercase tracking-wide text-chalk-faint">spent</span>
           </div>
         </div>
