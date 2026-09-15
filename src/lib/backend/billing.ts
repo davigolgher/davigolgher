@@ -19,6 +19,17 @@ export async function createCheckout(plan: "monthly" | "yearly"): Promise<string
   return url;
 }
 
+/** Open the Stripe Billing Portal (manage/cancel). Returns the portal URL. */
+export async function openBillingPortal(): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Backend not configured");
+  const { data, error } = await sb.functions.invoke("create-portal", { body: {} });
+  if (error) throw error;
+  const url = (data as { url?: string })?.url;
+  if (!url) throw new Error("No portal URL returned");
+  return url;
+}
+
 /** The current user's billing row (RLS-scoped), or null. */
 export async function fetchBilling(): Promise<BillingRow | null> {
   const sb = getSupabase();

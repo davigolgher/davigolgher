@@ -104,7 +104,7 @@ export function OnboardingScreen() {
               { icon: <ShieldIcon size={18} />, text: "Your data stays yours — never sold" },
               { icon: <CheckIcon size={18} />, text: "Cancel anytime, right from Settings" },
               { icon: <CheckIcon size={18} />, text: "7-day free trial — no charge today" },
-              { icon: <CheckIcon size={18} />, text: "Loved by people taking control of spending" },
+              { icon: <CheckIcon size={18} />, text: "No ads and no data brokers — ever" },
             ]}
           />
         )}

@@ -12,6 +12,7 @@ import { LegalViewer, type LegalDocId } from "@/features/legal/Legal";
 import { clearActivity } from "@/lib/activity";
 import { signOut } from "@/lib/backend/auth";
 import { isSupabaseConfigured } from "@/lib/backend/client";
+import { openBillingPortal } from "@/lib/backend/billing";
 import { startGmailConnect, syncGmail } from "@/lib/backend/gmail";
 
 function SectionLabel({ children }: { children: string }) {
@@ -229,7 +230,21 @@ export function SettingsScreen() {
             <Button variant="secondary" fullWidth onClick={() => toast({ message: "No purchases to restore" })}>
               Restore purchases
             </Button>
-            <Button variant="secondary" fullWidth onClick={() => toast({ message: "Manage in App Store · Subscriptions" })}>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={async () => {
+                if (isSupabaseConfigured) {
+                  try {
+                    window.location.assign(await openBillingPortal());
+                  } catch (e) {
+                    toast({ message: (e as Error)?.message || "Couldn't open billing." });
+                  }
+                } else {
+                  toast({ message: "Manage in App Store · Subscriptions" });
+                }
+              }}
+            >
               Manage subscription
             </Button>
           </div>

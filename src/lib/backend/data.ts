@@ -168,4 +168,13 @@ export async function deleteAllData(userId: string): Promise<void> {
     c.from("budgets").delete().eq("user_id", userId),
     c.from("preferences").delete().eq("user_id", userId),
   ]);
+  // Also remove the user's uploaded receipt files from storage.
+  try {
+    const { data: files } = await c.storage.from("receipts").list(userId);
+    if (files && files.length) {
+      await c.storage.from("receipts").remove(files.map((f) => `${userId}/${f.name}`));
+    }
+  } catch {
+    /* ignore — table rows are the primary record */
+  }
 }
