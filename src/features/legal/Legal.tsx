@@ -148,7 +148,7 @@ const NUTRITION: NutritionGroup[] = [
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["Diagnostics — basic crash/usage data (if enabled)"] },
 ];
 
-const TITLES: Record<LegalDocId, string> = {
+export const LEGAL_TITLES: Record<LegalDocId, string> = {
   terms: "Terms of Service",
   privacy: "Privacy Policy",
   ai: "AI Disclosure",
@@ -206,8 +206,33 @@ function Nutrition() {
   );
 }
 
-export function LegalViewer({ doc, onClose }: { doc: LegalDocId; onClose: () => void }) {
+/**
+ * The document itself, without any chrome — shared by the in-app viewer and the
+ * public `/privacy` · `/terms` pages (App Store review needs those reachable
+ * without an account).
+ */
+export function LegalBody({ doc }: { doc: LegalDocId }) {
   const isTemplate = doc !== "nutrition";
+  return (
+    <>
+      <p className="text-[12px] uppercase tracking-wide text-chalk-faint">Last updated · {UPDATED}</p>
+      {isTemplate && (
+        <div className="mt-3 rounded-card-sm border border-line bg-ink-850 p-3.5 text-[12px] leading-relaxed text-chalk-mute">
+          Template for review by your legal counsel before launch — this is not legal advice, and details (company,
+          governing law, arbitration provider, contact) must be completed for your business.
+        </div>
+      )}
+      <div className="mt-6">
+        {doc === "terms" && <Prose sections={TERMS} />}
+        {doc === "privacy" && <Prose sections={PRIVACY} />}
+        {doc === "ai" && <Prose sections={AI} />}
+        {doc === "nutrition" && <Nutrition />}
+      </div>
+    </>
+  );
+}
+
+export function LegalViewer({ doc, onClose }: { doc: LegalDocId; onClose: () => void }) {
   return createPortal(
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-ink-950 animate-fade-in">
       <div className="app-shell flex min-h-full flex-col px-6 pb-12 pt-safe">
@@ -220,24 +245,11 @@ export function LegalViewer({ doc, onClose }: { doc: LegalDocId; onClose: () => 
           >
             <ChevronLeftIcon size={22} />
           </button>
-          <h1 className="text-[17px] font-semibold tracking-tight text-chalk">{TITLES[doc]}</h1>
+          <h1 className="text-[17px] font-semibold tracking-tight text-chalk">{LEGAL_TITLES[doc]}</h1>
         </div>
 
         <div className="pt-5">
-          <p className="text-[12px] uppercase tracking-wide text-chalk-faint">Last updated · {UPDATED}</p>
-          {isTemplate && (
-            <div className="mt-3 rounded-card-sm border border-line bg-ink-850 p-3.5 text-[12px] leading-relaxed text-chalk-mute">
-              Template for review by your legal counsel before launch — this is not legal advice, and details (company,
-              governing law, arbitration provider, contact) must be completed for your business.
-            </div>
-          )}
-
-          <div className="mt-6">
-            {doc === "terms" && <Prose sections={TERMS} />}
-            {doc === "privacy" && <Prose sections={PRIVACY} />}
-            {doc === "ai" && <Prose sections={AI} />}
-            {doc === "nutrition" && <Nutrition />}
-          </div>
+          <LegalBody doc={doc} />
 
           <Button variant="secondary" fullWidth className="mt-8" onClick={onClose}>
             Close

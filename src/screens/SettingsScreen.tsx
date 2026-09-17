@@ -39,7 +39,10 @@ export function SettingsScreen() {
     const params = new URLSearchParams(window.location.search);
     const g = params.get("gmail");
     if (!g) return;
-    toast({ message: g === "connected" ? "Gmail connected" : "Gmail connection failed" });
+    toast({
+      message:
+        g === "connected" ? "Gmail connected" : g === "denied" ? "Gmail access wasn't granted" : "Gmail connection failed",
+    });
     params.delete("gmail");
     const qs = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);

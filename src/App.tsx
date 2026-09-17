@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { StoreProvider, useStore } from "@/data/store";
 import { ToastProvider } from "@/components/ui";
 import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
 import { fetchBilling, isActive, type BillingRow } from "@/lib/backend/billing";
 import { FlowProvider, useFlow } from "@/features/flow/FlowProvider";
+import { LegalPage, SupportPage } from "@/features/legal/PublicPages";
 import { ModalsProvider } from "@/features/modals/ModalsProvider";
 import { SignUpScreen } from "@/features/onboarding/SignUpScreen";
 import { OnboardingScreen } from "@/features/onboarding/OnboardingScreen";
@@ -33,14 +34,28 @@ function AppRoutes() {
     <Router>
       <ScrollToTop />
       <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<HomeScreen />} />
-          <Route path="/expenses" element={<ExpensesScreen />} />
-          <Route path="/subs" element={<SubsScreen />} />
-          <Route path="/reports" element={<ReportsScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+        {/*
+          Public, no account required. App Store Connect's Privacy Policy / EULA /
+          Support URLs point here and App Review opens them from the listing, so
+          they are matched *before* the gate below.
+        */}
+        <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+        <Route path="/terms" element={<LegalPage doc="terms" />} />
+        <Route path="/ai" element={<LegalPage doc="ai" />} />
+        <Route path="/support" element={<SupportPage />} />
+
+        {/* Everything else needs an account and an active subscription. */}
+        <Route element={<Gate />}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="/expenses" element={<ExpensesScreen />} />
+            <Route path="/subs" element={<SubsScreen />} />
+            <Route path="/reports" element={<ReportsScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+          </Route>
         </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
@@ -122,7 +137,7 @@ function Gate() {
   if (!subscribed) return <OnboardingScreen />;
   return (
     <>
-      <AppRoutes />
+      <Outlet />
       {!flow.tutorialDone && <TutorialOverlay />}
       <RatingGate />
     </>
@@ -136,7 +151,7 @@ export default function App() {
         <ToastProvider>
           <FlowProvider>
             <ModalsProvider>
-              <Gate />
+              <AppRoutes />
             </ModalsProvider>
           </FlowProvider>
         </ToastProvider>

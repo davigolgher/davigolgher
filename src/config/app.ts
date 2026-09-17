@@ -7,6 +7,17 @@ export const APP = {
   version: "0.2.0",
   defaultLocale: "en-US",
   defaultCurrency: "USD",
+  /**
+   * Public support contact, shown on `/support`.
+   *
+   * App Store Connect requires a working **Support URL**, and App Review checks
+   * that the contact actually reaches you. Use an address you own for the app
+   * (e.g. `support@yourdomain.com`) rather than a personal inbox. Leave empty
+   * and the page explains that it still needs to be set.
+   */
+  supportEmail: "",
+  /** Legal entity shown in the legal pages. Fill before submitting. */
+  company: "",
 } as const;
 
 /**

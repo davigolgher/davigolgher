@@ -72,8 +72,13 @@ supabase secrets set \
   STRIPE_PRICE_YEARLY=price_... \
   GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
   GOOGLE_CLIENT_SECRET=... \
+  GMAIL_STATE_SECRET="$(openssl rand -base64 32)" \
   APP_URL=https://your-app.com
 ```
+
+`GMAIL_STATE_SECRET` signs the Gmail OAuth `state` parameter. The callback runs
+unauthenticated, so without it a forged `state` could bind an inbox to the wrong
+account — `gmail-oauth` refuses to run when it is missing.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected
 into functions automatically.
