@@ -21,5 +21,9 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"],
+  // `*.native.*` files are the React Native counterparts of shared modules (see
+  // mobile/README.md). Metro picks them for the app; the web build must skip
+  // them, since they import React Native packages this project doesn't have.
+  "exclude": ["src/**/*.native.ts", "src/**/*.native.tsx"]
 }
