@@ -22,8 +22,11 @@ a reload, `?` for the other shortcuts.
 
 ## Shared code
 
-The maths lives once, in the web app's `../src`, and both apps import it. These
-11 files are pure TypeScript — no DOM, no React, no npm imports — so they run
+Flow is app-only; `../src` is not a second app. It holds the shared core (the
+maths, the store, auth, legal text) plus the public `/privacy` and `/support`
+pages that App Store Connect requires.
+
+These files are pure TypeScript — no DOM, no React, no npm imports — so they run
 unchanged on native:
 
 `lib/money` · `lib/calc` · `lib/recurrence` · `lib/reports` · `lib/streak`

@@ -1,58 +1,57 @@
-# Flow — status da configuração
+# Flow — status
 
-Onde paramos, e o que falta. (Nenhuma chave secreta neste arquivo.)
+**Flow is a native iOS app.** There is no web version of the product.
 
-## Valores úteis
+The only thing deployed to the web is the legal & support pages, because App
+Store Connect requires a reachable **Privacy Policy URL** and **Support URL**
+(App Review opens them from the store listing, and Google requires the privacy
+one for OAuth).
 
-| O que | Valor |
+## Repo layout
+
+| Path | What it is |
 | --- | --- |
-| App publicado (URL fixa) | `https://davigolgher-lmhg.vercel.app` |
-| Projeto Vercel | `davigolgher-lmhg` (team `golgher-org`) |
-| Production Branch na Vercel | `claude/expense-tracking-app-design-lo7kuy` |
-| Supabase project URL | `https://jlerplyropsbcyqvqlgj.supabase.co` |
-| Callback URL (OAuth) | `https://jlerplyropsbcyqvqlgj.supabase.co/auth/v1/callback` |
+| `mobile/` | The app — Expo SDK 57, React Native, Expo Router, NativeWind |
+| `src/` | Shared logic (money, calc, reports, streak, store, auth, legal text) **and** the public legal/support pages |
+| `supabase/` | Schema, RLS migrations, Edge Functions |
 
-> A `VITE_SUPABASE_ANON_KEY` já está nas Environment Variables da Vercel.
-> Chaves secretas (Stripe secret, Google client secret) **nunca** entram no repositório —
-> elas vão só no painel do Supabase / Vercel.
+The app imports the shared modules from `src/` as `@/…`; see `mobile/README.md`
+for how that resolution works and which files have `.native` counterparts.
 
-## Pronto ✅
+## Values
 
-- [x] Deploy na Vercel a partir do branch do app (`main` segue intocado, com o README do perfil)
-- [x] `vercel.json` com build do Vite + rewrites de SPA (refresh não dá 404)
-- [x] Env vars `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` na Vercel
-- [x] Supabase Auth → URL Configuration apontando pra URL da Vercel
-- [x] Login por e-mail (magic link) testado e funcionando no app publicado
-- [x] Isolamento de dados: RLS (`auth.uid() = user_id`) ativo nas 8 tabelas
+| What | Value |
+| --- | --- |
+| Public pages | `https://davigolgher-lmhg.vercel.app` (`/privacy`, `/terms`, `/support`) |
+| Supabase project | `https://jlerplyropsbcyqvqlgj.supabase.co` |
+| OAuth callback | `https://jlerplyropsbcyqvqlgj.supabase.co/auth/v1/callback` |
+| iOS bundle id | `com.davigolgher.flow` |
 
-## Em andamento 🔜 — Login com Google
+Secrets (service role, Google client secret, RevenueCat secret) live only in
+Supabase Edge Function secrets — never in this repo. The Supabase anon key is
+public by design; RLS is the protection.
 
-O botão "Continue with Google" **já existe e já está wireado no código**
-(`signInWithProvider("google")`). Falta só configuração — nenhuma mudança de código.
+## Done ✅
 
-Feito:
-- [x] Projeto `Flow` criado no Google Cloud Console
-- [x] Tela de consentimento (External) + e-mail adicionado em **Test users**
+- [x] Native app runs on device via Expo Go
+- [x] Shared logic imported by the app rather than duplicated
+- [x] Supabase auth on native — six-digit emailed code, no leaving the app
+- [x] Data syncs under RLS (`auth.uid() = user_id`) on all 8 tables
+- [x] Screens: Home, Expenses, Subs, Reports (donut + bars), Settings, add-expense
+- [x] Settings: budget, currency, categories, legal docs, sign out, delete account
+- [x] Public legal/support pages deployed
+- [x] Web product UI deleted — one app, one codebase
 
-Falta:
-- [ ] **Google Cloud → Clients → Create client**: tipo **Web application**
-  - Authorized JavaScript origins: `https://davigolgher-lmhg.vercel.app`
-  - Authorized redirect URIs: `https://jlerplyropsbcyqvqlgj.supabase.co/auth/v1/callback`
-- [ ] Copiar **Client ID** e **Client Secret**
-- [ ] **Supabase → Authentication → Providers → Google**: ativar e colar as duas chaves
-- [ ] Testar o botão no app publicado
+## Next 🔜
 
-## Depois do Google
+1. **Apple IAP via RevenueCat** — paywall, Guideline 3.1.2 disclosure, restore purchases, entitlement synced to Supabase. Needs the Apple Developer Program (~US$99/yr).
+2. **Push notifications** — `expo-notifications`, renewal reminders before a charge (closes compliance item 9).
+3. **Receipt photos** — `expo-image-picker` + upload to the private `receipts` bucket.
+4. **Gmail import** — owner is doing this; the Edge Functions and the client helper (`src/lib/backend/gmail.ts`) are in place. Note `gmail.readonly` is a Google *restricted* scope: production use needs OAuth verification plus a CASA security assessment, so consider receipt-forwarding instead.
 
-1. **Stripe** — chave publicável na Vercel (`VITE_STRIPE_PUBLISHABLE_KEY`), secret + webhook
-   secret no Supabase, e deploy das Edge Functions `create-checkout`, `stripe-webhook`,
-   `create-portal`. O paywall só chama o checkout quando a chave existe, então nada quebra antes.
-2. **Gmail** — OAuth client (tipo Web) + Gmail API ativada; functions `gmail-oauth` / `gmail-sync`.
-3. **Apple** — por último: exige o Apple Developer Program (pago, ~US$ 99/ano).
+## Before submitting to the App Store
 
-## Notas
-
-- Toda vez que o código muda e é enviado pro branch, **a Vercel publica sozinha** —
-  não precisa mexer no painel de novo.
-- Notificações push de verdade só no build nativo (passo da App Store).
-  No navegador, a alternativa é lembrete por e-mail via função agendada.
+- Set `APP.supportEmail` and `APP.company` in `src/config/app.ts`.
+- Real 1024×1024 icon and splash in `mobile/assets/images/` (currently Expo placeholders).
+- Have the legal templates reviewed by a lawyer — they are drafts, not advice.
+- `PrivacyInfo.xcprivacy`, age rating, EU trader status — see `APP_STORE.md`.

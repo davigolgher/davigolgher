@@ -1,9 +1,9 @@
 # App Store submission checklist (Flow)
 
-Flow today is a web app (Vite + React). Shipping to the App Store means wrapping it
-in a native shell (Expo/Capacitor → Xcode) and submitting through App Store Connect.
-This maps Apple's current requirements to what is **already handled in the app** vs.
-what must be done in the **native build / App Store Connect**.
+Flow is a **native app** (Expo / React Native, in `mobile/`) — real native views,
+not a wrapped web page, so Guideline 4.2 ("minimum functionality") doesn't apply.
+This maps Apple's requirements to what is **already handled in the app** vs. what
+must still be done in the **build / App Store Connect**.
 
 Sources:
 - [Upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)
@@ -14,19 +14,36 @@ Sources:
 
 ## Already handled in the app ✅
 
-- **Account deletion in-app** (required since Jun 30, 2022) — Settings › Account › Delete account, available to all users, erases the account/data, and warns to cancel an App Store subscription first.
-- **Sign in with Apple offered** alongside Google (Guideline 4.8 "Login Services").
-- **Privacy Policy, Terms of Use (EULA), AI disclosure, privacy nutrition label** — in Settings › Legal & privacy.
-- **Subscription disclosure at the point of purchase** (Guideline 3.1.2) — the paywall states trial length, price/period, auto-renew, and how to cancel, with functional **Terms of Use** and **Privacy Policy** links. Sign-up screen links to both too.
-- **Restore purchases** and **Manage subscription** affordances in Settings (UI; wire to StoreKit in the native build).
-- **File-upload validation** for receipts (type/size/magic-byte), input sanitization, https-only navigation (see `SECURITY.md`).
+- **Account deletion in-app** (required since Jun 30, 2022) — Settings › Account › Delete account, available to all users, erases the account and data, and warns to cancel an App Store subscription first.
+- **Privacy Policy, Terms of Use (EULA), AI disclosure, privacy nutrition label** — Settings › Legal & privacy, and at public URLs for the store listing.
+- **Public Privacy Policy and Support URLs** — `/privacy` and `/support`, reachable with no account, which is what App Review opens from the listing.
+- **Camera / photo-library purpose strings** — `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` in `mobile/app.json`.
+- **Export compliance** — `ITSAppUsesNonExemptEncryption: false` (standard HTTPS only).
+- **Per-user data isolation** — Row Level Security (`auth.uid() = user_id`) on all 8 tables.
+- **Input sanitization** and receipt upload validation helpers (type/size/magic-byte) — see `SECURITY.md`.
+
+## Not done yet ⚠️
+
+Listed separately so this file is not mistaken for a green light:
+
+- **Sign in with Apple (Guideline 4.8)** — required *if* a third-party login is offered. The app currently signs in with an emailed code only, so 4.8 doesn't bite yet; adding Google login makes Sign in with Apple mandatory.
+- **Subscription disclosure at the point of purchase (Guideline 3.1.2)** — the paywall isn't built. It must state trial length, price/period and auto-renew, with working Terms and Privacy links.
+- **Restore Purchases** — required, arrives with RevenueCat.
+- **Receipt photo capture and upload** — helpers exist, the native flow does not.
 
 ## Native build / App Store Connect — TODO
 
-### 1. Payments — the big decision (Guideline 3.1.1)
-Digital subscriptions consumed in the app must use **Apple In-App Purchase (StoreKit)**, *or* the **StoreKit External Purchase Link Entitlement** where allowed (e.g. US). A Stripe-only in-app subscription will be rejected. Decide:
-- **IAP/StoreKit** — implement products, purchase, and Restore; Apple takes commission.
-- **External Purchase Link entitlement** — request the entitlement, show the required disclosure sheet, keep payment on your Stripe page (the app already redirects to a hosted Stripe link, kept outside the app for this reason).
+### 1. Payments — Apple In-App Purchase (Guideline 3.1.1)
+**Decided: Apple IAP via StoreKit, wrapped by RevenueCat.** Digital subscriptions
+consumed in the app must go through IAP; a Stripe-only in-app subscription is
+rejected. Apple takes 15–30%.
+
+Still to do:
+- Create the auto-renewable subscription products in App Store Connect, and the matching offering in RevenueCat.
+- Wire `react-native-purchases`: paywall, purchase, and **Restore Purchases** (Apple requires a restore path).
+- Show price and period from StoreKit, not hard-coded — the storefront localizes them.
+- Sync the entitlement to Supabase (RevenueCat webhook → `billing` table) so the app trusts one source.
+- There is no web purchase path any more, so nothing in the app may link out to an external payment page.
 
 ### 2. Privacy manifest — `PrivacyInfo.xcprivacy` (required since May 1, 2024)
 Declare collected data types and **required-reason APIs**. Starter template (adjust to your SDKs):

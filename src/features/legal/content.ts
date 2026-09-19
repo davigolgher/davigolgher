@@ -30,7 +30,7 @@ export const TERMS: Section[] = [
     heading: "5. Subscriptions, free trial & billing",
     body: [`Paid plans may start with a free trial. Unless you cancel before the trial ends, the plan renews automatically at the then-current price until you cancel.`],
     bullets: [
-      "Payments are processed by our payment provider (Stripe) or the app store; we do not store full card numbers.",
+      "Payments are processed by the app store (Apple); we never see or store your card details.",
       "You can cancel anytime; cancellation stops future renewals and takes effect at the end of the current period.",
       "Except where the law requires otherwise, payments are non-refundable.",
     ],
@@ -96,7 +96,8 @@ export const PRIVACY: Section[] = [
     body: ["We use third parties that process your data on our behalf, under contract and only as needed to run the app:"],
     bullets: [
       "Supabase — database, authentication, and file storage (our backend/hosting provider).",
-      "Stripe — subscription billing and payments; we never receive your full card number.",
+      "Apple — processes your subscription purchase through the App Store; we never receive your card details.",
+      "RevenueCat — records which subscription you hold so the app can unlock; it does not receive payment details.",
       "Google — only if you connect Gmail (read-only), under the permissions you grant.",
       "Legal/safety: disclosed when required by law or to protect rights and safety.",
       "We do not sell your personal data or share it with advertising data brokers.",

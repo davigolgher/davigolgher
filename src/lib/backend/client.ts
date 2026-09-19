@@ -1,13 +1,16 @@
 /**
- * Supabase client — config-driven. When VITE_SUPABASE_URL and
- * VITE_SUPABASE_ANON_KEY are set (see .env.example), the app runs in "connected"
- * mode: real auth + data persistence. When they are empty, the app stays in the
- * local demo mode it has today (in-memory data, local funnel), so the published
- * artifact keeps working with no backend.
+ * Supabase client, browser build.
+ *
+ * The app itself runs on `client.native.ts`, which Metro resolves ahead of this
+ * file. Nothing in the deployed web bundle (the legal and support pages) needs a
+ * Supabase client at all — this exists so the shared modules that import
+ * `./client` (data, auth, AuthProvider, the store) still typecheck from the web
+ * project, where React Native packages aren't installed. Keep the two exports in
+ * sync with the native file.
  *
  * Only the *public* anon key belongs here — Row Level Security protects the data.
- * Secret keys (service role, Stripe secret, Google client secret) live only in
- * Edge Function env vars, never in the frontend. See SUPABASE.md.
+ * Secret keys (service role, Google client secret) live only in Edge Function
+ * env vars, never in the frontend. See SUPABASE.md.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

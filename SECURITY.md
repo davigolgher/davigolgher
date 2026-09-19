@@ -29,66 +29,44 @@ server responsibility — never shipped in the frontend.
 
 ## Must be server-side (do NOT put in the frontend)
 
-### Stripe webhook signature verification
+### Authenticate every webhook before trusting it
 
-Only accept webhook events that Stripe actually signed. Verify the `Stripe-Signature`
-header against the **raw** request body using your endpoint's signing secret
-(`whsec_…`), which lives only in server env vars. Never trust the event body without it.
+A billing webhook is an unauthenticated public endpoint that grants paid access.
+Anything that can reach it can claim a user is subscribed, so the payload is only
+worth acting on once the sender is proven.
 
-**Node / Express**
-
-```js
-import express from "express";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // whsec_...
-const app = express();
-
-// IMPORTANT: the raw body is required — do not JSON-parse before verifying.
-app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    // Signature invalid, body tampered, or timestamp outside tolerance.
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  switch (event.type) {
-    case "checkout.session.completed":
-    case "customer.subscription.updated":
-    case "customer.subscription.deleted":
-      // ...update the user's subscription state from the verified event...
-      break;
-  }
-  res.json({ received: true });
-});
-```
-
-**Supabase Edge Function (Deno)**
+Flow's subscriptions run on Apple IAP through **RevenueCat**, whose webhook
+authenticates with a shared secret sent in the `Authorization` header. Set it in
+RevenueCat, store it as an Edge Function secret, and compare in constant time —
+`===` on a secret leaks its prefix through timing.
 
 ```ts
-import Stripe from "https://esm.sh/stripe@16?target=deno";
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
-const secret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
+// supabase/functions/revenuecat-webhook/index.ts
+const EXPECTED = Deno.env.get("REVENUECAT_WEBHOOK_SECRET")!;
+
+/** Constant-time compare; a plain === leaks how many characters matched. */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 
 Deno.serve(async (req) => {
-  const sig = req.headers.get("stripe-signature")!;
-  const body = await req.text(); // raw body
-  try {
-    const event = await stripe.webhooks.constructEventAsync(body, sig, secret);
-    // handle verified event...
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
-  } catch (err) {
-    return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 });
+  if (!safeEqual(req.headers.get("Authorization") ?? "", EXPECTED)) {
+    return new Response("Unauthorized", { status: 401 });
   }
+  const event = await req.json();
+  // ...write the entitlement to `billing` using the service-role key...
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
 });
 ```
 
-Notes: keep the default timestamp tolerance (replay protection), make handlers
-idempotent (Stripe may retry), and return 2xx only after the event is safely stored.
+Deploy it with `--no-verify-jwt` (RevenueCat has no Supabase session), make the
+handler **idempotent** — events get retried and can arrive out of order — and
+return 2xx only after the event is stored. The same rules apply to any other
+provider's webhook; only the proof of origin differs (HMAC over the raw body for
+some, a shared secret for others).
 
 ### Other server responsibilities
 
@@ -97,9 +75,10 @@ idempotent (Stripe may retry), and return 2xx only after the event is safely sto
   `Content-Disposition: attachment`.
 - **Authentication & authorization** — real accounts, sessions, and per-user access
   checks; never trust the client for who the user is.
-- **Secrets** — Stripe *secret* key, webhook signing secret, Google OAuth *client
-  secret*, and any DB credentials belong in server env only. Only publishable/anon
-  keys and OAuth *client IDs* may appear client-side.
+- **Secrets** — the Supabase *service role* key, RevenueCat's webhook secret and
+  secret API key, the Google OAuth *client secret*, `GMAIL_STATE_SECRET`, and any
+  DB credentials belong in server env only. Only anon/publishable keys and OAuth
+  *client IDs* may appear client-side.
 - **Account deletion** — cascade the delete across the database and purge backups on a
   defined schedule to honor the Privacy Policy.
 - **Security headers / CSP** — send a Content-Security-Policy, `X-Content-Type-Options:

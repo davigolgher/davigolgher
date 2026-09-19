@@ -1,21 +1,22 @@
-# Backend setup (Supabase + Stripe + Gmail)
+# Backend setup (Supabase + Gmail)
 
-Flow runs in two modes:
+Supabase provides auth and per-user data (Postgres + Row Level Security) for the
+native app. The app reads its config from `mobile/.env`
+(`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`); with those unset
+it shows a "backend not configured" screen instead of signing in.
 
-- **Local demo** (no env vars) — in-memory data, local funnel. This is what the
-  published preview uses.
-- **Connected** — set the two `VITE_SUPABASE_*` vars and the app switches to real
-  auth, per-user data in Postgres (RLS), Stripe subscriptions, and Gmail import.
+**Subscriptions are not here.** Purchases go through Apple In-App Purchase via
+RevenueCat — see `APP_STORE.md`. RevenueCat's webhook writes entitlements into
+the `billing` table, which the app reads.
 
-Nothing goes live until you complete the steps below with **your own** accounts.
-Secret keys live only in Edge Function secrets — never in the repo or frontend
-(only the anon key, Stripe publishable key, and OAuth client id are public).
+Secret keys live only in Edge Function secrets — never in the repo or the app
+(only the anon key and OAuth client id are public).
 
-Everything is already wired in code:
+Already wired in code:
 
-- Client: `src/lib/backend/{client,auth,data,billing,gmail}.ts`
+- Client: `src/lib/backend/{client,client.native,auth,auth.native,data,gmail}.ts`
 - Migrations: `supabase/migrations/*.sql`
-- Edge Functions: `supabase/functions/{create-checkout,stripe-webhook,gmail-oauth,gmail-sync}`
+- Edge Functions: `supabase/functions/{gmail-oauth,gmail-sync}`
 
 ---
 
@@ -31,34 +32,41 @@ Everything is already wired in code:
    This creates the tables, **Row Level Security** policies, the private
    `receipts` storage bucket, and the new-user trigger.
 
-## 2. Frontend env
+## 2. App env
 
-Copy `.env.example` → `.env.local` and fill the public values:
+Copy `mobile/.env.example` → `mobile/.env` and fill the public values:
 
 ```
-VITE_SUPABASE_URL=https://<ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key>          # Project Settings → API
-VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...     # optional, safe to expose
+EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>     # Project Settings → API
 ```
 
-Rebuild (`npm run build`). With these set, the sign-up screen uses Supabase Auth.
+Restart with `npx expo start -c` — Expo inlines `EXPO_PUBLIC_*` at bundle time,
+so a plain restart won't pick up a change.
 
-## 3. Auth providers
+## 3. Auth
 
-In **Authentication → Providers**:
+In **Authentication → Providers**, **Email** is enabled by default.
 
-- **Email** — enabled by default; the app uses magic links.
-- **Google** / **Apple** — enable and paste their client id/secret. Add your app
-  origin to **URL Configuration → Redirect URLs** (e.g. `https://your-app.com`).
+The app signs in with a six-digit code rather than a link, so the **Magic Link**
+email template (Authentication → Emails) must include `{{ .Token }}`:
+
+```html
+<h2>Sign in to Flow</h2>
+<p style="font-size:32px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
+<p>Type this code in the Flow app.</p>
+```
+
+Adding Google or Apple sign-in means enabling the provider here and registering
+`https://<ref>.supabase.co/auth/v1/callback` with it. Note that offering a
+third-party login makes **Sign in with Apple** mandatory under Guideline 4.8.
 
 ## 4. Edge Functions
 
 Deploy:
 
 ```bash
-supabase functions deploy create-checkout
-supabase functions deploy stripe-webhook --no-verify-jwt   # Stripe signs these
-supabase functions deploy gmail-oauth   --no-verify-jwt    # Google calls back here
+supabase functions deploy gmail-oauth --no-verify-jwt    # Google calls back here
 supabase functions deploy gmail-sync
 ```
 
@@ -66,14 +74,10 @@ Set the secrets (never commit these):
 
 ```bash
 supabase secrets set \
-  STRIPE_SECRET_KEY=sk_live_... \
-  STRIPE_WEBHOOK_SECRET=whsec_... \
-  STRIPE_PRICE_MONTHLY=price_... \
-  STRIPE_PRICE_YEARLY=price_... \
   GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
   GOOGLE_CLIENT_SECRET=... \
   GMAIL_STATE_SECRET="$(openssl rand -base64 32)" \
-  APP_URL=https://your-app.com
+  APP_URL=https://davigolgher-lmhg.vercel.app
 ```
 
 `GMAIL_STATE_SECRET` signs the Gmail OAuth `state` parameter. The callback runs
@@ -83,20 +87,15 @@ account — `gmail-oauth` refuses to run when it is missing.
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected
 into functions automatically.
 
-## 5. Stripe
+## 5. Subscriptions
 
-1. Create a **Product** with two recurring **Prices** (monthly, yearly). Copy the
-   `price_…` ids into `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_YEARLY`.
-2. **Developers → Webhooks → Add endpoint**:
-   `https://<ref>.supabase.co/functions/v1/stripe-webhook`, events:
-   `checkout.session.completed`, `customer.subscription.created|updated|deleted`.
-   Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
-3. Flow: the paywall calls `create-checkout` → Stripe Checkout (7-day trial) →
-   returns to `APP_URL/?checkout=success`. The webhook verifies the signature and
-   writes `billing`; the app reads `billing.status` (`trialing`/`active`) to unlock.
+Not handled here. Flow is an App Store app, and Guideline 3.1.1 requires digital
+subscriptions consumed in the app to go through Apple In-App Purchase, so there
+is no Stripe checkout and no external payment link.
 
-> App Store note: in-app digital subscriptions must use Apple IAP or the External
-> Purchase Link entitlement — see `APP_STORE.md`. Stripe Checkout is for web.
+The shape stays the same from the database's point of view: RevenueCat's webhook
+writes the entitlement into the `billing` table, and the app reads
+`billing.status` (`trialing` / `active`) to unlock. See `APP_STORE.md`.
 
 ## 6. Gmail
 

@@ -5,8 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   /** Supabase anon/public key (safe to expose; RLS protects data). */
   readonly VITE_SUPABASE_ANON_KEY?: string;
-  /** Stripe publishable key (safe to expose). Secret keys never live here. */
-  readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
 }
 
 interface ImportMeta {
