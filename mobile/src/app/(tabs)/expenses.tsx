@@ -30,7 +30,9 @@ export default function Expenses() {
         title="Expenses"
         action={
           <Button
+            variant="primary"
             size="sm"
+            pill
             leadingIcon={<PlusIcon size={16} color="#FFFFFF" strokeWidth={2.2} />}
             onPress={() => router.push("/add-expense")}
           >

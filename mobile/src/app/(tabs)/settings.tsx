@@ -126,7 +126,9 @@ export default function Settings() {
               className="flex-1 py-3.5 text-[16px] text-chalk"
             />
           </View>
-          <Button onPress={saveBudget}>Save</Button>
+          <Button variant="primary" onPress={saveBudget}>
+            Save
+          </Button>
         </View>
         <Text className="mt-2 text-[12px] text-chalk-faint">
           {budget > 0 ? `Currently ${money.format(budget)} per month.` : "No budget set — the Home screen shows total spending instead."}
@@ -184,6 +186,7 @@ export default function Settings() {
             className="flex-1 rounded-field border border-line-strong bg-ink-800 px-4 py-3.5 text-[16px] text-chalk"
           />
           <Button
+            variant="primary"
             disabled={!newCategory.trim()}
             onPress={() => {
               addCategory(newCategory);

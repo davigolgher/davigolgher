@@ -130,7 +130,7 @@ export default function AddExpense() {
         </View>
 
         <View className="mt-10">
-          <Button fullWidth size="lg" disabled={!canSave} onPress={save}>
+          <Button variant="primary" fullWidth size="lg" disabled={!canSave} onPress={save}>
             {direction === "income" ? "Add income" : "Add expense"}
           </Button>
         </View>

@@ -42,7 +42,13 @@ export default function Home() {
         eyebrow="Overview"
         title="This month"
         action={
-          <Button size="sm" leadingIcon={<PlusIcon size={16} color="#FFFFFF" strokeWidth={2.2} />} onPress={() => router.push("/add-expense")}>
+          <Button
+            variant="primary"
+            size="sm"
+            pill
+            leadingIcon={<PlusIcon size={16} color="#FFFFFF" strokeWidth={2.2} />}
+            onPress={() => router.push("/add-expense")}
+          >
             Add
           </Button>
         }

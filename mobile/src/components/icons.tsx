@@ -77,6 +77,13 @@ export const WalletIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const MailIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <Rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+    <Path d="m4 7 8 5.5L20 7" />
+  </Icon>
+);
+
 export const ChevronRightIcon = (p: IconProps) => (
   <Icon {...p}>
     <Path d="M9 6l6 6-6 6" />

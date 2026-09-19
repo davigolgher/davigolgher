@@ -2,8 +2,8 @@
  * Native UI primitives, matching the web app's look through the shared design
  * tokens in tailwind.config.js.
  */
-import type { ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useState, type ReactNode } from "react";
+import { Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
 
@@ -41,45 +41,98 @@ export function FitNumber({ children, className = "" }: { children: ReactNode; c
 
 /* ── Button ──────────────────────────────────────────────────────────────── */
 
+/* Heights, paddings and variants mirror the web Button so the two look alike. */
+
+type Variant = "primary" | "secondary" | "ghost";
+
 interface ButtonProps {
   children: ReactNode;
   onPress?: () => void;
-  variant?: "primary" | "secondary";
+  variant?: Variant;
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   disabled?: boolean;
+  pill?: boolean;
   leadingIcon?: ReactNode;
 }
 
-const PAD = { sm: "px-3.5 py-2", md: "px-4 py-3", lg: "px-5 py-4" } as const;
-const TEXT = { sm: "text-[13px]", md: "text-[15px]", lg: "text-[16px]" } as const;
+const SIZES = {
+  sm: { box: "h-9 px-3.5 gap-1.5", text: "text-[14px]" },
+  md: { box: "h-11 px-4 gap-2", text: "text-[15px]" },
+  lg: { box: "h-[52px] px-5 gap-2", text: "text-[16px]" },
+} as const;
+
+const VARIANTS: Record<Variant, { box: string; text: string }> = {
+  primary: { box: "bg-chalk", text: "text-ink-950" },
+  secondary: { box: "bg-ink-850 border border-line", text: "text-chalk" },
+  ghost: { box: "bg-transparent", text: "text-chalk-soft" },
+};
 
 export function Button({
   children,
   onPress,
-  variant = "primary",
+  variant = "secondary",
   size = "md",
   fullWidth,
   disabled,
+  pill,
   leadingIcon,
 }: ButtonProps) {
-  const primary = variant === "primary";
+  const v = VARIANTS[variant];
+  const s = SIZES[size];
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
       className={[
-        "flex-row items-center justify-center gap-2 rounded-button active:opacity-80",
-        PAD[size],
-        primary ? "bg-chalk" : "border border-line-strong bg-ink-800",
+        "flex-row items-center justify-center active:opacity-80",
+        pill ? "rounded-pill" : "rounded-button",
+        s.box,
+        v.box,
         fullWidth ? "w-full" : "self-start",
         disabled ? "opacity-40" : "",
       ].join(" ")}
     >
       {leadingIcon}
-      <Text className={`${TEXT[size]} font-semibold ${primary ? "text-ink-950" : "text-chalk"}`}>{children}</Text>
+      <Text className={`${s.text} font-semibold ${v.text}`}>{children}</Text>
     </Pressable>
+  );
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+
+/**
+ * Text field matching the web Input: hairline border that darkens on focus,
+ * no boxy focus ring.
+ */
+export function Input({
+  leading,
+  className = "",
+  ...props
+}: TextInputProps & { leading?: ReactNode; className?: string }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View
+      className={`h-[52px] flex-row items-center gap-2 rounded-field border bg-ink-850 px-4 ${
+        focused ? "border-chalk/50" : "border-line-strong"
+      } ${className}`}
+    >
+      {leading}
+      <TextInput
+        placeholderTextColor="#AEAEB4"
+        {...props}
+        onFocus={(e) => {
+          setFocused(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          props.onBlur?.(e);
+        }}
+        className="h-full flex-1 text-[16px] text-chalk"
+      />
+    </View>
   );
 }
 
