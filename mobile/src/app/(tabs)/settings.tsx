@@ -10,13 +10,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { signOut } from "@/lib/backend/auth";
+import { MIN_PASSWORD_LENGTH, signOut, updatePassword } from "@/lib/backend/auth";
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
 import { APP } from "@/config/app";
 import { clearActivity } from "~/lib/activity";
-import { Button, Eyebrow, ScreenHeader } from "~/components/ui";
+import { Button, Eyebrow, Input, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
@@ -55,6 +55,21 @@ export default function Settings() {
   const [budgetText, setBudgetText] = useState(budget > 0 ? String(toMain(budget)) : "");
   const [newCategory, setNewCategory] = useState("");
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const savePassword = async () => {
+    setSavingPassword(true);
+    try {
+      await updatePassword(newPassword);
+      setNewPassword("");
+      Alert.alert("Password saved", "You can now sign in with your email and this password.");
+    } catch (e) {
+      Alert.alert("Couldn't save", (e as Error)?.message || "Try again.");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const saveBudget = () => {
     const n = Number(budgetText.replace(/[^\d.]/g, ""));
@@ -196,6 +211,28 @@ export default function Settings() {
             Add
           </Button>
         </View>
+      </Section>
+
+      <Section label="Password">
+        <View className="flex-row items-center gap-2">
+          <Input
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="New password"
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            className="flex-1"
+          />
+          <Button variant="primary" disabled={newPassword.length < MIN_PASSWORD_LENGTH || savingPassword} onPress={savePassword}>
+            {savingPassword ? "Saving…" : "Save"}
+          </Button>
+        </View>
+        <Text className="mt-2 text-[12px] text-chalk-faint">
+          At least {MIN_PASSWORD_LENGTH} characters. Set one here if your account was created before passwords, or to
+          change the one you have.
+        </Text>
       </Section>
 
       <Section label="Legal & privacy">

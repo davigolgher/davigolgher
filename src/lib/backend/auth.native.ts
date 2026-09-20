@@ -50,6 +50,18 @@ export async function signInWithPassword(email: string, password: string): Promi
   return data.session;
 }
 
+/**
+ * Set or change the signed-in user's password.
+ *
+ * Also the migration path for accounts created before password auth: those were
+ * made passwordless, so they have nothing to sign in with until this is called
+ * from a session that's still valid.
+ */
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await client().auth.updateUser({ password });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   const sb = getSupabase();
   if (sb) await sb.auth.signOut();
