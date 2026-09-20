@@ -61,8 +61,21 @@ Three shared modules touch browser APIs and so have native counterparts in
 
 ```bash
 npx tsc --noEmit                    # typecheck
+npm run check:native                # native module versions match the SDK
 npx expo export --platform ios      # verify it really bundles
 ```
+
+### Installing native modules
+
+Always `npx expo install <package>`, never plain `npm install`, for anything with
+native code. Expo Go embeds the exact native modules listed in
+`node_modules/expo/bundledNativeModules.json`; a JS package on a different major
+calls into native methods that aren't there, and it fails at **runtime** with
+`native module is null` — after the typecheck and the bundle have both passed.
+
+If `expo install` can't reach Expo's API, read the expected version out of
+`bundledNativeModules.json` and pin it exactly. `npm run check:native` compares
+what's installed against that file and is the guard either way.
 
 ## Before submitting to the App Store
 
