@@ -59,6 +59,7 @@ export default function Subs() {
             {upcoming.map((s) => (
               <Pressable
                 key={s.id}
+                onPress={() => router.push(`/add-subscription?id=${s.id}`)}
                 onLongPress={() => confirmCancel(s.id, s.name)}
                 className="flex-row items-center gap-3 border-b border-line-soft py-3.5 active:opacity-60"
               >
@@ -73,7 +74,7 @@ export default function Subs() {
                 <Text className="shrink-0 text-[15px] font-semibold text-chalk">{money.format(s.amount)}</Text>
               </Pressable>
             ))}
-            <Text className="mt-3 text-[12px] text-chalk-faint">Press and hold a subscription to cancel it.</Text>
+            <Text className="mt-3 text-[12px] text-chalk-faint">Tap to edit · press and hold to cancel.</Text>
           </View>
         ) : (
           <View className="mt-3 rounded-card border border-dashed border-line-strong p-6">

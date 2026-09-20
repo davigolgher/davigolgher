@@ -1,4 +1,4 @@
-/** Reports — ported from the web ReportsScreen: monthly bars, category donut, subscription costs. */
+/** Reports — category donut and monthly line side by side, plus subscription costs. */
 import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,8 @@ import { categoryBreakdown, monthlyTotals } from "@/lib/reports";
 import { FREQUENCY_LABEL } from "@/lib/recurrence";
 import { Eyebrow, ScreenHeader } from "~/components/ui";
 import { Donut } from "~/components/Donut";
+import { LineChart } from "~/components/LineChart";
+import { ChartPager } from "~/components/ChartPager";
 
 function BarRow({ label, value, barPct }: { label: string; value: string; barPct: number }) {
   return (
@@ -39,9 +41,9 @@ export default function Reports() {
   );
   const subs = activeSubscriptions(data.subscriptions);
   const subsMonthly = subscriptionsMonthlyTotal(data.subscriptions);
-
-  const maxMonth = Math.max(1, ...months.map((m) => m.total));
   const maxSub = Math.max(1, ...subs.map((s) => s.amount));
+
+  const hasData = categories.length > 0 || months.some((m) => m.total > 0);
 
   return (
     <ScrollView
@@ -50,28 +52,19 @@ export default function Reports() {
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
 
-      <View className="mt-6">
-        <Eyebrow>Monthly spending</Eyebrow>
-        {months.some((m) => m.total > 0) ? (
-          <View className="mt-1">
-            {months.map((m) => (
-              <BarRow key={m.key} label={m.label} value={money.format(m.total)} barPct={(m.total / maxMonth) * 100} />
-            ))}
-          </View>
+      <View className="mt-6 rounded-card border border-line bg-ink-850 p-5">
+        {hasData ? (
+          <ChartPager
+            pages={[
+              { key: "categories", title: "Spending by category", content: <Donut slices={categories} /> },
+              { key: "months", title: "Monthly spending", content: <LineChart months={months} /> },
+            ]}
+          />
         ) : (
-          <Text className="py-6 text-[15px] text-chalk-mute">No spending recorded yet.</Text>
+          <Text className="py-6 text-center text-[15px] leading-relaxed text-chalk-mute">
+            Log a few expenses and the charts show up here.
+          </Text>
         )}
-      </View>
-
-      <View className="mt-8">
-        <Eyebrow>Spending by category</Eyebrow>
-        <View className="mt-3">
-          {categories.length > 0 ? (
-            <Donut slices={categories} />
-          ) : (
-            <Text className="py-6 text-[15px] text-chalk-mute">No spending yet.</Text>
-          )}
-        </View>
       </View>
 
       <View className="mt-8">

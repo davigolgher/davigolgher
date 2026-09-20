@@ -1,23 +1,22 @@
 /**
- * Add a recurring subscription. Presented as a modal from the Subs tab.
- *
- * Amount is collected as digits and converted with the shared `digitsToCents`,
- * so money never passes through a float. Saving goes through the shared store,
- * which writes to Supabase in the background under the user's RLS policies.
+ * Add or edit a recurring subscription. Presented as a modal; passing `?id=`
+ * switches it into edit mode.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { digitsToCents } from "@/lib/money";
+import { currencyByCode } from "@/data/currencies";
 import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
+import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
+import { CategoryPicker } from "~/components/CategoryPicker";
 
 const FREQUENCIES: Frequency[] = ["weekly", "monthly", "yearly"];
 
-/** Days until the first charge, offered as presets so there's no date picker to fight. */
+/** Days until the first charge, as presets so there's no date picker to fight. */
 const WHEN = [
   { label: "Today", days: 0 },
   { label: "Tomorrow", days: 1 },
@@ -27,32 +26,45 @@ const WHEN = [
 
 export default function AddSubscription() {
   const insets = useSafeAreaInsets();
-  const { data, addSubscription } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { data, addSubscription, updateSubscription } = useStore();
   const money = useMoney();
 
-  const [name, setName] = useState("");
-  const [digits, setDigits] = useState("");
-  const [frequency, setFrequency] = useState<Frequency>("monthly");
-  const [inDays, setInDays] = useState(30);
-  const [categoryId, setCategoryId] = useState(data.categories[0]?.label ?? "Subscriptions");
+  const existing = useMemo(
+    () => (id ? data.subscriptions.find((s) => s.id === id) : undefined),
+    [id, data.subscriptions],
+  );
+  const editing = Boolean(existing);
 
-  const cents = digitsToCents(digits);
+  const [name, setName] = useState(existing?.name ?? "");
+  const [amountText, setAmountText] = useState(existing ? centsToAmountText(existing.amount) : "");
+  const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? "monthly");
+  const [inDays, setInDays] = useState(30);
+  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? data.categories[0]?.label ?? "Subscriptions");
+
+  const cents = amountTextToCents(amountText);
   const canSave = cents > 0 && name.trim().length > 0;
 
   const save = () => {
     if (!canSave) return;
-    const next = new Date();
-    next.setDate(next.getDate() + inDays);
-    addSubscription({
-      name: name.trim(),
-      amount: cents,
-      currency: data.preferences.currency,
-      frequency,
-      nextChargeAt: next.toISOString(),
-      status: "active",
-      categoryId,
-      reminders: true,
-    });
+    if (existing) {
+      // Editing leaves the next charge date alone — it's the schedule already in
+      // flight, not something the amount or name should reset.
+      updateSubscription({ ...existing, name: name.trim(), amount: cents, frequency, categoryId });
+    } else {
+      const next = new Date();
+      next.setDate(next.getDate() + inDays);
+      addSubscription({
+        name: name.trim(),
+        amount: cents,
+        currency: data.preferences.currency,
+        frequency,
+        nextChargeAt: next.toISOString(),
+        status: "active",
+        categoryId,
+        reminders: true,
+      });
+    }
     router.back();
   };
 
@@ -66,7 +78,9 @@ export default function AddSubscription() {
           <Pressable onPress={() => router.back()} className="py-2 active:opacity-60">
             <Text className="text-[15px] font-medium text-chalk-mute">Cancel</Text>
           </Pressable>
-          <Text className="text-[17px] font-semibold tracking-tight text-chalk">New subscription</Text>
+          <Text className="text-[17px] font-semibold tracking-tight text-chalk">
+            {editing ? "Edit subscription" : "New subscription"}
+          </Text>
           <View className="w-14" />
         </View>
 
@@ -79,11 +93,14 @@ export default function AddSubscription() {
 
         <View className="mt-6 gap-3">
           <Input
-            value={digits}
-            onChangeText={(t) => setDigits(t.replace(/\D/g, "").slice(0, 12))}
-            keyboardType="number-pad"
-            placeholder="Amount in digits"
-            autoFocus
+            value={amountText}
+            onChangeText={(t) => setAmountText(sanitizeAmountText(t))}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            autoFocus={!editing}
+            leading={
+              <Text className="text-[16px] text-chalk-mute">{currencyByCode(data.preferences.currency).symbol}</Text>
+            }
           />
           <Input value={name} onChangeText={setName} placeholder="Name (Netflix, Spotify…)" />
         </View>
@@ -110,49 +127,38 @@ export default function AddSubscription() {
           </View>
         </View>
 
-        <View className="mt-8">
-          <Eyebrow>First charge</Eyebrow>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {WHEN.map((w) => {
-              const on = w.days === inDays;
-              return (
-                <Pressable
-                  key={w.label}
-                  onPress={() => setInDays(w.days)}
-                  className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
-                    on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-                  }`}
-                >
-                  <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{w.label}</Text>
-                </Pressable>
-              );
-            })}
+        {!editing ? (
+          <View className="mt-8">
+            <Eyebrow>First charge</Eyebrow>
+            <View className="mt-2 flex-row flex-wrap gap-2">
+              {WHEN.map((w) => {
+                const on = w.days === inDays;
+                return (
+                  <Pressable
+                    key={w.label}
+                    onPress={() => setInDays(w.days)}
+                    className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
+                      on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
+                    }`}
+                  >
+                    <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{w.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        ) : null}
 
         <View className="mt-8">
           <Eyebrow>Category</Eyebrow>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {data.categories.map((c) => {
-              const on = c.label === categoryId;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => setCategoryId(c.label)}
-                  className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
-                    on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-                  }`}
-                >
-                  <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
+          <View className="mt-2">
+            <CategoryPicker value={categoryId} onChange={setCategoryId} />
           </View>
         </View>
 
         <View className="mt-10">
           <Button variant="primary" fullWidth size="lg" disabled={!canSave} onPress={save}>
-            Add subscription
+            {editing ? "Save changes" : "Add subscription"}
           </Button>
         </View>
       </ScrollView>

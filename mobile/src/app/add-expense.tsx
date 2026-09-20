@@ -1,44 +1,71 @@
 /**
- * Add a transaction. Presented as a modal from the tabs.
+ * Add or edit a transaction. Presented as a modal; passing `?id=` switches it
+ * into edit mode for that transaction.
  *
- * The amount is held as a raw digit string and converted with the shared
- * `digitsToCents`, so money never passes through a float — same rule as the web
- * app. Saving goes through the shared store, which writes to Supabase in the
- * background under the signed-in user's RLS policies.
+ * Money is parsed once here and held as integer cents everywhere after, the
+ * same rule the rest of the app follows.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { digitsToCents } from "@/lib/money";
+import { currencyByCode } from "@/data/currencies";
+import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
+import { CategoryPicker } from "~/components/CategoryPicker";
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets();
-  const { data, addTransaction } = useStore();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { data, addTransaction, updateTransaction } = useStore();
   const money = useMoney();
 
-  const [digits, setDigits] = useState("");
-  const [description, setDescription] = useState("");
-  const [direction, setDirection] = useState<"expense" | "income">("expense");
-  const [categoryId, setCategoryId] = useState(data.categories[0]?.label ?? "Uncategorized");
+  const existing = useMemo(
+    () => (id ? data.transactions.find((t) => t.id === id) : undefined),
+    [id, data.transactions],
+  );
+  const editing = Boolean(existing);
 
-  const cents = digitsToCents(digits);
+  const [amountText, setAmountText] = useState(existing ? centsToAmountText(existing.amount) : "");
+  const [description, setDescription] = useState(existing?.description ?? "");
+  const [direction, setDirection] = useState<"expense" | "income">(existing?.direction ?? "expense");
+  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? data.categories[0]?.label ?? "Uncategorized");
+
+  const cents = amountTextToCents(amountText);
   const canSave = cents > 0;
 
   const save = () => {
     if (!canSave) return;
-    addTransaction({
-      amount: cents,
-      description: description.trim() || (direction === "income" ? "Income" : "Expense"),
-      categoryId,
-      date: new Date().toISOString(),
-      direction,
-    });
+    const fallback = direction === "income" ? "Income" : "Expense";
+    if (existing) {
+      updateTransaction({
+        ...existing,
+        amount: cents,
+        direction,
+        description: description.trim() || fallback,
+        categoryId,
+      });
+    } else {
+      addTransaction({
+        amount: cents,
+        description: description.trim() || fallback,
+        categoryId,
+        date: new Date().toISOString(),
+        direction,
+      });
+    }
     router.back();
   };
+
+  const title = editing
+    ? direction === "income"
+      ? "Edit income"
+      : "Edit expense"
+    : direction === "income"
+      ? "Add income"
+      : "Add expense";
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-ink-950">
@@ -50,9 +77,7 @@ export default function AddExpense() {
           <Pressable onPress={() => router.back()} className="py-2 active:opacity-60">
             <Text className="text-[15px] font-medium text-chalk-mute">Cancel</Text>
           </Pressable>
-          <Text className="text-[17px] font-semibold tracking-tight text-chalk">
-            {direction === "income" ? "Add income" : "Add expense"}
-          </Text>
+          <Text className="text-[17px] font-semibold tracking-tight text-chalk">{title}</Text>
           <View className="w-14" />
         </View>
 
@@ -65,7 +90,7 @@ export default function AddExpense() {
                 key={d}
                 onPress={() => setDirection(d)}
                 className={`flex-1 items-center rounded-pill border py-2.5 active:opacity-80 ${
-                  on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-800"
+                  on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
                 }`}
               >
                 <Text className={`text-[14px] font-semibold ${on ? "text-ink-950" : "text-chalk"}`}>
@@ -82,17 +107,17 @@ export default function AddExpense() {
           <FitNumber className="mt-2 text-center text-[52px] font-bold leading-none tracking-tight text-chalk">
             {money.format(cents)}
           </FitNumber>
-          {/* The big number above is the formatted value; this field just
-              collects the digits behind it. */}
           <Input
-            value={digits}
-            onChangeText={(t) => setDigits(t.replace(/\D/g, "").slice(0, 12))}
-            keyboardType="number-pad"
-            autoFocus
+            value={amountText}
+            onChangeText={(t) => setAmountText(sanitizeAmountText(t))}
+            keyboardType="decimal-pad"
+            autoFocus={!editing}
             className="mt-4 w-full"
-            placeholder="Type the amount"
+            placeholder="0"
+            leading={
+              <Text className="text-[16px] text-chalk-mute">{currencyByCode(data.preferences.currency).symbol}</Text>
+            }
           />
-          <Text className="mt-2 text-[12px] text-chalk-faint">Digits only — cents are added automatically</Text>
         </View>
 
         {/* description */}
@@ -109,27 +134,14 @@ export default function AddExpense() {
         {/* category */}
         <View className="mt-8">
           <Eyebrow>Category</Eyebrow>
-          <View className="mt-2 flex-row flex-wrap gap-2">
-            {data.categories.map((c) => {
-              const on = c.label === categoryId;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => setCategoryId(c.label)}
-                  className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
-                    on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-800"
-                  }`}
-                >
-                  <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{c.label}</Text>
-                </Pressable>
-              );
-            })}
+          <View className="mt-2">
+            <CategoryPicker value={categoryId} onChange={setCategoryId} />
           </View>
         </View>
 
         <View className="mt-10">
           <Button variant="primary" fullWidth size="lg" disabled={!canSave} onPress={save}>
-            {direction === "income" ? "Add income" : "Add expense"}
+            {editing ? "Save changes" : direction === "income" ? "Add income" : "Add expense"}
           </Button>
         </View>
       </ScrollView>
