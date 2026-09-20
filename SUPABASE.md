@@ -46,16 +46,19 @@ so a plain restart won't pick up a change.
 
 ## 3. Auth
 
-In **Authentication → Providers**, **Email** is enabled by default.
+The app uses **email + password**, with no verification step — creating an
+account signs you straight in.
 
-The app signs in with a six-digit code rather than a link, so the **Magic Link**
-email template (Authentication → Emails) must include `{{ .Token }}`:
+That needs one setting changed: **Authentication → Sign In / Providers → Email →
+turn OFF "Confirm email"**. Leave it on and `signUp` returns a user with no
+session, so the account is created but can't be used until the emailed link is
+opened. The app detects that case and says so rather than failing silently.
 
-```html
-<h2>Sign in to Flow</h2>
-<p style="font-size:32px;font-weight:700;letter-spacing:6px;">{{ .Token }}</p>
-<p>Type this code in the Flow app.</p>
-```
+> Why not a magic link or an emailed code? Supabase's built-in sender is capped
+> at a handful of messages an hour and is documented as unsuitable for
+> production, and editing the email templates at all requires custom SMTP. Both
+> matter later — password *reset* needs email, as do renewal reminders — so
+> expect to set up SMTP before launch. Nothing about sign-in depends on it.
 
 Adding Google or Apple sign-in means enabling the provider here and registering
 `https://<ref>.supabase.co/auth/v1/callback` with it. Note that offering a

@@ -2,12 +2,16 @@
  * Supabase Auth for the native app — the React Native counterpart to `auth.ts`.
  * Metro picks this file; Vite ignores it (see client.native.ts).
  *
- * The web build signs in with a magic *link*: the email opens a URL and the
- * browser reads the token out of it. A phone has no URL bar to come back to, and
- * bouncing out to Mail and back is exactly the friction we want gone — so here
- * the same email carries a six-digit **code** the user types in the app instead.
- * Supabase sends a code whenever the email template includes one, and
- * `verifyOtp` exchanges it for a session.
+ * Email + password, on purpose. The web build signs in with a magic *link*,
+ * which on a phone means leaving for Mail and hoping to land back in the app —
+ * and Supabase's own sender is rate-limited to a handful of messages an hour and
+ * isn't meant for production anyway. With password auth, creating an account and
+ * signing in need no email at all.
+ *
+ * That requires **Confirm email turned off** in Supabase (Authentication → Sign
+ * In / Providers → Email). With it on, `signUp` returns a user but no session,
+ * and the account stays locked until the emailed link is opened — so
+ * `signUpWithPassword` below detects exactly that case and says so.
  *
  * `getSession` / `onAuthChange` / `signOut` keep the same signatures as the web
  * module, which is what lets AuthProvider and the store be shared unchanged.
@@ -15,33 +19,34 @@
 import { getSupabase } from "./client";
 import type { Session, User } from "@supabase/supabase-js";
 
+/** Supabase's default minimum. Checked here so the error arrives before the round trip. */
+export const MIN_PASSWORD_LENGTH = 6;
+
 function client() {
   const sb = getSupabase();
   if (!sb) throw new Error("Backend not configured");
   return sb;
 }
 
-/**
- * Email the user a six-digit sign-in code, creating the account if it's new.
- * Resolves once the email has been sent.
- */
-export async function sendEmailCode(email: string): Promise<void> {
-  const { error } = await client().auth.signInWithOtp({
-    email: email.trim(),
-    options: { shouldCreateUser: true },
-  });
+/** Create an account and sign straight in. */
+export async function signUpWithPassword(email: string, password: string): Promise<Session> {
+  const { data, error } = await client().auth.signUp({ email: email.trim(), password });
   if (error) throw error;
+  if (!data.session) {
+    // Confirm email is still on for this project: the user exists but can't sign
+    // in until they open the emailed link.
+    throw new Error(
+      "This project still requires email confirmation. Turn off “Confirm email” in Supabase → Authentication → Sign In / Providers → Email.",
+    );
+  }
+  return data.session;
 }
 
-/** Exchange a six-digit code for a session. Throws if the code is wrong or expired. */
-export async function verifyEmailCode(email: string, code: string): Promise<Session> {
-  const { data, error } = await client().auth.verifyOtp({
-    email: email.trim(),
-    token: code.replace(/\D/g, ""),
-    type: "email",
-  });
+/** Sign in to an existing account. */
+export async function signInWithPassword(email: string, password: string): Promise<Session> {
+  const { data, error } = await client().auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
-  if (!data.session) throw new Error("That code didn't work. Ask for a new one.");
+  if (!data.session) throw new Error("Couldn't sign in. Check your email and password.");
   return data.session;
 }
 

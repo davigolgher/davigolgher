@@ -108,9 +108,10 @@ export function Button({
  */
 export function Input({
   leading,
+  trailing,
   className = "",
   ...props
-}: TextInputProps & { leading?: ReactNode; className?: string }) {
+}: TextInputProps & { leading?: ReactNode; trailing?: ReactNode; className?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <View
@@ -132,6 +133,7 @@ export function Input({
         }}
         className="h-full flex-1 text-[16px] text-chalk"
       />
+      {trailing}
     </View>
   );
 }

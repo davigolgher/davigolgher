@@ -1,15 +1,14 @@
 /**
- * Sign-in. Layout, logo and type are the web sign-up screen's, ported over.
+ * Sign-in / sign-up. Layout, logo and type are the web sign-up screen's, ported.
  *
- * The one deliberate change is the second step: the web build emailed a magic
- * *link*, which on a phone means leaving for Mail and hoping to land back in the
- * app. Here the same email carries a six-digit code typed in place.
+ * Email and password, with no verification step: you type both and you're in.
+ * See `auth.native.ts` for why (and for the one Supabase setting it depends on).
  */
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSupabaseConfigured } from "@/lib/backend/client";
-import { sendEmailCode, verifyEmailCode } from "@/lib/backend/auth";
+import { MIN_PASSWORD_LENGTH, signInWithPassword, signUpWithPassword } from "@/lib/backend/auth";
 import { APP } from "@/config/app";
 import type { LegalDocId } from "@/features/legal/content";
 import { Button, Input } from "~/components/ui";
@@ -21,40 +20,45 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignInScreen() {
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [mode, setMode] = useState<"signUp" | "signIn">("signUp");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
 
+  const creating = mode === "signUp";
   const emailValid = EMAIL_RE.test(email.trim());
+  const passwordValid = password.length >= MIN_PASSWORD_LENGTH;
+  const canSubmit = emailValid && passwordValid && !busy;
 
-  const requestCode = async () => {
-    if (!emailValid || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await sendEmailCode(email);
-      setStep("code");
-    } catch (e) {
-      setError((e as Error)?.message || "Couldn't send the code. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitCode = async () => {
-    if (code.length < 6 || busy) return;
+  const submit = async () => {
+    if (!canSubmit) return;
     setBusy(true);
     setError(null);
     try {
       // On success the auth listener in AuthProvider swaps this screen out.
-      await verifyEmailCode(email, code);
+      if (creating) await signUpWithPassword(email, password);
+      else await signInWithPassword(email, password);
     } catch (e) {
-      setError((e as Error)?.message || "That code didn't work.");
+      const message = (e as Error)?.message || "Something went wrong. Try again.";
+      // Supabase deliberately returns the same error for a wrong password and an
+      // unknown email, so point at both rather than guessing.
+      setError(
+        /invalid login credentials/i.test(message)
+          ? "That email and password don't match an account."
+          : /already registered|already exists/i.test(message)
+            ? "That email already has an account — switch to Sign in."
+            : message,
+      );
       setBusy(false);
     }
+  };
+
+  const switchMode = () => {
+    setMode(creating ? "signIn" : "signUp");
+    setError(null);
   };
 
   if (!isSupabaseConfigured) {
@@ -85,88 +89,77 @@ export function SignInScreen() {
         <View className="mb-10 items-center">
           <LogoMark size={44} />
           <Text className="mt-5 text-[30px] font-bold tracking-tight text-chalk">
-            {step === "email" ? "Create your account" : "Check your email"}
+            {creating ? "Create your account" : "Welcome back"}
           </Text>
-          {step === "email" ? (
-            <Text className="mt-2 text-[15px] text-chalk-mute">{APP.tagline}</Text>
-          ) : (
-            <Text className="mt-3 max-w-[20rem] text-center text-[15px] leading-relaxed text-chalk-mute">
-              We sent a six-digit code to <Text className="font-medium text-chalk">{email.trim()}</Text>. Enter it below
-              to continue.
-            </Text>
-          )}
+          <Text className="mt-2 text-[15px] text-chalk-mute">
+            {creating ? APP.tagline : `Sign in to continue to ${APP.name}`}
+          </Text>
         </View>
 
-        {step === "email" ? (
-          <View className="gap-3">
-            <Input
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              editable={!busy}
-              returnKeyType="go"
-              onSubmitEditing={requestCode}
-            />
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              disabled={!emailValid || busy}
-              onPress={requestCode}
-              leadingIcon={<MailIcon size={18} color="#FFFFFF" />}
-            >
-              {busy ? "Sending…" : "Continue with email"}
-            </Button>
-          </View>
-        ) : (
-          <View className="gap-3">
-            <Input
-              value={code}
-              onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
-              keyboardType="number-pad"
-              autoComplete="sms-otp"
-              textContentType="oneTimeCode"
-              editable={!busy}
-              maxLength={6}
-              autoFocus
-              returnKeyType="go"
-              onSubmitEditing={submitCode}
-              className="justify-center"
-            />
-            <Button variant="primary" size="lg" fullWidth disabled={code.length < 6 || busy} onPress={submitCode}>
-              {busy ? "Verifying…" : "Sign in"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              fullWidth
-              disabled={busy}
-              onPress={() => {
-                setStep("email");
-                setCode("");
-                setError(null);
-              }}
-            >
-              Use a different email
-            </Button>
-          </View>
-        )}
+        <View className="gap-3">
+          <Input
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email address"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            textContentType="emailAddress"
+            editable={!busy}
+          />
+
+          <Input
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry={!show}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete={creating ? "new-password" : "current-password"}
+            textContentType={creating ? "newPassword" : "password"}
+            editable={!busy}
+            returnKeyType="go"
+            onSubmitEditing={submit}
+            trailing={
+              <Pressable onPress={() => setShow((v) => !v)} hitSlop={8} className="active:opacity-60">
+                <Text className="text-[13px] font-medium text-chalk-mute">{show ? "Hide" : "Show"}</Text>
+              </Pressable>
+            }
+          />
+
+          {creating && !passwordValid ? (
+            <Text className="text-[12px] text-chalk-faint">At least {MIN_PASSWORD_LENGTH} characters.</Text>
+          ) : null}
+
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            disabled={!canSubmit}
+            onPress={submit}
+            leadingIcon={<MailIcon size={18} color="#FFFFFF" />}
+          >
+            {busy ? (creating ? "Creating…" : "Signing in…") : creating ? "Create account" : "Sign in"}
+          </Button>
+        </View>
 
         {error ? <Text className="mt-4 text-center text-[13px] leading-relaxed text-chalk-soft">{error}</Text> : null}
 
-        <Text className="mt-8 text-center text-[12px] leading-relaxed text-chalk-faint">
+        <Pressable onPress={switchMode} disabled={busy} className="mt-5 items-center py-2 active:opacity-60">
+          <Text className="text-[14px] text-chalk-mute">
+            {creating ? "Already have an account? " : "New here? "}
+            <Text className="font-semibold text-chalk">{creating ? "Sign in" : "Create one"}</Text>
+          </Text>
+        </Pressable>
+
+        <Text className="mt-6 text-center text-[12px] leading-relaxed text-chalk-faint">
           By continuing you agree to the{" "}
-          <Text className="underline text-chalk-mute" onPress={() => setLegalDoc("terms")}>
+          <Text className="text-chalk-mute underline" onPress={() => setLegalDoc("terms")}>
             Terms
           </Text>{" "}
           &amp;{" "}
-          <Text className="underline text-chalk-mute" onPress={() => setLegalDoc("privacy")}>
+          <Text className="text-chalk-mute underline" onPress={() => setLegalDoc("privacy")}>
             Privacy Policy
           </Text>
           .
