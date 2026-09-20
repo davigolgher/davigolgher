@@ -95,12 +95,18 @@ create table if not exists public.preferences (
 );
 
 -- billing (Stripe state — written only by the webhook via the service role).
+-- Server-side copy of the store entitlement, written by the RevenueCat webhook.
+-- The store is the authority; this survives reinstalls and can be read without
+-- a device.
 create table if not exists public.billing (
   user_id uuid primary key references auth.users(id) on delete cascade,
   plan text,
   status text not null default 'inactive',
-  stripe_customer_id text,
-  stripe_subscription_id text,
+  provider text not null default 'app_store',
+  product_id text,
+  rc_app_user_id text,
+  -- False once auto-renew is off, while access continues to period end.
+  will_renew boolean,
   current_period_end timestamptz,
   trial_end timestamptz,
   updated_at timestamptz not null default now()

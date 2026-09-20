@@ -57,6 +57,43 @@ Three shared modules touch browser APIs and so have native counterparts in
 | `hooks.ts` (`matchMedia`, `document`) | _pending_ | no DOM on native |
 | `upload.ts` (`File`, `FileReader`) | _pending_ | uses expo-image-picker + expo-file-system instead |
 
+## Subscriptions (Apple IAP via RevenueCat)
+
+The paywall, the gate, the restore path and the entitlement check are built. What
+is missing is the native module, deliberately: `react-native-purchases` is not in
+Expo Go, so installing it ends QR-code testing and forces a development build for
+every change. Until then `src/lib/purchases.ts` reports the store unavailable, the
+paywall shows no prices, and a dev build can step past it.
+
+To finish it, in this order:
+
+1. **Apple Developer Program** (~US$99/yr), then in **App Store Connect** create
+   two auto-renewable subscriptions in one group (monthly and yearly), each with
+   the free trial as an introductory offer.
+2. **RevenueCat**: create the project, add the App Store app, upload the
+   in-app-purchase key, and make an **entitlement** (`pro`) containing both
+   products, exposed through an **offering**.
+3. **Webhook**: RevenueCat → Integrations → Webhooks →
+   `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, with a secret in
+   the Authorization field. Same value as `REVENUECAT_WEBHOOK_SECRET` in Supabase.
+4. **Install and wire**:
+   ```bash
+   npx expo install react-native-purchases
+   ```
+   then fill in `loadNativePurchases()` in `src/lib/purchases.ts` — that function
+   is the whole integration point. Read prices from `getOfferings()`; never type a
+   price into the repo, since App Review requires the storefront's own localized
+   price at the point of purchase.
+5. **Development build** — purchases cannot run in Expo Go:
+   ```bash
+   npx expo install expo-dev-client
+   eas build --profile development --platform ios
+   ```
+   Test with a **sandbox tester** account from App Store Connect.
+
+`Purchases.logIn(supabaseUserId)` matters: it makes RevenueCat's `app_user_id`
+the Supabase user id, which is how the webhook knows whose `billing` row to write.
+
 ## Checks
 
 ```bash

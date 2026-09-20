@@ -14,6 +14,8 @@ import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
 import { StoreProvider } from "@/data/store";
 import { loadActivity, recordActivityToday } from "~/lib/activity";
 import { SignInScreen } from "~/features/SignInScreen";
+import { PaywallScreen } from "~/features/PaywallScreen";
+import { useEntitlement } from "~/features/useEntitlement";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -61,12 +63,29 @@ function Splash() {
   );
 }
 
-/** Signed out → sign-in. Signed in → the tab navigator. */
+/** Signed out → sign-in. No subscription → paywall. Otherwise → the app. */
 function Gate() {
   const auth = useAuth();
+  const entitlement = useEntitlement();
+  // Set when a purchase succeeds, or when a dev build skips past the paywall.
+  // Keeps the app open while the entitlement re-reads in the background.
+  const [unlocked, setUnlocked] = useState(false);
 
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
+  if (auth.configured && entitlement.loading) return <Splash />;
+
+  if (auth.configured && !entitlement.entitled && !unlocked) {
+    return (
+      <PaywallScreen
+        canSkip={entitlement.canSkip}
+        onUnlocked={() => {
+          setUnlocked(true);
+          entitlement.refresh();
+        }}
+      />
+    );
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }}>

@@ -26,24 +26,31 @@ Sources:
 
 Listed separately so this file is not mistaken for a green light:
 
-- **Sign in with Apple (Guideline 4.8)** — required *if* a third-party login is offered. The app currently signs in with an emailed code only, so 4.8 doesn't bite yet; adding Google login makes Sign in with Apple mandatory.
-- **Subscription disclosure at the point of purchase (Guideline 3.1.2)** — the paywall isn't built. It must state trial length, price/period and auto-renew, with working Terms and Privacy links.
-- **Restore Purchases** — required, arrives with RevenueCat.
+- **Sign in with Apple (Guideline 4.8)** — required *if* a third-party login is offered. The app signs in with email and password only, so 4.8 doesn't bite yet; adding Google login makes Sign in with Apple mandatory.
+- **The purchase itself** — the paywall, its disclosure, Restore Purchases and the entitlement gate are built, but `react-native-purchases` isn't installed (it isn't in Expo Go) and the App Store Connect products don't exist. See `mobile/README.md` → Subscriptions for the ordered steps. Until then the paywall shows no prices, by design: a hard-coded price would be wrong in every other storefront.
 - **Receipt photo capture and upload** — helpers exist, the native flow does not.
 
 ## Native build / App Store Connect — TODO
 
 ### 1. Payments — Apple In-App Purchase (Guideline 3.1.1)
-**Decided: Apple IAP via StoreKit, wrapped by RevenueCat.** Digital subscriptions
-consumed in the app must go through IAP; a Stripe-only in-app subscription is
-rejected. Apple takes 15–30%.
+**Apple IAP via StoreKit, wrapped by RevenueCat.** Digital subscriptions consumed
+in the app must go through IAP; a Stripe-only in-app subscription is rejected.
+Apple takes 15–30%.
 
-Still to do:
-- Create the auto-renewable subscription products in App Store Connect, and the matching offering in RevenueCat.
-- Wire `react-native-purchases`: paywall, purchase, and **Restore Purchases** (Apple requires a restore path).
-- Show price and period from StoreKit, not hard-coded — the storefront localizes them.
-- Sync the entitlement to Supabase (RevenueCat webhook → `billing` table) so the app trusts one source.
-- There is no web purchase path any more, so nothing in the app may link out to an external payment page.
+Built:
+- Paywall with the 3.1.2 disclosure (length, price, period, auto-renew, how to cancel) and working Terms / Privacy links.
+- **Restore Purchases** on the paywall, and **Manage subscription** in Settings, deep-linking to the App Store.
+- Entitlement gate reading the store first and the `billing` table second.
+- `revenuecat-webhook` Edge Function writing entitlements into `billing`.
+
+Remaining, in order — see `mobile/README.md` → Subscriptions:
+- App Store Connect: the two auto-renewable products and their introductory offer.
+- RevenueCat: project, entitlement, offering, webhook secret.
+- `npx expo install react-native-purchases`, then fill in `loadNativePurchases()`.
+- A development build (`expo-dev-client` + EAS) — purchases cannot run in Expo Go — and a sandbox tester to try it.
+
+Note: there is no web purchase path, so nothing in the app links out to an
+external payment page.
 
 ### 2. Privacy manifest — `PrivacyInfo.xcprivacy` (required since May 1, 2024)
 Declare collected data types and **required-reason APIs**. Starter template (adjust to your SDKs):

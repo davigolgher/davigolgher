@@ -239,6 +239,18 @@ export default function Settings() {
         ))}
       </Section>
 
+      <Section label="Subscription">
+        <Row
+          title="Manage subscription"
+          sub="Opens the App Store, where you can change plan or cancel"
+          onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {})}
+        />
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+          Purchases go through your Apple ID, so cancelling happens there — the same few taps as subscribing. Access
+          continues until the end of the period you already paid for.
+        </Text>
+      </Section>
+
       <Section label="Help">
         <Row
           title="Contact support"

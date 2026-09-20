@@ -69,8 +69,9 @@ third-party login makes **Sign in with Apple** mandatory under Guideline 4.8.
 Deploy:
 
 ```bash
-supabase functions deploy gmail-oauth --no-verify-jwt    # Google calls back here
+supabase functions deploy gmail-oauth        --no-verify-jwt   # Google calls back here
 supabase functions deploy gmail-sync
+supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has no session
 ```
 
 Set the secrets (never commit these):
@@ -80,8 +81,13 @@ supabase secrets set \
   GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
   GOOGLE_CLIENT_SECRET=... \
   GMAIL_STATE_SECRET="$(openssl rand -base64 32)" \
+  REVENUECAT_WEBHOOK_SECRET="$(openssl rand -base64 32)" \
   APP_URL=https://davigolgher-lmhg.vercel.app
 ```
+
+`REVENUECAT_WEBHOOK_SECRET` must match the Authorization value set in
+RevenueCat → Integrations → Webhooks. The endpoint grants paid access, so it
+refuses to run without one and compares in constant time.
 
 `GMAIL_STATE_SECRET` signs the Gmail OAuth `state` parameter. The callback runs
 unauthenticated, so without it a forged `state` could bind an inbox to the wrong
