@@ -2,8 +2,53 @@
  * Native UI primitives, matching the web app's look through the shared design
  * tokens in tailwind.config.js.
  */
-import { useState, type ReactNode } from "react";
-import { Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Animated, Easing, Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
+
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Content that arrives instead of appearing: a short fade with a small rise.
+ *
+ * `delay` staggers siblings so a screen resolves top to bottom. Runs on the
+ * native driver, so it stays smooth while the rest of the screen is still
+ * laying out. Keep the timings short — this should be felt, not watched.
+ */
+export function FadeIn({
+  children,
+  delay = 0,
+  distance = 10,
+  className,
+}: {
+  children: ReactNode;
+  delay?: number;
+  distance?: number;
+  className?: string;
+}) {
+  const t = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(t, {
+      toValue: 1,
+      duration: 340,
+      delay,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [t, delay]);
+
+  return (
+    <Animated.View
+      className={className}
+      style={{
+        opacity: t,
+        transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
 

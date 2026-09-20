@@ -4,6 +4,7 @@ import {
   compare,
   groupByDay,
   subscriptionInsights,
+  subscriptionsAnnualTotal,
   subscriptionsMonthlyTotal,
   totalPrevMonth,
   totalThisMonth,
@@ -88,6 +89,24 @@ describe("calc — subscriptions", () => {
       sub({ amount: 9999, status: "canceled" }),
     ];
     expect(subscriptionsMonthlyTotal(subs)).toBe(2000);
+  });
+
+  it("annualises from the real amount, not from the rounded monthly one", () => {
+    // $50/year divides into 416.67 cents a month, which rounds to 417. Scaling
+    // that back up by 12 gives $50.04 — the rounding error multiplied by twelve.
+    // The annual total has to come from the amount itself.
+    const subs = [sub({ amount: 5000, frequency: "yearly" })];
+    expect(subscriptionsAnnualTotal(subs)).toBe(5000);
+    expect(subscriptionsMonthlyTotal(subs)).toBe(417);
+  });
+
+  it("sums the annual cost across billing periods, ignoring inactive ones", () => {
+    const subs = [
+      sub({ amount: 1000, frequency: "monthly" }), // 12000/yr
+      sub({ amount: 5000, frequency: "yearly" }), //  5000/yr
+      sub({ amount: 9999, status: "canceled" }),
+    ];
+    expect(subscriptionsAnnualTotal(subs)).toBe(17000);
   });
 
   it("flags a price increase", () => {

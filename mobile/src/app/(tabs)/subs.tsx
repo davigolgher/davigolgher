@@ -4,10 +4,10 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { Money } from "@/lib/money";
-import { daysUntil, monthlyEquivalent, FREQUENCY_LABEL } from "@/lib/recurrence";
+import { subscriptionsAnnualTotal, subscriptionsMonthlyTotal } from "@/lib/calc";
+import { daysUntil, FREQUENCY_LABEL } from "@/lib/recurrence";
 import { formatDaysUntil } from "@/lib/format";
-import { Button, Eyebrow, ScreenHeader, StatCard } from "~/components/ui";
+import { Button, Eyebrow, FadeIn, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 
 export default function Subs() {
@@ -16,7 +16,11 @@ export default function Subs() {
   const money = useMoney();
 
   const active = data.subscriptions.filter((s) => s.status === "active" || s.status === "trial");
-  const monthly = Money.sum(active.map((s) => monthlyEquivalent(s)));
+  // Each total is derived from the real amounts. Annualising the *rounded*
+  // monthly figure instead would multiply its rounding error by twelve — a
+  // $50/year plan came back as $50.04 that way.
+  const monthly = subscriptionsMonthlyTotal(data.subscriptions);
+  const yearly = subscriptionsAnnualTotal(data.subscriptions);
   const upcoming = [...active].sort((a, b) => +new Date(a.nextChargeAt) - +new Date(b.nextChargeAt));
 
   const confirmCancel = (id: string, name: string) => {
@@ -47,12 +51,12 @@ export default function Subs() {
         }
       />
 
-      <View className="mt-6 flex-row gap-4">
+      <FadeIn className="mt-6 flex-row gap-4" delay={60}>
         <StatCard label="Per month" value={money.format(monthly)} sub={`${active.length} active`} />
-        <StatCard label="Per year" value={money.format(Money.scale(monthly, 12))} sub="Annualised" />
-      </View>
+        <StatCard label="Per year" value={money.format(yearly)} sub="Annualised" />
+      </FadeIn>
 
-      <View className="mt-6">
+      <FadeIn className="mt-6" delay={120}>
         <Eyebrow>Upcoming</Eyebrow>
         {upcoming.length > 0 ? (
           <View className="mt-1">
@@ -83,7 +87,7 @@ export default function Subs() {
             </Text>
           </View>
         )}
-      </View>
+      </FadeIn>
     </ScrollView>
   );
 }

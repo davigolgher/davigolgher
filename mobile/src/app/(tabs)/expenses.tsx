@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { totalThisMonth } from "@/lib/calc";
-import { Button, ScreenHeader } from "~/components/ui";
+import { Button, FadeIn, ScreenHeader } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { ExpenseRow } from "~/components/rows";
 
@@ -42,11 +42,12 @@ export default function Expenses() {
       />
 
       {all.length > 0 ? (
-        <View className="mt-5">
+        <FadeIn className="mt-5" delay={60}>
           {all.map((t) => (
             <ExpenseRow key={t.id} transaction={t} />
           ))}
-        </View>
+          <Text className="mt-3 text-[12px] text-chalk-faint">Tap to edit · press and hold to delete.</Text>
+        </FadeIn>
       ) : (
         <Text className="mt-8 text-[15px] leading-relaxed text-chalk-mute">
           Nothing logged yet. Tap Add to record your first expense.

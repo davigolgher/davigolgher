@@ -7,7 +7,7 @@ import { useMoney } from "@/lib/useMoney";
 import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "@/lib/calc";
 import { categoryBreakdown, monthlyTotals } from "@/lib/reports";
 import { FREQUENCY_LABEL } from "@/lib/recurrence";
-import { Eyebrow, ScreenHeader } from "~/components/ui";
+import { Eyebrow, FadeIn, ScreenHeader } from "~/components/ui";
 import { Donut } from "~/components/Donut";
 import { LineChart } from "~/components/LineChart";
 import { ChartPager } from "~/components/ChartPager";
@@ -52,12 +52,12 @@ export default function Reports() {
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
 
-      <View className="mt-6 rounded-card border border-line bg-ink-850 p-5">
+      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
         {hasData ? (
           <ChartPager
             pages={[
-              { key: "categories", title: "Spending by category", content: <Donut slices={categories} /> },
-              { key: "months", title: "Monthly spending", content: <LineChart months={months} /> },
+              { key: "categories", title: "By category", content: <Donut slices={categories} /> },
+              { key: "months", title: "By month", content: <LineChart months={months} /> },
             ]}
           />
         ) : (
@@ -65,9 +65,9 @@ export default function Reports() {
             Log a few expenses and the charts show up here.
           </Text>
         )}
-      </View>
+      </FadeIn>
 
-      <View className="mt-8">
+      <FadeIn className="mt-8" delay={120}>
         <Eyebrow>Subscription costs</Eyebrow>
         {subs.length > 0 ? (
           <View className="mt-1">
@@ -86,7 +86,7 @@ export default function Reports() {
             <Text className="text-center text-[14px] text-chalk-mute">No active subscriptions.</Text>
           </View>
         )}
-      </View>
+      </FadeIn>
     </ScrollView>
   );
 }

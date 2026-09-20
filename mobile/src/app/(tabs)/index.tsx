@@ -7,7 +7,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
 import { incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
-import { Button, Eyebrow, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
+import { Button, Eyebrow, FadeIn, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
@@ -55,7 +55,7 @@ export default function Home() {
       />
 
       {/* Budget hero — big number, status pill, spend progress. */}
-      <View className="mt-6 rounded-card border border-line bg-ink-850 p-5">
+      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
         <View className="flex-row items-center justify-between gap-3">
           <Eyebrow>{hasBudget ? "Budget remaining" : "Spent this month"}</Eyebrow>
           <Pill>{status}</Pill>
@@ -75,22 +75,22 @@ export default function Home() {
             <View className="h-full rounded-pill bg-chalk" style={{ width: `${Math.max(3, pct)}%` }} />
           </View>
         ) : null}
-      </View>
+      </FadeIn>
 
-      <View className="mt-4 flex-row gap-4">
+      <FadeIn className="mt-4 flex-row gap-4" delay={120}>
         <StatCard label="Income" value={money.format(income)} sub="Received" />
         <StatCard
           label="Savings"
           value={money.format(savings)}
           sub={savings < 0 ? "Spending over income" : "Income − spending"}
         />
-      </View>
+      </FadeIn>
 
-      <View className="mt-4">
+      <FadeIn className="mt-4" delay={180}>
         <StreakCard />
-      </View>
+      </FadeIn>
 
-      <View className="mt-6">
+      <FadeIn className="mt-6" delay={240}>
         <Eyebrow>Recent</Eyebrow>
         {recent.length > 0 ? (
           <View className="mt-1">
@@ -101,7 +101,7 @@ export default function Home() {
         ) : (
           <Text className="py-6 text-[15px] text-chalk-mute">No transactions yet. Add one to get started.</Text>
         )}
-      </View>
+      </FadeIn>
     </ScrollView>
   );
 }
