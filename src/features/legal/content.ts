@@ -90,7 +90,15 @@ export const PRIVACY: Section[] = [
       `${N} may use automated systems and AI to categorize transactions, parse imported receipts, and generate spending summaries. These process your financial data only to provide those features. They do not make legally significant decisions about you, and your data is not used to train third-party AI models without your consent. See the AI Disclosure for details.`,
     ],
   },
-  { heading: "Storage & security", body: ["In this version your data lives on your device and is not transmitted to our servers. When server features are enabled, data is encrypted in transit (TLS) and at rest, held in a private storage bucket, and access is scoped per user (Row Level Security)."] },
+  {
+    heading: "Where your data is stored",
+    body: [
+      `Your expenses, subscriptions, budgets, categories and settings are stored in ${N}'s database, which is hosted by Supabase (supabase.com). Supabase is our infrastructure provider: they hold the data on our behalf and do not use it for their own purposes.`,
+      "It travels encrypted (TLS) and is encrypted at rest. Uploaded receipt files go to a private storage bucket that is not publicly readable.",
+      "Access is scoped per user by Row Level Security, enforced by the database itself: every query is restricted to the rows belonging to the signed-in account, so one user's data cannot be read by another even if the app asked for it.",
+      "A copy is also kept on your device so the app works offline.",
+    ],
+  },
   {
     heading: "Third-party service providers",
     body: ["We use third parties that process your data on our behalf, under contract and only as needed to run the app:"],
@@ -112,10 +120,10 @@ export const PRIVACY: Section[] = [
       "Depending on where you live (e.g. GDPR/CCPA), you may have additional rights to correct, restrict, or object; contact us to exercise them.",
     ],
   },
-  { heading: "Data retention", body: ["We keep your data while your account is active. When you delete your account, your data is removed from the app; backups (once server features exist) are purged on a rolling schedule."] },
+  { heading: "Data retention", body: ["We keep your data while your account is active. Deleting your account from Settings removes your rows from the database and your files from storage; backups are purged on a rolling schedule."] },
   { heading: "Children", body: [`${N} is not directed to children under 13 (or the minimum age in your region) and we do not knowingly collect their data.`] },
   { heading: "Changes", body: ["We may update this policy; material changes will be notified in the app."] },
-  { heading: "Contact", body: [`Privacy questions? Contact privacy@${(N.toLowerCase().replace(/\s+/g, ""))}.app.`] },
+  { heading: "Contact", body: [`Privacy questions? Email ${APP.supportEmail}.`] },
 ];
 
 export const AI: Section[] = [

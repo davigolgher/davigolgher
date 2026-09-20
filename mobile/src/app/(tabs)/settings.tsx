@@ -4,7 +4,7 @@
  * Gmail import and subscription management hang off services set up separately.
  */
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -129,18 +129,17 @@ export default function Settings() {
 
       <Section label="Monthly budget">
         <View className="flex-row items-center gap-2">
-          <View className="flex-1 flex-row items-center rounded-field border border-line-strong bg-ink-800 px-4">
-            <Text className="text-[16px] text-chalk-mute">{currencyByCode(data.preferences.currency).symbol}</Text>
-            <TextInput
-              value={budgetText}
-              onChangeText={setBudgetText}
-              onBlur={saveBudget}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor="#AEAEB4"
-              className="flex-1 py-3.5 text-[16px] text-chalk"
-            />
-          </View>
+          <Input
+            value={budgetText}
+            onChangeText={setBudgetText}
+            onBlur={saveBudget}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            className="flex-1"
+            leading={
+              <Text className="text-[16px] text-chalk-mute">{currencyByCode(data.preferences.currency).symbol}</Text>
+            }
+          />
           <Button variant="primary" onPress={saveBudget}>
             Save
           </Button>
@@ -193,12 +192,11 @@ export default function Settings() {
         </View>
         <Text className="mt-2 text-[12px] text-chalk-faint">Press and hold a category to remove it.</Text>
         <View className="mt-3 flex-row items-center gap-2">
-          <TextInput
+          <Input
             value={newCategory}
             onChangeText={setNewCategory}
             placeholder="New category"
-            placeholderTextColor="#AEAEB4"
-            className="flex-1 rounded-field border border-line-strong bg-ink-800 px-4 py-3.5 text-[16px] text-chalk"
+            className="flex-1"
           />
           <Button
             variant="primary"
@@ -239,6 +237,18 @@ export default function Settings() {
         {LEGAL_ORDER.map((id) => (
           <Row key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
         ))}
+      </Section>
+
+      <Section label="Help">
+        <Row
+          title="Contact support"
+          sub={APP.supportEmail}
+          onPress={() => Linking.openURL(`mailto:${APP.supportEmail}`).catch(() => {})}
+        />
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+          Your data is stored with Supabase, our database provider, and scoped to your account. The Privacy Policy above
+          has the details.
+        </Text>
       </Section>
 
       <Section label="Account">

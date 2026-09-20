@@ -7,13 +7,13 @@
  * background under the signed-in user's RLS policies.
  */
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { digitsToCents } from "@/lib/money";
-import { Button, Eyebrow, FitNumber } from "~/components/ui";
+import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets();
@@ -82,16 +82,15 @@ export default function AddExpense() {
           <FitNumber className="mt-2 text-center text-[52px] font-bold leading-none tracking-tight text-chalk">
             {money.format(cents)}
           </FitNumber>
-          {/* The visible number above is the formatted value; this input just
-              collects digits, so it is kept off-screen-thin but focusable. */}
-          <TextInput
+          {/* The big number above is the formatted value; this field just
+              collects the digits behind it. */}
+          <Input
             value={digits}
             onChangeText={(t) => setDigits(t.replace(/\D/g, "").slice(0, 12))}
             keyboardType="number-pad"
             autoFocus
-            className="mt-4 w-full rounded-field border border-line-strong bg-ink-800 px-4 py-3 text-center text-[16px] text-chalk"
+            className="mt-4 w-full"
             placeholder="Type the amount"
-            placeholderTextColor="#AEAEB4"
           />
           <Text className="mt-2 text-[12px] text-chalk-faint">Digits only — cents are added automatically</Text>
         </View>
@@ -99,12 +98,11 @@ export default function AddExpense() {
         {/* description */}
         <View className="mt-8">
           <Eyebrow>Description</Eyebrow>
-          <TextInput
+          <Input
             value={description}
             onChangeText={setDescription}
             placeholder={direction === "income" ? "Salary" : "Coffee"}
-            placeholderTextColor="#AEAEB4"
-            className="mt-2 rounded-field border border-line-strong bg-ink-800 px-4 py-3.5 text-[16px] text-chalk"
+            className="mt-2"
           />
         </View>
 
