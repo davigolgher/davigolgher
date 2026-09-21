@@ -13,7 +13,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, sanitizeAmountText } from "~/lib/amount";
-import { Button, FadeIn, Input } from "~/components/ui";
+import { Button, FadeIn, FitNumber, Input } from "~/components/ui";
 import { BarChartIcon, WalletIcon } from "~/components/icons";
 
 type Step = "what" | "why" | "budget";
@@ -103,9 +103,9 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             </Text>
 
             <View className="mt-8 items-center">
-              <Text className="text-[44px] font-bold leading-none tracking-tight text-chalk">
+              <FitNumber className="text-center text-[44px] font-bold leading-none tracking-tight text-chalk">
                 {money.format(cents)}
-              </Text>
+              </FitNumber>
             </View>
 
             <Input

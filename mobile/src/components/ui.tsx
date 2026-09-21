@@ -160,7 +160,17 @@ export function Button({
 /**
  * Text field matching the web Input: hairline border that darkens on focus,
  * no boxy focus ring.
+ *
+ * The border colour is a style, not a class. The field's fill is `ink-850`,
+ * which is plain white — the same as the screen behind it — so the border is
+ * the only thing that draws the box at all. Swapping it through a class meant
+ * the focused state relied on Tailwind's `/50` opacity shorthand over a custom
+ * colour, which NativeWind didn't resolve: on focus the border vanished and the
+ * field became an invisible white rectangle until it was blurred and tapped
+ * again.
  */
+const BORDER = { idle: "rgba(0,0,0,0.16)", focus: "rgba(10,10,10,0.5)" };
+
 export function Input({
   leading,
   trailing,
@@ -170,9 +180,8 @@ export function Input({
   const [focused, setFocused] = useState(false);
   return (
     <View
-      className={`h-[52px] flex-row items-center gap-2 rounded-field border bg-ink-850 px-4 ${
-        focused ? "border-chalk/50" : "border-line-strong"
-      } ${className}`}
+      className={`h-[52px] flex-row items-center gap-2 rounded-field border bg-ink-850 px-4 ${className}`}
+      style={{ borderColor: focused ? BORDER.focus : BORDER.idle }}
     >
       {leading}
       <TextInput

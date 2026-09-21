@@ -5,7 +5,7 @@
  * name what's already behind it, and covering that up would defeat the
  * explanation.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { APP } from "@/config/app";
@@ -35,15 +35,32 @@ const STEPS = [
   },
 ];
 
-export function TutorialOverlay({ onDone }: { onDone: () => void }) {
+/**
+ * Stays mounted and is driven by `visible`.
+ *
+ * Unmounting it on dismissal took the Modal away mid-animation, and iOS left
+ * its window behind — invisible, on top, swallowing every touch. The app looked
+ * frozen right after the tour: nothing scrolled and nothing tapped.
+ *
+ * The backdrop colour is a style rather than `bg-black/50` for the same reason
+ * the Input's border is: NativeWind doesn't resolve the `/opacity` shorthand
+ * here, and an unresolved backdrop is an invisible one.
+ */
+export function TutorialOverlay({ visible, onDone }: { visible: boolean; onDone: () => void }) {
   const insets = useSafeAreaInsets();
   const [i, setI] = useState(0);
   const step = STEPS[i];
   const last = i === STEPS.length - 1;
 
+  // Living longer than one showing means the step index does too; replaying the
+  // tour would otherwise open on its last card.
+  useEffect(() => {
+    if (visible) setI(0);
+  }, [visible]);
+
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onDone}>
-      <View className="flex-1 justify-end bg-black/50">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDone}>
+      <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
         <View className="rounded-t-sheet border-t border-line bg-ink-950 px-6 pt-6" style={{ paddingBottom: insets.bottom + 20 }}>
           <View className="h-12 w-12 items-center justify-center rounded-[16px] border border-line bg-ink-800">
             {step.icon}

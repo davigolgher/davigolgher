@@ -11,13 +11,13 @@
  * the wrong price, and being wrong about a price is worse than saying nothing.
  */
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { APP } from "@/config/app";
 import type { LegalDocId } from "@/features/legal/content";
 import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
-import { Button, Eyebrow, FadeIn } from "~/components/ui";
+import { Button, FadeIn } from "~/components/ui";
 import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
@@ -31,6 +31,19 @@ const VALUE = [
   { icon: <BarChartIcon size={18} />, text: "Category and monthly reports" },
   { icon: <RepeatIcon size={18} />, text: "Every subscription in one place" },
   { icon: <CheckIcon size={18} />, text: "Synced to your account, private by design" },
+];
+
+/**
+ * The two plans are always drawn, whether or not the store answered.
+ *
+ * Their names are ours and are true either way; only the price belongs to the
+ * storefront. Hiding the rows until StoreKit replies left a placeholder box
+ * where the offer should be, which reads as a broken screen rather than a
+ * paywall — and a skeleton that fills in beats a layout that jumps.
+ */
+const PLANS: { id: PlanId; label: string }[] = [
+  { id: "yearly", label: "Yearly" },
+  { id: "monthly", label: "Monthly" },
 ];
 
 export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void; canSkip: boolean }) {
@@ -107,50 +120,37 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
         </FadeIn>
 
         <FadeIn className="mt-8" delay={120}>
-          {plans === null ? (
-            <View className="items-center py-8">
-              <ActivityIndicator color="#0A0A0A" />
-            </View>
-          ) : plans.length === 0 ? (
-            <View className="rounded-card border border-dashed border-line-strong p-5">
-              <Text className="text-center text-[14px] leading-relaxed text-chalk-mute">
-                Subscriptions aren&apos;t available in this build. Prices come from the App Store, which needs a native
-                build to reach.
-              </Text>
-            </View>
-          ) : (
-            <View className="gap-3">
-              {plans.map((p) => {
-                const on = p.id === selected;
-                return (
-                  <Pressable
-                    key={p.id}
-                    onPress={() => setSelected(p.id)}
-                    className={`flex-row items-center justify-between gap-3 rounded-card border p-4 active:opacity-80 ${
-                      on ? "border-chalk bg-ink-800" : "border-line-strong bg-ink-850"
+          <View className="gap-3">
+            {PLANS.map(({ id, label }) => {
+              const offer = plans?.find((p) => p.id === id);
+              const on = id === selected;
+              return (
+                <Pressable
+                  key={id}
+                  onPress={() => setSelected(id)}
+                  className={`flex-row items-center justify-between gap-3 rounded-card border p-4 active:opacity-80 ${
+                    on ? "border-chalk bg-ink-800" : "border-line-strong bg-ink-850"
+                  }`}
+                >
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[15px] font-semibold text-chalk">{label}</Text>
+                    <Text className="mt-0.5 text-[13px] text-chalk-mute">
+                      {offer
+                        ? `${offer.trialDays > 0 ? `${offer.trialDays}-day free trial, then ` : ""}${offer.price} / ${offer.period}`
+                        : "Price set by the App Store"}
+                    </Text>
+                  </View>
+                  <View
+                    className={`h-5 w-5 items-center justify-center rounded-full border ${
+                      on ? "border-chalk bg-chalk" : "border-line-strong"
                     }`}
                   >
-                    <View className="min-w-0 flex-1">
-                      <Text className="text-[15px] font-semibold text-chalk">
-                        {p.id === "yearly" ? "Yearly" : "Monthly"}
-                      </Text>
-                      <Text className="mt-0.5 text-[13px] text-chalk-mute">
-                        {p.trialDays > 0 ? `${p.trialDays}-day free trial, then ` : ""}
-                        {p.price} / {p.period}
-                      </Text>
-                    </View>
-                    <View
-                      className={`h-5 w-5 items-center justify-center rounded-full border ${
-                        on ? "border-chalk bg-chalk" : "border-line-strong"
-                      }`}
-                    >
-                      {on ? <CheckIcon size={13} color="#FFFFFF" strokeWidth={2.4} /> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+                    {on ? <CheckIcon size={13} color="#FFFFFF" strokeWidth={2.4} /> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
         </FadeIn>
 
         <FadeIn className="mt-6 gap-3" delay={180}>
@@ -162,6 +162,12 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
           <Button variant="secondary" size="lg" fullWidth disabled={busy} onPress={restore}>
             Restore purchases
           </Button>
+
+          {!purchases.available ? (
+            <Text className="text-center text-[11px] leading-relaxed text-chalk-faint">
+              Prices and purchasing come from the App Store, which this build can&apos;t reach.
+            </Text>
+          ) : null}
         </FadeIn>
 
         {/* Guideline 3.1.2 disclosure, built from the plan the store described. */}
@@ -195,14 +201,11 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
           </View>
         </FadeIn>
 
-        <FadeIn className="mt-8 items-center gap-4" delay={260}>
+        <FadeIn className="mt-8 items-center gap-3" delay={260}>
+          {/* Development only — `canSkip` is false in any build that ships. */}
           {canSkip ? (
-            <Pressable onPress={onUnlocked} className="items-center active:opacity-60">
-              <Eyebrow>Development</Eyebrow>
-              <Text className="mt-1 text-[14px] font-semibold text-chalk">Skip for now</Text>
-              <Text className="mt-1 text-center text-[11px] text-chalk-faint">
-                Only in Expo Go — a release build has no way past this screen.
-              </Text>
+            <Pressable onPress={onUnlocked} className="py-1 active:opacity-60">
+              <Text className="text-[13px] font-medium text-chalk-mute underline">Skip for now (development)</Text>
             </Pressable>
           ) : null}
 

@@ -118,7 +118,11 @@ function Gate() {
         <Stack.Screen name="legal" options={{ presentation: "modal" }} />
       </Stack>
 
-      {flags && !flags.tutorialDone ? <TutorialOverlay onDone={() => mark({ tutorialDone: true })} /> : null}
+      {/* Always mounted, shown by `visible` — see TutorialOverlay. */}
+      <TutorialOverlay
+        visible={Boolean(flags && !flags.tutorialDone)}
+        onDone={() => mark({ tutorialDone: true })}
+      />
     </>
   );
 }
