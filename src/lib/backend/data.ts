@@ -170,7 +170,35 @@ export async function updatePreferences(userId: string, patch: Partial<Preferenc
 export async function deleteAccount(): Promise<void> {
   const c = sb();
   const { data, error } = await c.functions.invoke("delete-account", { body: {} });
-  if (error) throw error;
+  if (error) throw new Error(await describeFunctionError(error));
   if (!(data as { deleted?: boolean })?.deleted) throw new Error("The account could not be deleted.");
+}
+
+/**
+ * Get the real reason out of a failed Edge Function call.
+ *
+ * supabase-js reports every one of them as "Edge Function returned a non-2xx
+ * status code" and puts what actually happened in the response body, which it
+ * attaches as `context`. Unread, that's the difference between a message
+ * naming the problem and one that only says there was one — and this message is
+ * all anyone sees when account deletion fails.
+ */
+async function describeFunctionError(error: unknown): Promise<string> {
+  const res = (error as { context?: Response }).context;
+  if (!res || typeof res.text !== "function") {
+    return (error as Error)?.message || "The account could not be deleted.";
+  }
+  try {
+    const body = await res.text();
+    let detail = body;
+    try {
+      detail = (JSON.parse(body) as { error?: string }).error ?? body;
+    } catch {
+      /* not JSON — the raw body is still better than nothing */
+    }
+    return detail ? `${detail} (HTTP ${res.status})` : `The function failed with HTTP ${res.status}.`;
+  } catch {
+    return `The function failed with HTTP ${res.status}.`;
+  }
 }
 

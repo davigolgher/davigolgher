@@ -65,6 +65,11 @@ export default function Settings() {
   const [newCategory, setNewCategory] = useState("");
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const { reset: resetFlowFlags } = useFlowFlags();
+  const replayIntro = () =>
+    Alert.alert("Show the intro again?", "You'll see the walkthrough, the plans and the tour, then come back here.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Show it", onPress: () => void resetFlowFlags() },
+    ]);
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const reminders = useRenewalReminders();
@@ -357,6 +362,7 @@ export default function Settings() {
       </Section>
 
       <Section label="Help">
+        <Row title="Show the intro again" sub="Replays the walkthrough and the tour" onPress={replayIntro} />
         <Row
           title="Contact support"
           sub={APP.supportEmail}

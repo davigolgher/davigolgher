@@ -5,8 +5,12 @@
  * Local to the device rather than stored with the account. Whether someone has
  * seen a tour is a property of this install, not of the user — a new phone
  * deserves the tour again, and it shouldn't cost a round trip to find out.
+ *
+ * One value shared by every caller, rather than a hook with its own `useState`.
+ * Settings resets these and the gate above the tabs reads them; with a copy
+ * each, the reset would land in the copy nobody renders from.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY = "flow.flags.v1";
@@ -18,37 +22,48 @@ export interface Flags {
 
 const DEFAULTS: Flags = { onboardingDone: false, tutorialDone: false };
 
-export function useFlowFlags() {
-  /** null while reading storage — the gate waits rather than flashing a screen. */
-  const [flags, setFlags] = useState<Flags | null>(null);
+/** null until storage has been read — the gate waits rather than flashing a screen. */
+let flags: Flags | null = null;
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(KEY)
-      .then((raw) => {
-        const parsed = raw ? JSON.parse(raw) : {};
-        if (alive) setFlags({ ...DEFAULTS, ...parsed });
-      })
-      .catch(() => {
-        // First launch or unreadable value: the defaults are the right answer.
-        if (alive) setFlags(DEFAULTS);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+function publish(next: Flags | null) {
+  flags = next;
+  for (const l of listeners) l();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+AsyncStorage.getItem(KEY)
+  .then((raw) => publish({ ...DEFAULTS, ...(raw ? JSON.parse(raw) : {}) }))
+  // First launch or an unreadable value: the defaults are the right answer.
+  .catch(() => publish(DEFAULTS));
+
+export function useFlowFlags() {
+  const current = useSyncExternalStore(
+    subscribe,
+    () => flags,
+    () => flags,
+  );
 
   const mark = useCallback((patch: Partial<Flags>) => {
-    setFlags((current) => {
-      const next = { ...(current ?? DEFAULTS), ...patch };
-      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
+    const next = { ...(flags ?? DEFAULTS), ...patch };
+    publish(next);
+    AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
-  /** Used by account deletion, so the next account starts from the beginning. */
+  /**
+   * Back to a clean first run: the intro, the paywall, then the tour.
+   *
+   * Used by account deletion, so the next account starts from the beginning,
+   * and by Settings → "Show the intro again".
+   */
   const reset = useCallback(async () => {
-    setFlags(DEFAULTS);
+    publish(DEFAULTS);
     try {
       await AsyncStorage.removeItem(KEY);
     } catch {
@@ -56,5 +71,5 @@ export function useFlowFlags() {
     }
   }, []);
 
-  return { flags, mark, reset };
+  return { flags: current, mark, reset };
 }

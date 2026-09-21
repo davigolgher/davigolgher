@@ -81,6 +81,13 @@ function Gate() {
   // Keeps the app open while the entitlement re-reads in the background.
   const [unlocked, setUnlocked] = useState(false);
 
+  // Asking to see the intro again means the whole first run, paywall included —
+  // otherwise this session's earlier unlock would carry you straight past it.
+  const replaying = flags !== null && !flags.onboardingDone;
+  useEffect(() => {
+    if (replaying) setUnlocked(false);
+  }, [replaying]);
+
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
   // Wait for both rather than flashing a screen that's about to be replaced.
