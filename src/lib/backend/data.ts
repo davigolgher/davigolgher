@@ -158,6 +158,24 @@ export async function updatePreferences(userId: string, patch: Partial<Preferenc
   await sb().from("preferences").upsert(row);
 }
 
+/**
+ * Delete the account itself, via the `delete-account` Edge Function.
+ *
+ * The client can clear its own rows but cannot remove the auth user — that
+ * needs the service role key. Doing only the rows leaves the login intact, so
+ * signing up again with the same address just reopens the old, now-empty
+ * account. Apple treats that as not having deleted the account at all
+ * (Guideline 5.1.1(v)).
+ *
+ * Throws if it didn't work, so the UI can say so rather than claiming success.
+ */
+export async function deleteAccount(): Promise<void> {
+  const c = sb();
+  const { data, error } = await c.functions.invoke("delete-account", { body: {} });
+  if (error) throw error;
+  if (!(data as { deleted?: boolean })?.deleted) throw new Error("The account could not be deleted.");
+}
+
 /** Delete all of the user's rows (client-side, RLS-scoped). Auth user removal is admin-only. */
 export async function deleteAllData(userId: string): Promise<void> {
   const c = sb();

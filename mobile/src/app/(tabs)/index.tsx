@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
-import { incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
+import { availableThisMonth, incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
 import { Button, Eyebrow, FadeIn, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { useFocusTick } from "~/lib/useFocusTick";
@@ -24,11 +24,16 @@ export default function Home() {
   const income = incomeThisMonth(txs, now);
   const savings = savingsThisMonth(txs, now);
   const budget = data.budgets.find((b) => b.scope === "total")?.limit ?? 0;
-  const remaining = Money.clampMin(Money.subtract(budget, spent));
   const hasBudget = budget > 0;
-  const overBudget = hasBudget && spent > budget;
-  const pct = hasBudget ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
-  const status = !hasBudget ? "No budget" : overBudget ? "Over budget" : pct >= 80 ? "Almost there" : "On track";
+
+  // What's left counts income, not just the budget: money that arrived this
+  // month is money you can spend, and leaving it out made the headline number
+  // answer a question nobody was asking.
+  const available = availableThisMonth(txs, budget, now);
+  const pot = Money.add(budget, income);
+  const over = available < 0;
+  const pct = pot > 0 ? Math.min(100, Math.round((spent / pot) * 100)) : 0;
+  const status = !hasBudget ? "No budget" : over ? "Over budget" : pct >= 80 ? "Almost there" : "On track";
 
   const recent = useMemo(
     () => [...txs].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 5),
@@ -59,17 +64,17 @@ export default function Home() {
       {/* Budget hero — big number, status pill, spend progress. */}
       <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60} trigger={tick}>
         <View className="flex-row items-center justify-between gap-3">
-          <Eyebrow>{hasBudget ? "Budget remaining" : "Spent this month"}</Eyebrow>
+          <Eyebrow>{hasBudget ? "Left to spend" : "Spent this month"}</Eyebrow>
           <Pill>{status}</Pill>
         </View>
         <FitNumber className="mt-5 text-[44px] font-bold leading-none tracking-tight text-chalk">
-          {money.format(hasBudget ? remaining : spent)}
+          {money.format(hasBudget ? available : spent)}
         </FitNumber>
         <Text className="mt-2 text-[13px] text-chalk-mute">
           {!hasBudget
             ? "Set a monthly budget in Settings"
-            : overBudget
-              ? `${money.format(Money.subtract(spent, budget))} over your ${money.format(budget)} budget`
+            : income > 0
+              ? `${money.format(budget)} budget + ${money.format(income)} income − ${money.format(spent)} spent`
               : `${money.format(spent)} spent of ${money.format(budget)}`}
         </Text>
         {hasBudget ? (

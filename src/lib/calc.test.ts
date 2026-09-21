@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  availableThisMonth,
   budgetProgress,
   compare,
   groupByDay,
@@ -78,6 +79,24 @@ describe("calc — totals and comparisons", () => {
     expect(p.pct).toBe(62);
     expect(p.remaining).toBe(152000);
     expect(p.over).toBe(false);
+  });
+});
+
+describe("calc — available to spend", () => {
+  it("counts income towards what's left, not just the budget", () => {
+    // 2000 budget, 500 came in, 800 went out.
+    const txs = [tx({ amount: 80000 }), tx({ amount: 50000, direction: "income" })];
+    expect(availableThisMonth(txs, 200000, NOW)).toBe(170000);
+  });
+
+  it("goes negative when spending passes budget plus income", () => {
+    // Being over is the number worth showing; clamping it to zero hides it.
+    const txs = [tx({ amount: 300000 })];
+    expect(availableThisMonth(txs, 200000, NOW)).toBe(-100000);
+  });
+
+  it("is just the budget when nothing has happened", () => {
+    expect(availableThisMonth([], 200000, NOW)).toBe(200000);
   });
 });
 

@@ -277,13 +277,10 @@ export function StoreProvider({
         }, 900);
       },
       async deleteAccount() {
-        if (canSync) {
-          try {
-            await remote.deleteAllData(userId as string);
-          } catch (e) {
-            console.warn("[sync] delete failed", e);
-          }
-        }
+        // Deletes the auth user too, not just the rows — see remote.deleteAccount.
+        // Errors propagate so the caller can tell the user it didn't work,
+        // rather than clearing the screen and leaving the account alive.
+        if (canSync) await remote.deleteAccount();
         dispatch({ type: "reset-all" });
       },
       refresh: () => setRefreshKey((k) => k + 1),

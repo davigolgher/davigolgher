@@ -8,11 +8,13 @@
     "paths": {
       "@/*": ["../src/*"],
       "~/*": ["./src/*"],
-      // client.native.ts has to sit next to the shared data.ts it serves (that's
-      // how Metro's platform resolution finds it), which puts it outside this
-      // project — so TypeScript would look for its React Native imports in the
-      // web app's node_modules. Point them back here.
-      "@react-native-async-storage/async-storage": ["./node_modules/@react-native-async-storage/async-storage"]
+      // The *.native.ts files have to sit next to the shared modules they serve
+      // (that's how Metro's platform resolution finds them), which puts them
+      // outside this project — so TypeScript would look for their React Native
+      // imports in the web app's node_modules. Point those back here.
+      "@react-native-async-storage/async-storage": ["./node_modules/@react-native-async-storage/async-storage"],
+      "expo-linking": ["./node_modules/expo-linking"],
+      "expo-web-browser": ["./node_modules/expo-web-browser"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", ".expo/types/**/*.ts", "expo-env.d.ts"],

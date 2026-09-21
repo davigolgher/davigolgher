@@ -51,15 +51,37 @@ function hmacKey(): Promise<CryptoKey> {
   ]);
 }
 
+/**
+ * Where to send the browser after consent. The native app hands in its own
+ * scheme so the flow lands back in the app instead of on a web page.
+ *
+ * Only these two shapes are allowed. The value travels inside the signed state,
+ * so it can't be tampered with in flight — but it still starts life as client
+ * input, and an unchecked redirect target is an open redirect.
+ */
+function safeReturnTo(value: unknown): string {
+  if (typeof value !== "string") return APP_URL;
+  if (value.startsWith("flow://")) return value; // the app
+  if (value.startsWith("exp://")) return value; // the app running in Expo Go
+  if (APP_URL && value.startsWith(APP_URL)) return value; // the web pages
+  return APP_URL;
+}
+
+interface StatePayload {
+  u: string;
+  t: number;
+  r: string;
+}
+
 /** `state` = base64url(payload) "." base64url(HMAC-SHA256(payload)). */
-async function signState(userId: string): Promise<string> {
-  const payload = b64url(enc.encode(JSON.stringify({ u: userId, t: Date.now() })));
+async function signState(userId: string, returnTo: string): Promise<string> {
+  const payload = b64url(enc.encode(JSON.stringify({ u: userId, t: Date.now(), r: returnTo })));
   const sig = await crypto.subtle.sign("HMAC", await hmacKey(), enc.encode(payload));
   return `${payload}.${b64url(new Uint8Array(sig))}`;
 }
 
-/** Returns the user id when the signature and timestamp both check out, else null. */
-async function verifyState(state: string): Promise<string | null> {
+/** Returns the payload when the signature and timestamp both check out, else null. */
+async function verifyState(state: string): Promise<StatePayload | null> {
   const dot = state.indexOf(".");
   if (dot <= 0) return null;
   const payload = state.slice(0, dot);
@@ -68,10 +90,10 @@ async function verifyState(state: string): Promise<string | null> {
     // crypto.subtle.verify compares in constant time.
     const ok = await crypto.subtle.verify("HMAC", await hmacKey(), unb64url(sig), enc.encode(payload));
     if (!ok) return null;
-    const { u, t } = JSON.parse(new TextDecoder().decode(unb64url(payload)));
+    const { u, t, r } = JSON.parse(new TextDecoder().decode(unb64url(payload)));
     if (typeof u !== "string" || !u || typeof t !== "number") return null;
     if (Date.now() - t > STATE_TTL_MS) return null;
-    return u;
+    return { u, t, r: safeReturnTo(r) };
   } catch {
     return null;
   }
@@ -85,10 +107,16 @@ Deno.serve(async (req) => {
 
   // 1) Callback from Google.
   if (req.method === "GET" && (url.searchParams.get("code") || url.searchParams.get("error"))) {
-    if (url.searchParams.get("error")) return Response.redirect(`${APP_URL}/settings?gmail=denied`, 302);
+    const state = await verifyState(url.searchParams.get("state") ?? "");
+    // A forged or expired state has no trustworthy return address either, so
+    // fall back to the web app rather than following it.
+    const back = (result: string) =>
+      Response.redirect(`${state?.r ?? APP_URL}${(state?.r ?? APP_URL).includes("?") ? "&" : "?"}gmail=${result}`, 302);
+
+    if (url.searchParams.get("error")) return back("denied");
+    if (!state) return Response.redirect(`${APP_URL}?gmail=error`, 302);
     const code = url.searchParams.get("code")!;
-    const userId = await verifyState(url.searchParams.get("state") ?? "");
-    if (!userId) return Response.redirect(`${APP_URL}/settings?gmail=error`, 302);
+    const userId = state.u;
     try {
       const res = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -102,7 +130,7 @@ Deno.serve(async (req) => {
         }),
       });
       const tok = await res.json();
-      if (!tok.refresh_token) return Response.redirect(`${APP_URL}/settings?gmail=error`, 302);
+      if (!tok.refresh_token) return back("error");
       const admin = createClient(SUPABASE_URL, SERVICE);
       await admin.from("gmail_tokens").upsert({
         user_id: userId,
@@ -110,9 +138,9 @@ Deno.serve(async (req) => {
         connected_at: new Date().toISOString(),
       });
       await admin.from("preferences").upsert({ user_id: userId, gmail_connected: true });
-      return Response.redirect(`${APP_URL}/settings?gmail=connected`, 302);
+      return back("connected");
     } catch {
-      return Response.redirect(`${APP_URL}/settings?gmail=error`, 302);
+      return back("error");
     }
   }
 
@@ -126,6 +154,11 @@ Deno.serve(async (req) => {
     } = await asUser.auth.getUser();
     if (!user) return json({ error: "Not authenticated" }, 401);
 
+    // The native app asks to be sent back to its own scheme; the web app omits
+    // this and gets APP_URL. Either way the value is checked before use.
+    const body = await req.json().catch(() => ({}));
+    const returnTo = safeReturnTo((body as { returnTo?: unknown })?.returnTo);
+
     const consent = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     consent.searchParams.set("client_id", CLIENT_ID);
     consent.searchParams.set("redirect_uri", REDIRECT_URI);
@@ -133,7 +166,7 @@ Deno.serve(async (req) => {
     consent.searchParams.set("scope", SCOPE);
     consent.searchParams.set("access_type", "offline");
     consent.searchParams.set("prompt", "consent");
-    consent.searchParams.set("state", await signState(user.id));
+    consent.searchParams.set("state", await signState(user.id, returnTo));
     return json({ url: consent.toString() });
   } catch (e) {
     return json({ error: (e as Error).message }, 400);

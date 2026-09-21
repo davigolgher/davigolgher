@@ -82,6 +82,19 @@ export function savingsThisMonth(txs: Transaction[], now: Date = new Date()): Ce
   return Money.subtract(incomeThisMonth(txs, now), totalThisMonth(txs, now));
 }
 
+/**
+ * What's actually left to spend this month: the budget, plus anything that came
+ * in, minus what went out.
+ *
+ * Income has to count. A budget alone answers "how much of my plan is left",
+ * which is a different question from "how much money do I have" — and when
+ * money arrives mid-month, the first answer is misleading. Can go negative:
+ * being over is worth showing, not clamping to zero.
+ */
+export function availableThisMonth(txs: Transaction[], budgetLimit: Cents, now: Date = new Date()): Cents {
+  return Money.subtract(Money.add(budgetLimit, incomeThisMonth(txs, now)), totalThisMonth(txs, now));
+}
+
 export type Direction = "up" | "down" | "flat";
 export interface Comparison {
   direction: Direction;
