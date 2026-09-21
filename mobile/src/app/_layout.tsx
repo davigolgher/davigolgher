@@ -15,7 +15,10 @@ import { StoreProvider } from "@/data/store";
 import { loadActivity, recordActivityToday } from "~/lib/activity";
 import { SignInScreen } from "~/features/SignInScreen";
 import { PaywallScreen } from "~/features/PaywallScreen";
+import { OnboardingScreen } from "~/features/OnboardingScreen";
+import { TutorialOverlay } from "~/features/TutorialOverlay";
 import { useEntitlement } from "~/features/useEntitlement";
+import { useFlowFlags } from "~/lib/flow";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -63,17 +66,29 @@ function Splash() {
   );
 }
 
-/** Signed out → sign-in. No subscription → paywall. Otherwise → the app. */
+/**
+ * The first run, in order: sign in → what the app is for → the paywall → the
+ * app, with the tour over it once.
+ *
+ * The intro comes before the paywall deliberately. Asking someone to subscribe
+ * to something they haven't been shown is a worse trade than two screens.
+ */
 function Gate() {
   const auth = useAuth();
   const entitlement = useEntitlement();
+  const { flags, mark } = useFlowFlags();
   // Set when a purchase succeeds, or when a dev build skips past the paywall.
   // Keeps the app open while the entitlement re-reads in the background.
   const [unlocked, setUnlocked] = useState(false);
 
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
-  if (auth.configured && entitlement.loading) return <Splash />;
+  // Wait for both rather than flashing a screen that's about to be replaced.
+  if (auth.configured && (entitlement.loading || flags === null)) return <Splash />;
+
+  if (auth.configured && flags && !flags.onboardingDone) {
+    return <OnboardingScreen onDone={() => mark({ onboardingDone: true })} />;
+  }
 
   if (auth.configured && !entitlement.entitled && !unlocked) {
     return (
@@ -88,11 +103,15 @@ function Gate() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="add-expense" options={{ presentation: "modal" }} />
-      <Stack.Screen name="add-subscription" options={{ presentation: "modal" }} />
-      <Stack.Screen name="legal" options={{ presentation: "modal" }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="add-expense" options={{ presentation: "modal" }} />
+        <Stack.Screen name="add-subscription" options={{ presentation: "modal" }} />
+        <Stack.Screen name="legal" options={{ presentation: "modal" }} />
+      </Stack>
+
+      {flags && !flags.tutorialDone ? <TutorialOverlay onDone={() => mark({ tutorialDone: true })} /> : null}
+    </>
   );
 }

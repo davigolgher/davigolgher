@@ -16,6 +16,7 @@ import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
 import { APP } from "@/config/app";
 import { clearActivity } from "~/lib/activity";
+import { useFlowFlags } from "~/lib/flow";
 import { Button, Eyebrow, Input, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
 
@@ -55,6 +56,7 @@ export default function Settings() {
   const [budgetText, setBudgetText] = useState(budget > 0 ? String(toMain(budget)) : "");
   const [newCategory, setNewCategory] = useState("");
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const { reset: resetFlowFlags } = useFlowFlags();
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
@@ -94,8 +96,10 @@ export default function Settings() {
           style: "destructive",
           onPress: async () => {
             await deleteAccount();
-            // The streak log lives outside the store, in AsyncStorage.
+            // The streak log and the first-run flags live outside the store,
+            // in AsyncStorage, so the next account starts from the beginning.
             await clearActivity();
+            await resetFlowFlags();
             await signOut();
           },
         },

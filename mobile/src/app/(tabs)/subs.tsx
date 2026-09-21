@@ -9,9 +9,11 @@ import { daysUntil, FREQUENCY_LABEL } from "@/lib/recurrence";
 import { formatDaysUntil } from "@/lib/format";
 import { Button, Eyebrow, FadeIn, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
+import { useFocusTick } from "~/lib/useFocusTick";
 
 export default function Subs() {
   const insets = useSafeAreaInsets();
+  const tick = useFocusTick();
   const { data, now, deleteSubscription } = useStore();
   const money = useMoney();
 
@@ -51,12 +53,12 @@ export default function Subs() {
         }
       />
 
-      <FadeIn className="mt-6 flex-row gap-4" delay={60}>
+      <FadeIn className="mt-6 flex-row gap-4" delay={60} trigger={tick}>
         <StatCard label="Per month" value={money.format(monthly)} sub={`${active.length} active`} />
         <StatCard label="Per year" value={money.format(yearly)} sub="Annualised" />
       </FadeIn>
 
-      <FadeIn className="mt-6" delay={120}>
+      <FadeIn className="mt-6" delay={120} trigger={tick}>
         <Eyebrow>Upcoming</Eyebrow>
         {upcoming.length > 0 ? (
           <View className="mt-1">

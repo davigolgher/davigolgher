@@ -16,7 +16,7 @@ export interface ChartPage {
   content: ReactNode;
 }
 
-export function ChartPager({ pages }: { pages: ChartPage[] }) {
+export function ChartPager({ pages, trigger = 0 }: { pages: ChartPage[]; trigger?: number }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const scroller = useRef<ScrollView>(null);
@@ -66,13 +66,20 @@ export function ChartPager({ pages }: { pages: ChartPage[] }) {
             decelerationRate="fast"
             snapToInterval={width}
             snapToAlignment="start"
-            onMomentumScrollEnd={(e) => {
+            // Track during the drag, not after it settles. Waiting for
+            // onMomentumScrollEnd left the tab highlighting a chart the user had
+            // already swiped away from, which reads as lag.
+            scrollEventThrottle={16}
+            onScroll={(e) => {
               const i = Math.round(e.nativeEvent.contentOffset.x / width);
-              if (i !== index) setIndex(i);
+              if (i !== index && i >= 0 && i < pages.length) setIndex(i);
             }}
           >
             {pages.map((p) => (
-              <View key={p.key} style={{ width }}>
+              // The trigger is part of the key on purpose: remounting the chart
+              // is what makes its draw-in animation play again on a return
+              // visit. They're a handful of points each, so it's cheap.
+              <View key={`${p.key}-${trigger}`} style={{ width }}>
                 {p.content}
               </View>
             ))}

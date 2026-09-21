@@ -8,6 +8,7 @@ import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "
 import { categoryBreakdown, monthlyTotals } from "@/lib/reports";
 import { FREQUENCY_LABEL } from "@/lib/recurrence";
 import { Eyebrow, FadeIn, ScreenHeader } from "~/components/ui";
+import { useFocusTick } from "~/lib/useFocusTick";
 import { Donut } from "~/components/Donut";
 import { LineChart } from "~/components/LineChart";
 import { ChartPager } from "~/components/ChartPager";
@@ -30,14 +31,15 @@ function BarRow({ label, value, barPct }: { label: string; value: string; barPct
 
 export default function Reports() {
   const insets = useSafeAreaInsets();
+  const tick = useFocusTick();
   const { data, now } = useStore();
   const money = useMoney();
 
   const spent = totalThisMonth(data.transactions, now);
   const categories = useMemo(() => categoryBreakdown(data.transactions, now), [data.transactions, now]);
   const months = useMemo(
-    () => monthlyTotals(data.transactions, money.locale, 6),
-    [data.transactions, money.locale],
+    () => monthlyTotals(data.transactions, money.locale, 6, now),
+    [data.transactions, money.locale, now],
   );
   const subs = activeSubscriptions(data.subscriptions);
   const subsMonthly = subscriptionsMonthlyTotal(data.subscriptions);
@@ -52,9 +54,10 @@ export default function Reports() {
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
 
-      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
+      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60} trigger={tick}>
         {hasData ? (
           <ChartPager
+            trigger={tick}
             pages={[
               { key: "categories", title: "By category", content: <Donut slices={categories} /> },
               { key: "months", title: "By month", content: <LineChart months={months} /> },
@@ -67,7 +70,7 @@ export default function Reports() {
         )}
       </FadeIn>
 
-      <FadeIn className="mt-8" delay={120}>
+      <FadeIn className="mt-8" delay={120} trigger={tick}>
         <Eyebrow>Subscription costs</Eyebrow>
         {subs.length > 0 ? (
           <View className="mt-1">

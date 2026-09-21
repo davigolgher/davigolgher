@@ -10,32 +10,42 @@ import { Animated, Easing, Pressable, Text, TextInput, View, type TextInputProps
 /**
  * Content that arrives instead of appearing: a short fade with a small rise.
  *
- * `delay` staggers siblings so a screen resolves top to bottom. Runs on the
- * native driver, so it stays smooth while the rest of the screen is still
- * laying out. Keep the timings short — this should be felt, not watched.
+ * `delay` staggers siblings so a screen resolves top to bottom. `trigger`
+ * replays the animation whenever its value changes — tab screens stay mounted,
+ * so without it the entrance only ever happens once, on the first visit. Pass
+ * `useFocusTick()`.
+ *
+ * Runs on the native driver, so it stays smooth while the rest of the screen is
+ * still laying out. Keep the timings short — this should be felt, not watched.
  */
 export function FadeIn({
   children,
   delay = 0,
   distance = 10,
+  trigger,
   className,
 }: {
   children: ReactNode;
   delay?: number;
   distance?: number;
+  trigger?: number;
   className?: string;
 }) {
   const t = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(t, {
+    t.setValue(0);
+    const animation = Animated.timing(t, {
       toValue: 1,
       duration: 340,
       delay,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, [t, delay]);
+    });
+    animation.start();
+    // Stop rather than leave it running if the screen leaves mid-animation.
+    return () => animation.stop();
+  }, [t, delay, trigger]);
 
   return (
     <Animated.View
