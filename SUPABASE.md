@@ -66,16 +66,23 @@ third-party login makes **Sign in with Apple** mandatory under Guideline 4.8.
 
 ## 4. Edge Functions
 
-Deploy:
+Both are single files with no local imports, so either deploy route works.
+
+With the CLI:
 
 ```bash
 supabase functions deploy delete-account                       # caller proves who they are
 supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has no session
 ```
 
+Or from the dashboard — **Edge Functions → Deploy a new function → Via Editor**
+— by pasting the file in. No CLI, no Docker. Name the function exactly
+`delete-account`: that string is what `functions.invoke()` calls.
+
 `delete-account` keeps JWT verification **on**: it takes the user id from the
 verified session, never from the request body, so nobody can delete someone
-else's account.
+else's account. `revenuecat-webhook` must have it **off** — RevenueCat has no
+Supabase session, and its shared secret is what authenticates it instead.
 
 Set the secrets (never commit these):
 
