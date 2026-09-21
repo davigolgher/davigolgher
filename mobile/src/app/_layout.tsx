@@ -90,8 +90,13 @@ function Gate() {
 
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
-  // Wait for both rather than flashing a screen that's about to be replaced.
-  if (auth.configured && (entitlement.loading || flags === null)) return <Splash />;
+  // Wait for the flags rather than flashing a screen that's about to be
+  // replaced — it's one local read, so the wait is imperceptible.
+  if (auth.configured && flags === null) return <Splash />;
+  // Never once unlocked. Getting past the paywall re-checks the entitlement,
+  // and treating that as "loading" put a blank screen over the app the user
+  // had just been let into.
+  if (auth.configured && entitlement.loading && !unlocked) return <Splash />;
 
   if (auth.configured && flags && !flags.onboardingDone) {
     return <OnboardingScreen onDone={() => mark({ onboardingDone: true })} />;

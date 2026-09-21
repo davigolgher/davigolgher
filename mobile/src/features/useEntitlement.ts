@@ -25,6 +25,27 @@ export interface Entitlement {
   refresh: () => void;
 }
 
+/**
+ * How long to wait for an answer before letting the app move on.
+ *
+ * `loading` holds the gate on a blank screen. A request that never settles —
+ * no signal, a stalled socket — would hold it forever, and a frozen launch is
+ * worse than a paywall. Timing out leaves `entitled` false, so the fallback is
+ * to ask for payment, never to hand out access.
+ */
+const CHECK_TIMEOUT_MS = 6000;
+
+function settled<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), CHECK_TIMEOUT_MS);
+    const finish = (value: T) => {
+      clearTimeout(timer);
+      resolve(value);
+    };
+    promise.then(finish).catch(() => finish(fallback));
+  });
+}
+
 export function useEntitlement(): Entitlement {
   const { configured, userId } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -32,6 +53,14 @@ export function useEntitlement(): Entitlement {
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
+
+  // Only a new account blocks the gate. A refresh is a background re-check of
+  // an answer we already have, and reporting it as loading blanked the app the
+  // user had just been let into — the screen went back to a spinner the moment
+  // they got past the paywall.
+  useEffect(() => {
+    setLoading(true);
+  }, [configured, userId]);
 
   useEffect(() => {
     // Without a backend there's nothing to check and nothing to sell.
@@ -42,14 +71,11 @@ export function useEntitlement(): Entitlement {
     }
 
     let alive = true;
-    setLoading(true);
 
     (async () => {
       const [fromStore, fromServer] = await Promise.all([
-        purchases.isEntitled().catch(() => false),
-        fetchBilling()
-          .then(isActive)
-          .catch(() => false),
+        settled(purchases.isEntitled(), false),
+        settled(fetchBilling().then(isActive), false),
       ]);
 
       if (!alive) return;
