@@ -21,6 +21,10 @@ const SIZE = 150;
 const R = 54;
 const C = 2 * Math.PI * R;
 const STROKE = 16;
+/** White breathing room between slices, in viewBox units of arc. */
+const GAP = 3;
+/** A slice thinner than the gap would vanish; leave a sliver instead. */
+const MIN_ARC = 1.2;
 
 export function Donut({ slices }: { slices: CategorySlice[] }) {
   const money = useMoney();
@@ -44,10 +48,17 @@ export function Donut({ slices }: { slices: CategorySlice[] }) {
     ]).start();
   }, [sweep, fade, slices.length]);
 
+  // A single slice gets no gap — a full ring with a notch cut in it just looks
+  // broken. With two or more, the gap is carved off the end of every slice, so
+  // the seam where the last one wraps back to the first gets one too.
+  const gap = slices.length > 1 ? GAP : 0;
+
   let offset = 0;
   const rings = slices.map((s, i) => {
-    const len = (s.pct / 100) * C;
-    const dash = Math.max(0, len - 2); // 2px surface gap between slices
+    // The exact share, not the rounded `pct`: rounded shares can add up past
+    // 100%, and that overflow runs straight over the gap at the top.
+    const len = total > 0 ? (s.total / total) * C : 0;
+    const dash = len > 0 ? Math.max(len - gap, MIN_ARC) : 0;
     const startDeg = (offset / C) * 360;
     offset += len;
     // Rotate to the slice's start so its dash grows from there. The origin is

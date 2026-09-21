@@ -25,9 +25,37 @@ export function categoryBreakdown(expenses: Transaction[], now: Date = new Date(
     map.set(key, Money.add(map.get(key) ?? 0, t.amount));
   }
   const total = Money.sum([...map.values()]);
-  return [...map.entries()]
-    .map(([category, value]) => ({ category, total: value, pct: total > 0 ? Math.round((value / total) * 100) : 0 }))
+  const rows = [...map.entries()]
+    .map(([category, value]) => ({ category, total: value }))
     .sort((a, b) => b.total - a.total);
+  return withPercentages(rows, total);
+}
+
+/**
+ * Percentages that add up to 100.
+ *
+ * Rounding each share on its own doesn't: an even split lands on 63% and 38%,
+ * which reads as sloppy in the legend and draws the ring 1% too long — enough
+ * overflow to swallow the gap where the last slice meets the first. So floor
+ * every share and hand the leftover points to the largest remainders. On a tie
+ * the bigger category gets the point, since the rows are already sorted.
+ */
+function withPercentages(rows: { category: string; total: Cents }[], total: Cents): CategorySlice[] {
+  if (total <= 0) return rows.map((r) => ({ ...r, pct: 0 }));
+
+  const exact = rows.map((r) => (r.total / total) * 100);
+  const pcts = exact.map((v) => Math.floor(v));
+  let left = 100 - pcts.reduce((a, b) => a + b, 0);
+
+  for (const { i } of exact
+    .map((v, i) => ({ i, rem: v - Math.floor(v) }))
+    .sort((a, b) => b.rem - a.rem)) {
+    if (left <= 0) break;
+    pcts[i] += 1;
+    left -= 1;
+  }
+
+  return rows.map((r, i) => ({ ...r, pct: pcts[i] }));
 }
 
 export interface MonthTotal {
