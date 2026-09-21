@@ -16,13 +16,22 @@ export interface BillingRow {
   status: string;
   current_period_end?: string | null;
   trial_end?: string | null;
+  /**
+   * False once auto-renew is off while access continues to the end of the paid
+   * period. The renewal reminder reads it: warning about a charge that isn't
+   * coming is worse than staying quiet.
+   */
+  will_renew?: boolean | null;
 }
 
 /** The signed-in user's billing row (RLS-scoped), or null. */
 export async function fetchBilling(): Promise<BillingRow | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data } = await sb.from("billing").select("plan,status,current_period_end,trial_end").maybeSingle();
+  const { data } = await sb
+    .from("billing")
+    .select("plan,status,current_period_end,trial_end,will_renew")
+    .maybeSingle();
   return (data as BillingRow) ?? null;
 }
 

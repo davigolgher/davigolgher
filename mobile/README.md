@@ -114,8 +114,21 @@ If `expo install` can't reach Expo's API, read the expected version out of
 `bundledNativeModules.json` and pin it exactly. `npm run check:native` compares
 what's installed against that file and is the guard either way.
 
+## Icons
+
+`assets/images/*.png` are **generated**, not hand-drawn — `scripts/make-icons.py`
+redraws them from the same geometry as `src/components/Logo.tsx`, so the icon
+can't quietly drift from the mark inside the app. Change the mark there, then:
+
+```bash
+pip install cairosvg
+python3 scripts/make-icons.py
+```
+
+`icon.png` comes out as RGB with no alpha channel on purpose: App Store Connect
+rejects an app icon that has one, even a fully opaque one.
+
 ## Before submitting to the App Store
 
-- Real 1024×1024 icon and splash in `assets/images/` (current ones are Expo placeholders).
 - `ios.bundleIdentifier` in `app.json` is `com.davigolgher.flow` — change it if you want another.
 - Apple Developer Program membership, and `PrivacyInfo.xcprivacy` (template in `../APP_STORE.md`).

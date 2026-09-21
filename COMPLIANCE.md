@@ -13,7 +13,7 @@ live (code is scaffolded) · ✔️ already done in backend config.
 | 6 | **Storage bucket = public** | ✔️ | The `receipts` bucket is **private** with owner-scoped RLS (`supabase/migrations/0002_storage.sql`). |
 | 7 | **Fake testimonials** | ✅ | Removed the unsubstantiated social-proof line on the paywall; no fabricated reviews anywhere. The rating prompt is a real, first-party prompt. |
 | 8 | **Cancelling harder than signing up** | ⚙️ | Purchases go through Apple IAP, so cancelling is iOS Settings → your name → Subscriptions → Flow — the same few taps as subscribing, and Apple's own flow. The `/support` page spells out the steps, and the paywall discloses them at the point of purchase. |
-| 9 | **Auto-renew without reminder** | ⚙️ | Auto-renew terms are disclosed at purchase (Guideline 3.1.2). A **reminder before the charge** needs a scheduled job + email/push (backend). Apple also sends its own IAP renewal notices. |
+| 9 | **Auto-renew without reminder** | ✅ | Auto-renew terms are disclosed at purchase (Guideline 3.1.2), and Settings → Reminders schedules a local notification 1–7 days before each charge — the tracked subscriptions *and* Flow's own renewal. It reads `billing.will_renew`, so a cancelled-but-still-valid subscription isn't warned about a charge that isn't coming. Apple also sends its own IAP renewal notices. |
 | 10 | **AI with no self-harm response** | ✅ (N/A) | Flow has **no chat/conversational AI**, so there's no message surface to mishandle. Documented in the AI Disclosure; if a chat is added, crisis messages must surface support resources. |
 
 ## What still needs the backend to be *live*
@@ -26,8 +26,9 @@ Everything below is coded/scaffolded; it activates when you connect Supabase
 - **#6 private bucket** — created private by the migration; applies when you run it.
 - **#8 easy cancel** — cancellation is Apple's native flow; the paywall still has to
   say so at the point of purchase (Guideline 3.1.2).
-- **#9 renewal reminder** — a local scheduled notification via `expo-notifications`
-  covers this once push is wired, reading the renewal date from `billing`.
+- **#9 renewal reminder** — the reminders for tracked subscriptions work now. The one
+  for *Flow's own* renewal reads `billing.current_period_end`, which stays empty until
+  RevenueCat's webhook writes to it, so that half is live only once IAP is.
 - **#10 self-harm handling** — only applies if you add a conversational AI; that AI
   would run server-side and must screen for crisis content.
 

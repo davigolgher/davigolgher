@@ -3,7 +3,7 @@
  * subscription management, and account deletion.
  */
 import { useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -13,13 +13,22 @@ import { MIN_PASSWORD_LENGTH, signOut, updatePassword } from "@/lib/backend/auth
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
+import { LEAD_DAY_CHOICES } from "@/lib/reminders";
 import { APP } from "@/config/app";
 import { clearActivity } from "~/lib/activity";
 import { useFlowFlags } from "~/lib/flow";
+import { sendTestReminder } from "~/lib/notifications";
+import { useRenewalReminders } from "~/features/reminders";
 import { Button, Eyebrow, Input, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
+
+const LEAD_LABEL: Record<number, string> = { 1: "1 day", 2: "2 days", 3: "3 days", 7: "A week" };
+
+// The app's switch is monochrome like everything else; the platform default is
+// iOS green.
+const SWITCH_TRACK = { false: "#E5E5E7", true: "#0A0A0A" };
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -58,6 +67,40 @@ export default function Settings() {
   const { reset: resetFlowFlags } = useFlowFlags();
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const reminders = useRenewalReminders();
+
+  const toggleReminders = async (on: boolean) => {
+    const ok = await reminders.setEnabled(on);
+    if (on && !ok) {
+      // iOS only ever shows its prompt once, so from here the only way to allow
+      // them is the Settings app. Saying so beats a switch that won't stay on.
+      Alert.alert(
+        "Notifications are off",
+        `iOS is blocking notifications for ${APP.name}. Turn them on in Settings → Notifications → ${APP.name}, then come back.`,
+        [
+          { text: "Not now", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings().catch(() => {}) },
+        ],
+      );
+    }
+  };
+
+  const testReminder = async () => {
+    if (await sendTestReminder()) {
+      Alert.alert("On its way", "It arrives in about five seconds. Leave the app to see the banner.");
+    } else {
+      Alert.alert("Couldn't send it", "Check that notifications are allowed in iOS Settings.");
+    }
+  };
+
+  const reminderStatus = () => {
+    if (!reminders.prefs) return " ";
+    if (!reminders.prefs.enabled) return "Off — nothing is scheduled.";
+    if (!reminders.allowed) return "Allowed in the app, blocked by iOS. Check Settings → Notifications.";
+    if (reminders.scheduled === null) return "Scheduling…";
+    if (reminders.scheduled === 0) return "Nothing due yet — add a subscription and it'll appear here.";
+    return `${reminders.scheduled} reminder${reminders.scheduled === 1 ? "" : "s"} scheduled.`;
+  };
 
   const savePassword = async () => {
     setSavingPassword(true);
@@ -223,6 +266,54 @@ export default function Settings() {
             Add
           </Button>
         </View>
+      </Section>
+
+      <Section label="Reminders">
+        <View className="flex-row items-center gap-3 border-b border-line-soft py-3.5">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[15px] text-chalk">Warn me before a charge</Text>
+            <Text className="mt-0.5 text-[13px] text-chalk-mute">{reminderStatus()}</Text>
+          </View>
+          <Switch
+            value={Boolean(reminders.prefs?.enabled)}
+            onValueChange={toggleReminders}
+            trackColor={SWITCH_TRACK}
+            thumbColor="#FFFFFF"
+            ios_backgroundColor={SWITCH_TRACK.false}
+          />
+        </View>
+
+        {reminders.prefs?.enabled ? (
+          <>
+            <Text className="mt-3 text-[12px] text-chalk-faint">How much warning</Text>
+            <View className="mt-2 flex-row flex-wrap gap-2">
+              {LEAD_DAY_CHOICES.map((d) => {
+                const on = d === reminders.prefs?.leadDays;
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => reminders.setLeadDays(d)}
+                    className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
+                      on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
+                    }`}
+                  >
+                    <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>
+                      {LEAD_LABEL[d]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View className="mt-2">
+              <Row title="Send a test reminder" sub="Arrives in about five seconds" onPress={testReminder} />
+            </View>
+          </>
+        ) : null}
+
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+          A notification before each subscription renews, including {APP.name} itself. Scheduled on this phone — no
+          alerts are sent from a server, and turning the switch off cancels them.
+        </Text>
       </Section>
 
       <Section label="Password">

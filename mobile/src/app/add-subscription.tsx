@@ -3,7 +3,7 @@
  * switches it into edit mode.
  */
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
@@ -41,6 +41,7 @@ export default function AddSubscription() {
   const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? "monthly");
   const [inDays, setInDays] = useState(30);
   const [categoryId, setCategoryId] = useState(existing?.categoryId ?? data.categories[0]?.label ?? "Subscriptions");
+  const [remind, setRemind] = useState(existing?.reminders ?? true);
 
   const cents = amountTextToCents(amountText);
   const canSave = cents > 0 && name.trim().length > 0;
@@ -50,7 +51,7 @@ export default function AddSubscription() {
     if (existing) {
       // Editing leaves the next charge date alone — it's the schedule already in
       // flight, not something the amount or name should reset.
-      updateSubscription({ ...existing, name: name.trim(), amount: cents, frequency, categoryId });
+      updateSubscription({ ...existing, name: name.trim(), amount: cents, frequency, categoryId, reminders: remind });
     } else {
       const next = new Date();
       next.setDate(next.getDate() + inDays);
@@ -62,7 +63,7 @@ export default function AddSubscription() {
         nextChargeAt: next.toISOString(),
         status: "active",
         categoryId,
-        reminders: true,
+        reminders: remind,
       });
     }
     router.back();
@@ -156,7 +157,21 @@ export default function AddSubscription() {
           </View>
         </View>
 
-        <View className="mt-10">
+        <View className="mt-8 flex-row items-center gap-3 border-t border-line-soft pt-4">
+          <View className="min-w-0 flex-1">
+            <Text className="text-[15px] text-chalk">Remind me before it charges</Text>
+            <Text className="mt-0.5 text-[13px] text-chalk-mute">Switch reminders on in Settings to receive it.</Text>
+          </View>
+          <Switch
+            value={remind}
+            onValueChange={setRemind}
+            trackColor={{ false: "#E5E5E7", true: "#0A0A0A" }}
+            thumbColor="#FFFFFF"
+            ios_backgroundColor="#E5E5E7"
+          />
+        </View>
+
+        <View className="mt-8">
           <Button variant="primary" fullWidth size="lg" disabled={!canSave} onPress={save}>
             {editing ? "Save changes" : "Add subscription"}
           </Button>

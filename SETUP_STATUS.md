@@ -37,18 +37,18 @@ public by design; RLS is the protection.
 - [x] Data syncs under RLS (`auth.uid() = user_id`) on all 8 tables
 - [x] Screens: Home, Expenses, Subs, Reports (donut + bars), Settings, add-expense
 - [x] Settings: budget, currency, categories, legal docs, sign out, delete account
+- [x] Renewal reminders — local notifications 1–7 days before a charge (compliance item 9)
+- [x] App icon, splash and favicon generated from the Flow mark
 - [x] Public legal/support pages deployed
 - [x] Web product UI deleted — one app, one codebase
 
 ## Next 🔜
 
 1. **Apple IAP via RevenueCat** — paywall, Guideline 3.1.2 disclosure, restore purchases, entitlement synced to Supabase. Needs the Apple Developer Program (~US$99/yr).
-2. **Push notifications** — `expo-notifications`, renewal reminders before a charge (closes compliance item 9).
-3. **Receipt photos** — `expo-image-picker` + upload to the private `receipts` bucket.
+2. **Receipt photos** — `expo-image-picker` + upload to the private `receipts` bucket. The Privacy Policy already says receipts can be attached, and `src/lib/upload.ts` already validates them; the capture and upload are what's missing.
 
 ## Before submitting to the App Store
 
-- Set `APP.supportEmail` and `APP.company` in `src/config/app.ts`.
-- Real 1024×1024 icon and splash in `mobile/assets/images/` (currently Expo placeholders).
+- Set `APP.company` in `src/config/app.ts` (`supportEmail` is set).
 - Have the legal templates reviewed by a lawyer — they are drafts, not advice.
 - `PrivacyInfo.xcprivacy`, age rating, EU trader status — see `APP_STORE.md`.
