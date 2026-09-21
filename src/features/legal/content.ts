@@ -38,7 +38,7 @@ export const TERMS: Section[] = [
   {
     heading: "6. Your content & responsibility (UGC)",
     body: [
-      "You keep ownership of the content you add — including transactions, notes, category names, and any receipt files you upload (\"User Content\").",
+      "You keep ownership of the content you add — transactions, notes and category names (\"User Content\").",
       `You grant ${N} a limited, worldwide, royalty-free license to host, store, process, and display your User Content solely to operate the app for you.`,
       "You are solely responsible for your User Content and confirm you have the right to upload it and that it does not violate any law or third-party right.",
     ],
@@ -78,7 +78,6 @@ export const PRIVACY: Section[] = [
     bullets: [
       "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
-      "Files you upload: receipt images or PDFs you attach to a transaction.",
       "Limited technical/diagnostic data needed to run and improve the app.",
     ],
   },
@@ -86,14 +85,14 @@ export const PRIVACY: Section[] = [
   {
     heading: "Automated processing & AI",
     body: [
-      `${N} may use automated systems and AI to categorize transactions, parse imported receipts, and generate spending summaries. These process your financial data only to provide those features. They do not make legally significant decisions about you, and your data is not used to train third-party AI models without your consent. See the AI Disclosure for details.`,
+      `${N} may use automated systems and AI to categorize transactions and generate spending summaries. These process your financial data only to provide those features. They do not make legally significant decisions about you, and your data is not used to train third-party AI models without your consent. See the AI Disclosure for details.`,
     ],
   },
   {
     heading: "Where your data is stored",
     body: [
       `Your expenses, subscriptions, budgets, categories and settings are stored in ${N}'s database, which is hosted by Supabase (supabase.com). Supabase is our infrastructure provider: they hold the data on our behalf and do not use it for their own purposes.`,
-      "It travels encrypted (TLS) and is encrypted at rest. Uploaded receipt files go to a private storage bucket that is not publicly readable.",
+      "It travels encrypted (TLS) and is encrypted at rest.",
       "Access is scoped per user by Row Level Security, enforced by the database itself: every query is restricted to the rows belonging to the signed-in account, so one user's data cannot be read by another even if the app asked for it.",
       "A copy is also kept on your device so the app works offline.",
     ],
@@ -128,7 +127,7 @@ export const AI: Section[] = [
   {
     heading: "Where AI is used",
     bullets: [
-      "Suggesting a category for a transaction or an imported receipt.",
+      "Suggesting a category for a transaction.",
       "Generating summaries and insights about your spending.",
       "Any recommendation or \"picked for you\" content is algorithmic, not a personalized professional opinion.",
     ],
@@ -148,7 +147,7 @@ export interface NutritionGroup {
 }
 export const NUTRITION: NutritionGroup[] = [
   { title: "Data used to track you", note: "Used to track you across other companies' apps and sites.", items: ["None"] },
-  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — receipt files, notes"] },
+  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names"] },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["Diagnostics — basic crash/usage data (if enabled)"] },
 ];
 

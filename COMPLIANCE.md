@@ -9,7 +9,7 @@ live (code is scaffolded) · ✔️ already done in backend config.
 | 2 | **No "we collect user data"** | ✅ | Privacy Policy → "Data we collect" lists email, financial data, uploaded files, diagnostics. |
 | 3 | **No mention of AI in the Privacy Policy** | ✅ | Added "Automated processing & AI" to the Privacy Policy (plus the standalone AI Disclosure). |
 | 4 | **No mention of third-party data collectors** | ✅ | Privacy Policy → "Third-party service providers" names Supabase, Apple and RevenueCat; states no sale / no data brokers. |
-| 5 | **Not deleting user uploads** | ✅ | The `delete-account` Edge Function removes the rows, the storage files **and** the auth user. |
+| 5 | **Not deleting user uploads** | ✅ | The `delete-account` Edge Function removes the rows, the storage files **and** the auth user. There are no uploads today — the app has no attachment feature — but the bucket is purged anyway, so adding one later can't leave orphaned files. |
 | 6 | **Storage bucket = public** | ✔️ | The `receipts` bucket is **private** with owner-scoped RLS (`supabase/migrations/0002_storage.sql`). |
 | 7 | **Fake testimonials** | ✅ | Removed the unsubstantiated social-proof line on the paywall; no fabricated reviews anywhere. The rating prompt is a real, first-party prompt. |
 | 8 | **Cancelling harder than signing up** | ⚙️ | Purchases go through Apple IAP, so cancelling is iOS Settings → your name → Subscriptions → Flow — the same few taps as subscribing, and Apple's own flow. The `/support` page spells out the steps, and the paywall discloses them at the point of purchase. |
@@ -21,8 +21,8 @@ live (code is scaffolded) · ✔️ already done in backend config.
 Everything below is coded/scaffolded; it activates when you connect Supabase
 (see `SUPABASE.md`). Nothing here blocks the local demo.
 
-- **#5 upload deletion** — the delete flow removes storage files; it does real work
-  once receipts are uploaded to the `receipts` bucket (upload wiring is the remaining step).
+- **#5 upload deletion** — the delete flow already clears the `receipts` bucket. It has
+  nothing to clear while the app has no way to attach a file.
 - **#6 private bucket** — created private by the migration; applies when you run it.
 - **#8 easy cancel** — cancellation is Apple's native flow; the paywall still has to
   say so at the point of purchase (Guideline 3.1.2).

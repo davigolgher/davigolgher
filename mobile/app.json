@@ -13,8 +13,6 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.davigolgher.flow",
       "infoPlist": {
-        "NSCameraUsageDescription": "Flow uses the camera so you can photograph a receipt and attach it to an expense.",
-        "NSPhotoLibraryUsageDescription": "Flow needs access to your photos so you can attach a saved receipt image to an expense.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

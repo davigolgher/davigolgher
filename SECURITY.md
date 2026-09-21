@@ -13,11 +13,13 @@ app, where it could simply be read out of the bundle.
   lengths are capped. React escapes text on render, so this is defense-in-depth.
 - **Guarded navigation** — outbound links go through `safeHttpUrl()`, so only
   `https:`/`http:` URLs are followed (blocks `javascript:` / `data:` schemes).
-- **File-upload checks** (`src/lib/upload.ts`) — receipt attachments are validated for
-  size (≤ 8 MB), an allowlisted MIME type, a matching extension, **and a magic-byte
-  sniff** so a renamed file can't pose as an image. Filenames are stripped of path
-  segments and unsafe characters. SVG is intentionally **not** allowed (script risk),
-  and receipts are only rendered via `<img>`, never inlined.
+- **File-upload checks** (`src/lib/upload.ts`) — validates size (≤ 8 MB), an
+  allowlisted MIME type, a matching extension, **and a magic-byte sniff** so a renamed
+  file can't pose as an image; filenames are stripped of path segments and unsafe
+  characters, and SVG is deliberately not allowed (script risk). Written and tested,
+  but **nothing in the app uploads anything today** — there is no attachment feature,
+  so this is groundwork, not a live defence. The app asks for no camera or photo
+  permission for the same reason.
 - **Account deletion** — Settings → Account → Delete account removes the rows,
   the uploaded files **and the auth user**, through the `delete-account` Edge
   Function. The client can't delete the user itself (that needs the service role

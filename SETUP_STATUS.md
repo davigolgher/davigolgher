@@ -44,8 +44,15 @@ public by design; RLS is the protection.
 
 ## Next 🔜
 
-1. **Apple IAP via RevenueCat** — paywall, Guideline 3.1.2 disclosure, restore purchases, entitlement synced to Supabase. Needs the Apple Developer Program (~US$99/yr).
-2. **Receipt photos** — `expo-image-picker` + upload to the private `receipts` bucket. The Privacy Policy already says receipts can be attached, and `src/lib/upload.ts` already validates them; the capture and upload are what's missing.
+1. **Apple IAP via RevenueCat** — paywall, Guideline 3.1.2 disclosure, restore purchases, entitlement synced to Supabase. Needs the Apple Developer Program (~US$99/yr). This is the only thing left.
+
+## Decided against
+
+- **Receipt photos.** The Privacy Policy, the nutrition label and the iOS camera and
+  photo-library permissions were all taken back out to match — an app that declares a
+  permission it never uses gets asked about it at review.
+- **Gmail import.** `gmail.readonly` is a Google restricted scope: a yearly third-party
+  CASA security assessment for a convenience feature. See migration `0005`.
 
 ## Before submitting to the App Store
 

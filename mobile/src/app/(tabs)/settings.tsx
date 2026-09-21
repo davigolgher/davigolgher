@@ -130,7 +130,7 @@ export default function Settings() {
   const confirmDelete = () => {
     Alert.alert(
       "Delete your account?",
-      "This erases your expenses, subscriptions, budgets and uploaded receipts. It cannot be undone.\n\nIf you subscribed through the App Store, cancel that first in iOS Settings → your name → Subscriptions, or you'll keep being charged.",
+      "This erases your expenses, subscriptions, budgets and categories, and closes the account itself. It cannot be undone.\n\nIf you subscribed through the App Store, cancel that first in iOS Settings → your name → Subscriptions, or you'll keep being charged.",
       [
         { text: "Cancel", style: "cancel" },
         {

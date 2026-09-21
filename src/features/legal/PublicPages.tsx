@@ -173,8 +173,8 @@ export function SupportPage() {
 
         <Block heading="Delete your account">
           <p>
-            Open {APP.name} → Settings → Delete account. This erases your expenses, subscriptions, budgets and any
-            receipt files you uploaded. It cannot be undone.
+            Open {APP.name} → Settings → Delete account. This erases your expenses, subscriptions, budgets and
+            categories, and closes the account itself. It cannot be undone.
           </p>
           <p>
             Deleting the account does not cancel an App Store subscription — cancel that first, using the steps above,
