@@ -9,14 +9,13 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSupabaseConfigured } from "@/lib/backend/client";
 import { MIN_PASSWORD_LENGTH, signInWithPassword, signUpWithPassword } from "@/lib/backend/auth";
+import { isEmailShaped, normalizeEmail, suggestEmailFix } from "@/lib/email";
 import { APP } from "@/config/app";
 import type { LegalDocId } from "@/features/legal/content";
 import { Button, Input } from "~/components/ui";
 import { MailIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignInScreen() {
   const insets = useSafeAreaInsets();
@@ -29,9 +28,13 @@ export function SignInScreen() {
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
 
   const creating = mode === "signUp";
-  const emailValid = EMAIL_RE.test(email.trim());
+  const emailValid = isEmailShaped(email);
   const passwordValid = password.length >= MIN_PASSWORD_LENGTH;
   const canSubmit = emailValid && passwordValid && !busy;
+
+  // Offered, never enforced. Nothing here can tell whether a mailbox exists —
+  // this only catches a slip in the address you'd reset your password with.
+  const typo = creating && emailValid ? suggestEmailFix(email) : null;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -39,8 +42,9 @@ export function SignInScreen() {
     setError(null);
     try {
       // On success the auth listener in AuthProvider swaps this screen out.
-      if (creating) await signUpWithPassword(email, password);
-      else await signInWithPassword(email, password);
+      const address = normalizeEmail(email);
+      if (creating) await signUpWithPassword(address, password);
+      else await signInWithPassword(address, password);
     } catch (e) {
       const message = (e as Error)?.message || "Something went wrong. Try again.";
       // Supabase deliberately returns the same error for a wrong password and an
@@ -109,6 +113,14 @@ export function SignInScreen() {
             editable={!busy}
           />
 
+          {typo ? (
+            <Pressable onPress={() => setEmail(typo)} disabled={busy} className="active:opacity-60">
+              <Text className="text-[12px] leading-relaxed text-chalk-mute">
+                Did you mean <Text className="font-semibold text-chalk underline">{typo}</Text>?
+              </Text>
+            </Pressable>
+          ) : null}
+
           <Input
             value={password}
             onChangeText={setPassword}
@@ -130,6 +142,13 @@ export function SignInScreen() {
 
           {creating && !passwordValid ? (
             <Text className="text-[12px] text-chalk-faint">At least {MIN_PASSWORD_LENGTH} characters.</Text>
+          ) : null}
+
+          {creating ? (
+            <Text className="text-[12px] leading-relaxed text-chalk-faint">
+              Use an address you can actually open. It&apos;s the only way back into your account if you forget your
+              password.
+            </Text>
           ) : null}
 
           <Button
