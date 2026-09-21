@@ -76,10 +76,9 @@ export const PRIVACY: Section[] = [
   {
     heading: "Data we collect",
     bullets: [
-      "Account: your email address (or Apple/Google sign-in identifier).",
+      "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
       "Files you upload: receipt images or PDFs you attach to a transaction.",
-      "If you connect Gmail: read-only access to message content used only to create expense records.",
       "Limited technical/diagnostic data needed to run and improve the app.",
     ],
   },
@@ -106,12 +105,10 @@ export const PRIVACY: Section[] = [
       "Supabase — database, authentication, and file storage (our backend/hosting provider).",
       "Apple — processes your subscription purchase through the App Store; we never receive your card details.",
       "RevenueCat — records which subscription you hold so the app can unlock; it does not receive payment details.",
-      "Google — only if you connect Gmail (read-only), under the permissions you grant.",
       "Legal/safety: disclosed when required by law or to protect rights and safety.",
       "We do not sell your personal data or share it with advertising data brokers.",
     ],
   },
-  { heading: "Gmail data", body: ["If you connect Gmail, access is read-only and used solely to turn purchase receipts into expenses. It is not sold, not used for ads, and not shared. You can disconnect anytime in Settings or revoke access in your Google Account."] },
   {
     heading: "Your rights",
     bullets: [

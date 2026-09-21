@@ -4,8 +4,7 @@
  *
  * These pages exist because App Store Connect requires a reachable **Privacy
  * Policy URL** and **Support URL**, which App Review opens straight from the
- * store listing (Google also requires the privacy one for OAuth). There is no
- * web version of the product and no sign-in here.
+ * store listing. There is no web version of the product and no sign-in here.
  */
 import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { LegalPage, SupportPage } from "@/features/legal/PublicPages";

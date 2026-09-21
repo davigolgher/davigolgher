@@ -44,7 +44,6 @@ Deno.serve(async (req) => {
       admin.from("budgets").delete().eq("user_id", userId),
       admin.from("preferences").delete().eq("user_id", userId),
       admin.from("billing").delete().eq("user_id", userId),
-      admin.from("gmail_tokens").delete().eq("user_id", userId),
     ]);
 
     // Uploaded receipts live outside the tables.

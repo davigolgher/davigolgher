@@ -1,6 +1,6 @@
 /**
- * Settings: budget, currency, categories, password, Gmail import, the legal
- * documents, subscription management, and account deletion.
+ * Settings: budget, currency, categories, password, the legal documents,
+ * subscription management, and account deletion.
  */
 import { useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
@@ -10,7 +10,6 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { MIN_PASSWORD_LENGTH, signOut, updatePassword } from "@/lib/backend/auth";
-import { useGmailConnect } from "~/features/useGmailConnect";
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
@@ -59,7 +58,6 @@ export default function Settings() {
   const { reset: resetFlowFlags } = useFlowFlags();
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
-  const gmail = useGmailConnect();
 
   const savePassword = async () => {
     setSavingPassword(true);
@@ -253,34 +251,6 @@ export default function Settings() {
         {LEGAL_ORDER.map((id) => (
           <Row key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
         ))}
-      </Section>
-
-      <Section label="Gmail import">
-        {gmail.connected ? (
-          <>
-            <Row title="Gmail connected" sub="Purchase receipts become expenses automatically" />
-            <View className="mt-3 flex-row gap-2">
-              <Button variant="primary" disabled={gmail.busy} onPress={gmail.importNow}>
-                {gmail.busy ? "Importing…" : "Import now"}
-              </Button>
-              <Button variant="secondary" disabled={gmail.busy} onPress={gmail.disconnect}>
-                Disconnect
-              </Button>
-            </View>
-          </>
-        ) : (
-          <>
-            <Text className="text-[14px] leading-relaxed text-chalk-mute">
-              Let {APP.name} read purchase receipts in your inbox and turn them into expenses. Read-only, never shared,
-              and you can disconnect here at any time.
-            </Text>
-            <View className="mt-3">
-              <Button variant="primary" fullWidth disabled={gmail.busy} onPress={gmail.connect}>
-                {gmail.busy ? "Connecting…" : "Connect Gmail"}
-              </Button>
-            </View>
-          </>
-        )}
       </Section>
 
       <Section label="Subscription">

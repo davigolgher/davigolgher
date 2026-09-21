@@ -5,7 +5,7 @@
  *
  * The store uses this in a local-first way: mutate local state immediately, then
  * persist here in the background. Receipts stay local for now (a receipt_path
- * column + storage bucket exist for wiring uploads later).
+ * column and storage bucket exist for wiring uploads later).
  */
 import { getSupabase } from "./client";
 import type { AppData, Budget, Category, Preferences, Subscription, Transaction } from "@/data/types";
@@ -113,7 +113,6 @@ export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
       hideAmounts: false,
       biometricLock: false,
       useStatusColor: false,
-      gmailConnected: Boolean(p.gmail_connected ?? false),
     } as Preferences;
   }
   return out;
@@ -154,7 +153,6 @@ export async function updatePreferences(userId: string, patch: Partial<Preferenc
   const row: Row = { user_id: userId };
   if (patch.currency !== undefined) row.currency = patch.currency;
   if (patch.locale !== undefined) row.locale = patch.locale;
-  if (patch.gmailConnected !== undefined) row.gmail_connected = patch.gmailConnected;
   await sb().from("preferences").upsert(row);
 }
 
@@ -176,23 +174,3 @@ export async function deleteAccount(): Promise<void> {
   if (!(data as { deleted?: boolean })?.deleted) throw new Error("The account could not be deleted.");
 }
 
-/** Delete all of the user's rows (client-side, RLS-scoped). Auth user removal is admin-only. */
-export async function deleteAllData(userId: string): Promise<void> {
-  const c = sb();
-  await Promise.all([
-    c.from("transactions").delete().eq("user_id", userId),
-    c.from("subscriptions").delete().eq("user_id", userId),
-    c.from("categories").delete().eq("user_id", userId),
-    c.from("budgets").delete().eq("user_id", userId),
-    c.from("preferences").delete().eq("user_id", userId),
-  ]);
-  // Also remove the user's uploaded receipt files from storage.
-  try {
-    const { data: files } = await c.storage.from("receipts").list(userId);
-    if (files && files.length) {
-      await c.storage.from("receipts").remove(files.map((f) => `${userId}/${f.name}`));
-    }
-  } catch {
-    /* ignore — table rows are the primary record */
-  }
-}

@@ -42,7 +42,7 @@ create table if not exists public.transactions (
   merchant text,
   note text,
   currency text not null default 'USD',
-  source text not null default 'manual' check (source in ('manual','gmail')),
+  source text not null default 'manual' check (source in ('manual')),
   receipt_path text,
   created_at timestamptz not null default now()
 );
@@ -90,11 +90,9 @@ create table if not exists public.preferences (
   currency text not null default 'USD',
   locale text not null default 'en-US',
   reminders boolean not null default false,
-  gmail_connected boolean not null default false,
   updated_at timestamptz not null default now()
 );
 
--- billing (Stripe state — written only by the webhook via the service role).
 -- Server-side copy of the store entitlement, written by the RevenueCat webhook.
 -- The store is the authority; this survives reinstalls and can be read without
 -- a device.
@@ -112,13 +110,6 @@ create table if not exists public.billing (
   updated_at timestamptz not null default now()
 );
 
--- gmail_tokens (refresh token — no client RLS policy, functions only).
-create table if not exists public.gmail_tokens (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  refresh_token text not null,
-  connected_at timestamptz not null default now()
-);
-
 -- ── Row Level Security ──────────────────────────────────────────────────────
 alter table public.profiles      enable row level security;
 alter table public.transactions  enable row level security;
@@ -127,7 +118,6 @@ alter table public.categories    enable row level security;
 alter table public.budgets       enable row level security;
 alter table public.preferences   enable row level security;
 alter table public.billing       enable row level security;
-alter table public.gmail_tokens  enable row level security;
 
 create policy "profiles self" on public.profiles
   for all using (auth.uid() = id) with check (auth.uid() = id);
@@ -147,9 +137,6 @@ create policy "preferences owner" on public.preferences
 create policy "billing read own" on public.billing
   for select using (auth.uid() = user_id);
 
--- gmail_tokens intentionally has NO policy: unreachable by anon/authed clients,
--- accessible only to Edge Functions using the service role key.
-
 -- Private bucket for receipt files. Objects are stored under `<user_id>/<file>`,
 -- so `owner = auth.uid()` scopes access to the uploader.
 
@@ -165,10 +152,3 @@ create policy "receipts insert own" on storage.objects
 
 create policy "receipts delete own" on storage.objects
   for delete using (bucket_id = 'receipts' and owner = auth.uid());
-
--- Dedup key for Gmail-imported transactions (the Gmail message id).
-alter table public.transactions add column if not exists external_id text;
-
-create unique index if not exists transactions_user_external_idx
-  on public.transactions (user_id, external_id)
-  where external_id is not null;

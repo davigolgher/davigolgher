@@ -18,15 +18,19 @@ import type { LegalDocId } from "@/features/legal/content";
 import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
 import { Button, Eyebrow, FadeIn } from "~/components/ui";
-import { BarChartIcon, CheckIcon, MailIcon, RepeatIcon, WalletIcon } from "~/components/icons";
+import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
 
+/**
+ * Only things the app actually does. App Review checks that what a paywall
+ * promises is there, and a feature listed here but missing is a rejection.
+ */
 const VALUE = [
-  { icon: <WalletIcon size={18} />, text: "Unlimited expenses and subscriptions" },
-  { icon: <BarChartIcon size={18} />, text: "Category reports and monthly trends" },
-  { icon: <RepeatIcon size={18} />, text: "Renewal reminders so nothing slips" },
-  { icon: <MailIcon size={18} />, text: "Import purchases from your inbox" },
+  { icon: <WalletIcon size={18} />, text: "Unlimited expenses and income" },
+  { icon: <BarChartIcon size={18} />, text: "Category and monthly reports" },
+  { icon: <RepeatIcon size={18} />, text: "Every subscription in one place" },
+  { icon: <CheckIcon size={18} />, text: "Synced to your account, private by design" },
 ];
 
 export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void; canSkip: boolean }) {

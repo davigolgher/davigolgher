@@ -1,11 +1,10 @@
 /**
- * App store (Context + Reducer). In-memory, seeded EMPTY (start from zero).
- * A short initial load drives the skeletons; a simulated Gmail import adds
- * sample purchases. Wire to a backend to persist.
+ * App store (Context + Reducer). Seeded EMPTY (start from zero), mutated
+ * locally and persisted to Supabase in the background.
  */
 import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { AppData, Budget, Category, Preferences, Receipt, Subscription, SubscriptionStatus, Transaction } from "./types";
-import { createInitialData, gmailSampleExpenses } from "./mock";
+import { createInitialData } from "./mock";
 import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
 import { isSupabaseConfigured } from "@/lib/backend/client";
 import { useOptionalAuth } from "@/features/auth/AuthProvider";
@@ -109,7 +108,6 @@ export interface StoreValue {
   data: AppData;
   now: Date;
   loading: boolean;
-  importing: boolean;
   addTransaction: (input: NewTransactionInput) => Transaction;
   updateTransaction: (tx: Transaction) => void;
   deleteTransaction: (id: string) => void;
@@ -120,9 +118,6 @@ export interface StoreValue {
   addCategory: (name: string) => void;
   removeCategory: (id: string) => void;
   setCurrency: (code: string) => void;
-  connectGmail: () => void;
-  disconnectGmail: () => void;
-  importFromGmail: () => void;
   /** Erase all data (used by "Delete account"). Also clears server rows when connected. */
   deleteAccount: () => Promise<void>;
   /** Re-hydrate from the backend (connected mode); no-op locally. */
@@ -143,7 +138,6 @@ export function StoreProvider({
   const now = useMemo(() => new Date(), []);
   const [state, dispatch] = useReducer(reducer, undefined, () => seed ?? createInitialData());
   const [loading, setLoading] = useState(simulateLoading);
-  const [importing, setImporting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const userId = useOptionalAuth()?.userId ?? null;
 
@@ -182,7 +176,6 @@ export function StoreProvider({
       data: state,
       now,
       loading,
-      importing,
 
       addTransaction(input) {
         const direction = input.direction ?? "expense";
@@ -254,28 +247,6 @@ export function StoreProvider({
         bg(() => remote.updatePreferences(userId as string, { currency: code }));
       },
 
-      connectGmail: () => {
-        dispatch({ type: "update-prefs", prefs: { gmailConnected: true } });
-        bg(() => remote.updatePreferences(userId as string, { gmailConnected: true }));
-      },
-      disconnectGmail: () => {
-        dispatch({ type: "update-prefs", prefs: { gmailConnected: false } });
-        bg(() => remote.updatePreferences(userId as string, { gmailConnected: false }));
-      },
-      importFromGmail() {
-        setImporting(true);
-        setTimeout(() => {
-          const existing = new Set(state.transactions.filter((t) => t.source === "gmail").map((t) => t.description));
-          const incoming = gmailSampleExpenses(now, state.preferences.currency)
-            .filter((t) => !existing.has(t.description))
-            .map((t) => ({ ...t, id: newId("tx") }));
-          if (incoming.length) {
-            dispatch({ type: "add-many-tx", txs: incoming });
-            bg(() => remote.upsertTransactions(userId as string, incoming));
-          }
-          setImporting(false);
-        }, 900);
-      },
       async deleteAccount() {
         // Deletes the auth user too, not just the rows — see remote.deleteAccount.
         // Errors propagate so the caller can tell the user it didn't work,
@@ -285,7 +256,7 @@ export function StoreProvider({
       },
       refresh: () => setRefreshKey((k) => k + 1),
     };
-  }, [state, now, loading, importing, userId]);
+  }, [state, now, loading, userId]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

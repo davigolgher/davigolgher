@@ -34,7 +34,7 @@ export interface Transaction {
   /** Who it was paid to / received from (e.g. "Dunkin'"). */
   merchant?: string;
   currency: string;
-  source?: "manual" | "gmail";
+  source?: "manual";
   receipt?: Receipt;
 }
 
@@ -72,7 +72,6 @@ export interface Preferences {
   hideAmounts: boolean;
   biometricLock: boolean;
   useStatusColor: boolean;
-  gmailConnected: boolean;
 }
 
 export interface User {

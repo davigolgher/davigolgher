@@ -9,8 +9,8 @@
  * sync with the native file.
  *
  * Only the *public* anon key belongs here — Row Level Security protects the data.
- * Secret keys (service role, Google client secret) live only in Edge Function
- * env vars, never in the frontend. See SUPABASE.md.
+ * Secret keys (the service role key, RevenueCat's webhook secret) live only in
+ * Edge Function env vars, never in the frontend. See SUPABASE.md.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

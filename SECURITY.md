@@ -1,25 +1,28 @@
 # Security & privacy notes
 
-This documents the security measures built into Flow and the ones that **must** live
-on a backend. The app currently runs fully client-side (no server, data in-memory),
-so anything that depends on a secret or a trusted environment is documented here as a
-server responsibility — never shipped in the frontend.
+This documents the security measures built into Flow and the ones that **must**
+live on the server. Flow is a native app (`mobile/`) talking to Supabase, so
+anything depending on a secret runs in an Edge Function — never shipped in the
+app, where it could simply be read out of the bundle.
 
-## In the app today (client-side)
+## In the app (client-side)
 
 - **Input sanitization** (`src/lib/sanitize.ts`) — all user-entered text (merchant,
   category, note, email, subscription name) is cleaned at the store boundary:
   control/zero-width characters and bidirectional-override spoofing are stripped and
   lengths are capped. React escapes text on render, so this is defense-in-depth.
-- **No dangerous sinks** — no `dangerouslySetInnerHTML`; the only navigation
-  (`window.location.assign`) is guarded by `safeHttpUrl()` so only `https:`/`http:`
-  URLs are ever followed (blocks `javascript:` / `data:` schemes).
+- **Guarded navigation** — outbound links go through `safeHttpUrl()`, so only
+  `https:`/`http:` URLs are followed (blocks `javascript:` / `data:` schemes).
 - **File-upload checks** (`src/lib/upload.ts`) — receipt attachments are validated for
   size (≤ 8 MB), an allowlisted MIME type, a matching extension, **and a magic-byte
   sniff** so a renamed file can't pose as an image. Filenames are stripped of path
   segments and unsafe characters. SVG is intentionally **not** allowed (script risk),
   and receipts are only rendered via `<img>`, never inlined.
-- **Account deletion** — Settings → Account → Delete account erases all local data.
+- **Account deletion** — Settings → Account → Delete account removes the rows,
+  the uploaded files **and the auth user**, through the `delete-account` Edge
+  Function. The client can't delete the user itself (that needs the service role
+  key), and deleting only the data would leave the login alive — which Apple
+  treats as not having deleted the account (Guideline 5.1.1(v)).
 - **Legal/compliance surfaces** — Terms (with a binding-arbitration clause and a
   user-generated-content liability disclaimer), Privacy Policy, an FTC-style AI
   disclosure, and an Apple-style privacy nutrition label, all in Settings → Legal.
@@ -76,9 +79,8 @@ some, a shared secret for others).
 - **Authentication & authorization** — real accounts, sessions, and per-user access
   checks; never trust the client for who the user is.
 - **Secrets** — the Supabase *service role* key, RevenueCat's webhook secret and
-  secret API key, the Google OAuth *client secret*, `GMAIL_STATE_SECRET`, and any
-  DB credentials belong in server env only. Only anon/publishable keys and OAuth
-  *client IDs* may appear client-side.
+  secret API key, and any DB credentials belong in server env only. Only
+  anon/publishable keys may appear client-side.
 - **Account deletion** — cascade the delete across the database and purge backups on a
   defined schedule to honor the Privacy Policy.
 - **Security headers / CSP** — send a Content-Security-Policy, `X-Content-Type-Options:
@@ -86,5 +88,5 @@ some, a shared secret for others).
 
 ## Reporting
 
-Security issues: `security@flow.app` (replace with your address). Please do not open a
-public issue for vulnerabilities.
+Security issues: `golgherbusiness@gmail.com`. Please do not open a public issue
+for vulnerabilities.

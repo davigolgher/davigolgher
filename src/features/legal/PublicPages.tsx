@@ -1,9 +1,8 @@
 /**
  * The public pages. This is the entire web surface now — Flow is an app, and
  * these exist because App Store Connect requires a reachable **Privacy Policy
- * URL** and **Support URL** (Google requires the privacy one too for OAuth).
- * App Review opens them straight from the store listing, so they must not sit
- * behind a sign-in.
+ * URL** and **Support URL**. App Review opens them straight from the store
+ * listing, so they must not sit behind a sign-in.
  *
  * The document text comes from ./content, the same module the native app reads,
  * so the two can never drift apart.

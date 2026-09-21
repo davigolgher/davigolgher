@@ -2,30 +2,6 @@
 import { getSupabase } from "./client";
 import type { Session, User } from "@supabase/supabase-js";
 
-function client() {
-  const sb = getSupabase();
-  if (!sb) throw new Error("Backend not configured");
-  return sb;
-}
-
-/** Passwordless email sign-in (magic link). Returns after the email is sent. */
-export async function sendMagicLink(email: string): Promise<void> {
-  const { error } = await client().auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  });
-  if (error) throw error;
-}
-
-/** OAuth sign-in — redirects the browser to the provider. */
-export async function signInWithProvider(provider: "google" | "apple"): Promise<void> {
-  const { error } = await client().auth.signInWithOAuth({
-    provider,
-    options: { redirectTo: window.location.origin },
-  });
-  if (error) throw error;
-}
-
 export async function signOut(): Promise<void> {
   const sb = getSupabase();
   if (sb) await sb.auth.signOut();

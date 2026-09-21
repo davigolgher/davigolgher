@@ -1,4 +1,4 @@
-# Backend setup (Supabase + Gmail)
+# Backend setup (Supabase)
 
 Supabase provides auth and per-user data (Postgres + Row Level Security) for the
 native app. The app reads its config from `mobile/.env`
@@ -10,13 +10,13 @@ RevenueCat — see `APP_STORE.md`. RevenueCat's webhook writes entitlements into
 the `billing` table, which the app reads.
 
 Secret keys live only in Edge Function secrets — never in the repo or the app
-(only the anon key and OAuth client id are public).
+(only the anon key is public; Row Level Security is what protects the data).
 
 Already wired in code:
 
-- Client: `src/lib/backend/{client,client.native,auth,auth.native,data,gmail}.ts`
+- Client: `src/lib/backend/{client,client.native,auth,auth.native,data,billing}.ts`
 - Migrations: `supabase/migrations/*.sql`
-- Edge Functions: `supabase/functions/{gmail-oauth,gmail-sync}`
+- Edge Functions: `supabase/functions/{delete-account,revenuecat-webhook}`
 
 ---
 
@@ -69,18 +69,18 @@ third-party login makes **Sign in with Apple** mandatory under Guideline 4.8.
 Deploy:
 
 ```bash
-supabase functions deploy gmail-oauth        --no-verify-jwt   # Google calls back here
-supabase functions deploy gmail-sync
+supabase functions deploy delete-account                       # caller proves who they are
 supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has no session
 ```
+
+`delete-account` keeps JWT verification **on**: it takes the user id from the
+verified session, never from the request body, so nobody can delete someone
+else's account.
 
 Set the secrets (never commit these):
 
 ```bash
 supabase secrets set \
-  GOOGLE_CLIENT_ID=...apps.googleusercontent.com \
-  GOOGLE_CLIENT_SECRET=... \
-  GMAIL_STATE_SECRET="$(openssl rand -base64 32)" \
   REVENUECAT_WEBHOOK_SECRET="$(openssl rand -base64 32)" \
   APP_URL=https://davigolgher-lmhg.vercel.app
 ```
@@ -88,10 +88,6 @@ supabase secrets set \
 `REVENUECAT_WEBHOOK_SECRET` must match the Authorization value set in
 RevenueCat → Integrations → Webhooks. The endpoint grants paid access, so it
 refuses to run without one and compares in constant time.
-
-`GMAIL_STATE_SECRET` signs the Gmail OAuth `state` parameter. The callback runs
-unauthenticated, so without it a forged `state` could bind an inbox to the wrong
-account — `gmail-oauth` refuses to run when it is missing.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected
 into functions automatically.
@@ -106,27 +102,12 @@ The shape stays the same from the database's point of view: RevenueCat's webhook
 writes the entitlement into the `billing` table, and the app reads
 `billing.status` (`trialing` / `active`) to unlock. See `APP_STORE.md`.
 
-## 6. Gmail
-
-1. Google Cloud → **APIs & Services**: enable the **Gmail API**, configure the
-   **OAuth consent screen** (scope `.../auth/gmail.readonly`), and create an
-   **OAuth client (Web)**.
-2. Authorized redirect URI:
-   `https://<ref>.supabase.co/functions/v1/gmail-oauth`. Put the client id/secret
-   in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
-3. Flow: Settings → Connect Gmail → `gmail-oauth` (consent) → stores the refresh
-   token in `gmail_tokens`. **Import purchases** calls `gmail-sync`, which reads
-   recent receipts and inserts them (deduped by Gmail message id).
-4. Reading real inboxes requires Google **app verification** (a restricted scope);
-   until then it works for test users you add on the consent screen.
-
 ## Security notes
 
-- RLS scopes every table to `auth.uid()`. `gmail_tokens` has **no** client policy —
-  only Edge Functions (service role) touch it.
-- Harden `gmail-oauth`: the OAuth `state` currently carries the user id; sign it
-  (HMAC) and verify on callback to prevent OAuth CSRF.
-- Client upload checks are not a boundary — re-validate on the server. See
-  `SECURITY.md` (includes the Stripe webhook verification rationale).
-- Full account deletion removes the user's rows from the client; deleting the
-  **auth user** itself needs an admin (service-role) function — add one if required.
+- RLS scopes every table to `auth.uid()`. `billing` is readable by its owner but
+  writable only by the service role — the store decides who has paid, not the app.
+- Client upload checks are not a security boundary — re-validate on the server.
+- See `SECURITY.md` for the webhook authentication rationale.
+- Account deletion goes through `delete-account`, which removes the rows, the
+  storage files **and** the auth user. Deleting only the data would leave the
+  login alive, which Apple treats as not having deleted the account.
