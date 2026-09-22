@@ -48,6 +48,15 @@ public by design; RLS is the protection.
 
 ## Decided against
 
+- **Email verification and password recovery.** Sign-up takes any well-formed
+  address and there is no "forgot password" — both would need SMTP, and the
+  verification step was dropped on purpose to keep sign-up to one screen.
+  `src/lib/email.ts` catches typos in common domains so the address is at least
+  likely to be the one intended, and sign-up says outright that it's the only
+  way back in. The exposure is lockout, not disclosure: RLS scopes every table
+  to `auth.uid()`, so an account made with a fake address reaches nothing but
+  its own empty rows. Revisit if support starts hearing from locked-out users.
+
 - **Receipt photos.** The Privacy Policy, the nutrition label and the iOS camera and
   photo-library permissions were all taken back out to match — an app that declares a
   permission it never uses gets asked about it at review.
