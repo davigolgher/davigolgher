@@ -128,6 +128,26 @@ python3 scripts/make-icons.py
 `icon.png` comes out as RGB with no alpha channel on purpose: App Store Connect
 rejects an app icon that has one, even a fully opaque one.
 
+## Building for TestFlight
+
+`eas.json` has three profiles. `production` takes its build number from EAS
+(`appVersionSource: remote`) and raises it on every build, so an upload is never
+refused for reusing one; `version` in `app.json` is the number people see.
+
+EAS builds from the repository, and `mobile/.env` isn't in it. Give each profile
+the two public values once (the anon key is public by design — RLS protects the
+data; never add the service role key here):
+
+```bash
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://<ref>.supabase.co --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key> --visibility plaintext
+eas build --profile production --platform ios
+eas submit --profile production --platform ios
+```
+
+A release build made without them opens on a screen saying so, instead of
+running without an account.
+
 ## Before submitting to the App Store
 
 - `ios.bundleIdentifier` in `app.json` is `com.davigolgher.flow` — change it if you want another.

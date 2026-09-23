@@ -17,6 +17,7 @@ import { SignInScreen } from "~/features/SignInScreen";
 import { PaywallScreen } from "~/features/PaywallScreen";
 import { OnboardingScreen } from "~/features/OnboardingScreen";
 import { TutorialOverlay } from "~/features/TutorialOverlay";
+import { MissingConfigScreen } from "~/features/MissingConfigScreen";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
 import { clearReminders } from "~/lib/notifications";
@@ -97,6 +98,9 @@ function Gate() {
     if (!auth.userId || (previous && previous !== auth.userId)) void clearReminders();
   }, [auth.configured, auth.loading, auth.userId]);
 
+  // Local mode, with no backend, is for development only. A release build in
+  // that state was built without its settings and must not pass for working.
+  if (!auth.configured && !__DEV__) return <MissingConfigScreen />;
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
   // Wait for the flags rather than flashing a screen that's about to be
