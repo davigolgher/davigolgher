@@ -2,7 +2,7 @@
  * Settings: budget, currency, categories, password, the legal documents,
  * subscription management, and account deletion.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -132,19 +132,40 @@ export default function Settings() {
     ]);
   };
 
+  /**
+   * One deletion, and one confirmation, at a time.
+   *
+   * Held from the moment the dialog opens, not from when deletion starts. A
+   * double tap on the button queued a second dialog behind the first; it
+   * surfaced the instant the account was gone, and confirming it called the
+   * function with no session left. The function correctly refused — and the
+   * app reported that the deletion had failed when it had in fact worked.
+   */
+  const deleteHeld = useRef(false);
+  const [deleting, setDeleting] = useState(false);
+
   const confirmDelete = () => {
+    if (deleteHeld.current) return;
+    deleteHeld.current = true;
+    const release = () => {
+      deleteHeld.current = false;
+      setDeleting(false);
+    };
+
     Alert.alert(
       "Delete your account?",
       "This erases your expenses, subscriptions, budgets and categories, and closes the account itself. It cannot be undone.\n\nIf you subscribed through the App Store, cancel that first in iOS Settings → your name → Subscriptions, or you'll keep being charged.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Cancel", style: "cancel", onPress: release },
         {
           text: "Delete everything",
           style: "destructive",
           onPress: async () => {
+            setDeleting(true);
             try {
               await deleteAccount();
             } catch (e) {
+              release();
               // Say so rather than clearing the screen and looking deleted: the
               // login would still exist, and signing up again would reopen it.
               Alert.alert(
@@ -154,6 +175,10 @@ export default function Settings() {
               );
               return;
             }
+            // Deliberately not released: the account is gone, and nothing left
+            // on this screen should be able to start another deletion before
+            // signing out unmounts it.
+            //
             // The streak log and the first-run flags live outside the store,
             // in AsyncStorage, so the next account starts from the beginning.
             await clearActivity();
@@ -162,6 +187,8 @@ export default function Settings() {
           },
         },
       ],
+      // Android only: tapping outside dismisses without pressing a button.
+      { cancelable: true, onDismiss: release },
     );
   };
 
@@ -379,8 +406,10 @@ export default function Settings() {
           <Button variant="secondary" fullWidth onPress={confirmSignOut}>
             Sign out
           </Button>
-          <Pressable onPress={confirmDelete} className="items-center py-3 active:opacity-60">
-            <Text className="text-[14px] font-semibold text-chalk-soft">Delete account</Text>
+          <Pressable onPress={confirmDelete} disabled={deleting} className="items-center py-3 active:opacity-60">
+            <Text className="text-[14px] font-semibold text-chalk-soft">
+              {deleting ? "Deleting…" : "Delete account"}
+            </Text>
           </Pressable>
         </View>
       </Section>

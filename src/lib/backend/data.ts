@@ -169,6 +169,13 @@ export async function updatePreferences(userId: string, patch: Partial<Preferenc
  */
 export async function deleteAccount(): Promise<void> {
   const c = sb();
+  // With no session, invoke() quietly sends the anon key instead of a user
+  // token, and the function answers "missing sub claim" — accurate, and
+  // meaningless to anyone reading it on a phone. Stop before the round trip.
+  const { data: auth } = await c.auth.getSession();
+  if (!auth.session) {
+    throw new Error("You're signed out, so there's no account here to delete. Sign in to it first.");
+  }
   const { data, error } = await c.functions.invoke("delete-account", { body: {} });
   if (error) throw new Error(await describeFunctionError(error));
   if (!(data as { deleted?: boolean })?.deleted) throw new Error("The account could not be deleted.");
