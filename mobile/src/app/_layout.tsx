@@ -4,7 +4,7 @@ import "react-native-url-polyfill/auto";
 import "~/lib/polyfills";
 import "../global.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -19,6 +19,7 @@ import { OnboardingScreen } from "~/features/OnboardingScreen";
 import { TutorialOverlay } from "~/features/TutorialOverlay";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
+import { clearReminders } from "~/lib/notifications";
 
 // The streak's days used to be one log for the whole phone. They're stored with
 // each account now (see the `activity_days` table); the old log can't be told
@@ -83,6 +84,18 @@ function Gate() {
   useEffect(() => {
     setUnlocked(false);
   }, [auth.userId]);
+
+  // Reminders are scheduled with iOS and outlive the account that set them:
+  // they kept arriving — name and amount — after signing out or deleting the
+  // account. Clear them whenever the account on the phone changes, and on a
+  // launch with nobody signed in (a session ended elsewhere, say).
+  const lastUser = useRef<string | null>(null);
+  useEffect(() => {
+    if (!auth.configured || auth.loading) return;
+    const previous = lastUser.current;
+    lastUser.current = auth.userId;
+    if (!auth.userId || (previous && previous !== auth.userId)) void clearReminders();
+  }, [auth.configured, auth.loading, auth.userId]);
 
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;

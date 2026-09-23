@@ -12,7 +12,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { planReminders } from "@/lib/reminders";
 import { fetchBilling, type BillingRow } from "@/lib/backend/billing";
-import { cancelReminders, ensurePermission, hasPermission, syncReminders, useReminderPrefs } from "~/lib/notifications";
+import { clearReminders, ensurePermission, hasPermission, syncReminders, useReminderPrefs } from "~/lib/notifications";
 
 export interface Reminders {
   prefs: { enabled: boolean; leadDays: number } | null;
@@ -55,7 +55,7 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
     let alive = true;
     (async () => {
       if (!prefs.enabled) {
-        await cancelReminders();
+        await clearReminders();
         if (alive) setScheduled(0);
         return;
       }

@@ -13,8 +13,17 @@ import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { DEFAULT_LEAD_DAYS, type ReminderPlan } from "@/lib/reminders";
+import { useAuth } from "@/features/auth/AuthProvider";
 
-const KEY = "flow.reminders.v1";
+/**
+ * Per account. The switch used to be one setting for the whole phone, so the
+ * next person to sign in inherited reminders they never asked for.
+ */
+const keyFor = (userId: string) => `flow.reminders.v2.${userId}`;
+
+// The old phone-wide setting can't be told apart by account; drop it rather
+// than hand it to whoever signs in next.
+AsyncStorage.removeItem("flow.reminders.v1").catch(() => {});
 
 /** Stamped on everything we schedule, so a sync never cancels anyone else's. */
 const TAG = "flow.renewal";
@@ -106,6 +115,20 @@ export function syncReminders(plans: ReminderPlan[]): Promise<number> {
   return run;
 }
 
+/**
+ * Remove every reminder this app scheduled, once any sync in flight is done —
+ * a sync finishing after the cancel would put them straight back.
+ *
+ * For when the account on the phone changes: sign-out, deletion, or another
+ * sign-in. A reminder carries a subscription's name and amount, and a signed-
+ * out account's renewals must not keep arriving on this phone.
+ */
+export function clearReminders(): Promise<void> {
+  const run = chain.then(() => cancelReminders());
+  chain = run.catch(() => {});
+  return run;
+}
+
 /** Remove only the ones this app scheduled. */
 export async function cancelReminders(): Promise<void> {
   try {
@@ -145,12 +168,15 @@ export async function sendTestReminder(): Promise<boolean> {
 }
 
 export function useReminderPrefs() {
+  const { userId } = useAuth();
   /** null while reading storage, so the UI shows nothing rather than the wrong state. */
   const [prefs, setPrefs] = useState<ReminderPrefs | null>(null);
 
   useEffect(() => {
+    setPrefs(null);
+    if (!userId) return;
     let alive = true;
-    AsyncStorage.getItem(KEY)
+    AsyncStorage.getItem(keyFor(userId))
       .then((raw) => {
         if (alive) setPrefs({ ...DEFAULTS, ...(raw ? JSON.parse(raw) : {}) });
       })
@@ -160,15 +186,19 @@ export function useReminderPrefs() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [userId]);
 
-  const update = useCallback((patch: Partial<ReminderPrefs>) => {
-    setPrefs((current) => {
-      const next = { ...(current ?? DEFAULTS), ...patch };
-      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
-  }, []);
+  const update = useCallback(
+    (patch: Partial<ReminderPrefs>) => {
+      if (!userId) return;
+      setPrefs((current) => {
+        const next = { ...(current ?? DEFAULTS), ...patch };
+        AsyncStorage.setItem(keyFor(userId), JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+    },
+    [userId],
+  );
 
   return { prefs, update };
 }
