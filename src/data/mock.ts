@@ -10,7 +10,10 @@ export function createInitialData(): AppData {
     categories: [],
     transactions: [],
     subscriptions: [],
-    budgets: [{ id: "bud_total", scope: "total", label: "Monthly budget", limit: 500000 }],
+    // No budget until the user sets one. A made-up $5,000 here showed as "left
+    // to spend" on Home while the account loaded — and for good if it couldn't
+    // load — turning the intro's "Decide later" into a budget nobody chose.
+    budgets: [],
     notifications: [],
     activeDays: [],
     preferences: {
