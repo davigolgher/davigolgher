@@ -51,57 +51,23 @@ Note: there is no web purchase path, so nothing in the app links out to an
 external payment page.
 
 ### 2. Privacy manifest — `PrivacyInfo.xcprivacy` (required since May 1, 2024)
-Declare collected data types and **required-reason APIs**. Starter template (adjust to your SDKs):
+Declared in `mobile/app.json` → `ios.privacyManifests`; `expo prebuild` / EAS
+writes it into the app as `PrivacyInfo.xcprivacy`. It says:
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>NSPrivacyTracking</key><false/>
-  <key>NSPrivacyTrackingDomains</key><array/>
-  <key>NSPrivacyCollectedDataTypes</key>
-  <array>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeEmailAddress</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key><true/>
-      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
-    </dict>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeOtherFinancialInfo</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key><true/>
-      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
-    </dict>
-    <!-- The days the daily review was completed, stored with the account for
-         the streak (the `activity_days` table). -->
-    <dict>
-      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeProductInteraction</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key><true/>
-      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
-    </dict>
-  </array>
-  <key>NSPrivacyAccessedAPITypes</key>
-  <array>
-    <dict>
-      <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryUserDefaults</string>
-      <key>NSPrivacyAccessedAPITypeReasons</key><array><string>CA92.1</string></array>
-    </dict>
-    <dict>
-      <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
-      <key>NSPrivacyAccessedAPITypeReasons</key><array><string>C617.1</string></array>
-    </dict>
-  </array>
-</dict>
-</plist>
-```
+- **Tracking:** none, no tracking domains.
+- **Collected, linked to the user, for App Functionality only:** Email Address,
+  User ID (the account id), Other Financial Info (expenses, income,
+  subscriptions, budgets), Other User Content (descriptions, notes, category
+  names), Product Interaction (the days the daily review was completed).
+- **Required-reason APIs** (React Native, AsyncStorage, Expo modules):
+  UserDefaults `CA92.1`, file timestamps `C617.1`, system boot time `35F9.1`,
+  disk space `E174.1`.
 
-Keep the **App Privacy** answers in App Store Connect consistent with this file and with the in-app nutrition label.
+When IAP ships, add **Purchase History** (the `billing` row RevenueCat writes).
+Adding a crash reporter or analytics SDK means adding what it collects here too.
+
+Keep the **App Privacy** answers in App Store Connect consistent with this file and
+with the in-app nutrition label (`src/features/legal/content.ts`).
 
 ### 3. Info.plist keys
 - **No camera or photo-library keys.** The app has no attachments, so it asks for neither; declaring a usage string for a capability that's never used is something App Review asks about. Add one only alongside a feature that needs it.
