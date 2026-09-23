@@ -15,7 +15,6 @@ import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
 import { LEAD_DAY_CHOICES } from "@/lib/reminders";
 import { APP } from "@/config/app";
-import { clearActivity } from "~/lib/activity";
 import { useFlowFlags } from "~/lib/flow";
 import { sendTestReminder } from "~/lib/notifications";
 import { useRenewalReminders } from "~/features/reminders";
@@ -179,9 +178,9 @@ export default function Settings() {
             // on this screen should be able to start another deletion before
             // signing out unmounts it.
             //
-            // The streak log and the first-run flags live outside the store,
-            // in AsyncStorage, so the next account starts from the beginning.
-            await clearActivity();
+            // The streak's days went with the account (they cascade from it on
+            // the server). The first-run flags are on this phone, keyed to the
+            // account, so they're cleared here rather than left behind.
             await resetFlowFlags();
             await signOut();
           },

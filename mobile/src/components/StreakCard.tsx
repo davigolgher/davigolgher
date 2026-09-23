@@ -1,12 +1,12 @@
 /**
- * Streak card. Like the web version, the streak counts days the app was *used*,
- * not only days with an expense — `activeDaySet()` supplies the usage log and
- * the shared streak helpers fold it in with the transactions.
+ * Streak card. The streak counts days the app was *used*, not only days with an
+ * expense — the account's `activeDays` supply the usage, and the shared streak
+ * helpers fold them in with the transactions.
  */
+import { useMemo } from "react";
 import { Text, View } from "react-native";
 import { useStore } from "@/data/store";
-import { currentStreak, last7Days } from "@/lib/streak";
-import { activeDaySet } from "~/lib/activity";
+import { currentStreak, dayKey, last7Days } from "@/lib/streak";
 import { Eyebrow } from "./ui";
 import { CheckIcon } from "./icons";
 
@@ -14,7 +14,9 @@ const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export function StreakCard() {
   const { data, now } = useStore();
-  const usage = activeDaySet(now);
+  // Today always counts — you're looking at the app — even before the account's
+  // days have arrived from the server.
+  const usage = useMemo(() => new Set([...data.activeDays, dayKey(now)]), [data.activeDays, now]);
   const streak = currentStreak(data.transactions, now, usage);
   const week = last7Days(data.transactions, now, usage);
   const todayIndex = week.length - 1;

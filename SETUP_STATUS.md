@@ -38,6 +38,7 @@ public by design; RLS is the protection.
 - [x] Screens: Home, Expenses, Subs, Reports (donut + bars), Settings, add-expense
 - [x] Settings: budget, currency, categories, legal docs, sign out, delete account
 - [x] Renewal reminders — local notifications 1–7 days before a charge (compliance item 9)
+- [x] Streak stored per account on the server (`activity_days`), not per phone
 - [x] App icon, splash and favicon generated from the Flow mark
 - [x] Public legal/support pages deployed
 - [x] Web product UI deleted — one app, one codebase

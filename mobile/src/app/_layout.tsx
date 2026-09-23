@@ -10,9 +10,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
 import { StoreProvider } from "@/data/store";
-import { loadActivity, recordActivityToday } from "~/lib/activity";
 import { SignInScreen } from "~/features/SignInScreen";
 import { PaywallScreen } from "~/features/PaywallScreen";
 import { OnboardingScreen } from "~/features/OnboardingScreen";
@@ -20,28 +20,18 @@ import { TutorialOverlay } from "~/features/TutorialOverlay";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
 
-SplashScreen.preventAutoHideAsync().catch(() => {});
+// The streak's days used to be one log for the whole phone. They're stored with
+// each account now (see the `activity_days` table); the old log can't be told
+// apart by account, so it's dropped rather than handed to whoever signs in next.
+AsyncStorage.removeItem("flow.activity.v1").catch(() => {});
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
-
+  // Nothing to load before the first frame any more — the streak arrives with
+  // the rest of the account's data, and the gate shows its own splash while
+  // auth resolves.
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      // Hydrate the streak log before the first render so the UI never flashes a
-      // zero streak, then count this launch as activity.
-      await loadActivity();
-      recordActivityToday();
-      if (!alive) return;
-      setReady(true);
-      SplashScreen.hideAsync().catch(() => {});
-    })();
-    return () => {
-      alive = false;
-    };
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
-
-  if (!ready) return null;
 
   return (
     <SafeAreaProvider>

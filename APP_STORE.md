@@ -78,6 +78,15 @@ Declare collected data types and **required-reason APIs**. Starter template (adj
       <key>NSPrivacyCollectedDataTypePurposes</key>
       <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
     </dict>
+    <!-- The days the app was opened, stored with the account for the streak
+         (the `activity_days` table). -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeProductInteraction</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+    </dict>
   </array>
   <key>NSPrivacyAccessedAPITypes</key>
   <array>
@@ -97,9 +106,9 @@ Declare collected data types and **required-reason APIs**. Starter template (adj
 Keep the **App Privacy** answers in App Store Connect consistent with this file and with the in-app nutrition label.
 
 ### 3. Info.plist keys
-- `NSPhotoLibraryUsageDescription` and/or `NSCameraUsageDescription` — needed because receipts can be attached (photo/camera). Write a clear, specific reason string.
-- `ITSAppUsesNonExemptEncryption` — set for **export compliance**; if the app only uses standard HTTPS/TLS it's typically exempt (`false`), otherwise complete the compliance docs.
-- `CFBundleShortVersionString` / `CFBundleVersion`, `UILaunchScreen`, bundle id (`com.yourco.flow`).
+- **No camera or photo-library keys.** The app has no attachments, so it asks for neither; declaring a usage string for a capability that's never used is something App Review asks about. Add one only alongside a feature that needs it.
+- `ITSAppUsesNonExemptEncryption` — set to `false` in `app.json`: the app only uses standard HTTPS/TLS, which is exempt.
+- `CFBundleShortVersionString` / `CFBundleVersion`, `UILaunchScreen`, bundle id (`com.davigolgher.flow`).
 
 ### 4. SDK / toolchain (deadline **Apr 28, 2026**)
 Build with **Xcode 26+** using the **iOS 26 SDK** (and iPadOS/tvOS/etc. 26 as applicable).

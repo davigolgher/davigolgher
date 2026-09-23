@@ -92,12 +92,14 @@ function rowToBudget(r: Row): Budget {
 
 export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
   const c = sb();
-  const [tx, subs, cats, buds, prefs] = await Promise.all([
+  const [tx, subs, cats, buds, prefs, days] = await Promise.all([
     c.from("transactions").select("*").eq("user_id", userId).order("date", { ascending: false }),
     c.from("subscriptions").select("*").eq("user_id", userId),
     c.from("categories").select("*").eq("user_id", userId),
     c.from("budgets").select("*").eq("user_id", userId),
     c.from("preferences").select("*").eq("user_id", userId).maybeSingle(),
+    // A streak only ever looks back a few weeks; a year is plenty.
+    c.from("activity_days").select("day").eq("user_id", userId).order("day", { ascending: false }).limit(400),
   ]);
 
   const out: Partial<AppData> = {};
@@ -105,6 +107,7 @@ export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
   if (subs.data) out.subscriptions = (subs.data as Row[]).map(rowToSub);
   if (cats.data) out.categories = (cats.data as Row[]).map(rowToCategory);
   if (buds.data && (buds.data as Row[]).length) out.budgets = (buds.data as Row[]).map(rowToBudget);
+  if (days.data) out.activeDays = (days.data as Row[]).map((r) => String(r.day));
   if (prefs.data) {
     const p = prefs.data as Row;
     out.preferences = {
@@ -119,6 +122,18 @@ export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
 }
 
 /* ── writes (fire-and-forget from the store) ─────────────────────────────── */
+
+/**
+ * Count `day` as active for this account. Keyed on (user, day) with conflicts
+ * ignored, so calling it again — relaunch, refresh, a second device — is a
+ * no-op rather than an error.
+ */
+export async function recordActiveDay(userId: string, day: string): Promise<void> {
+  const { error } = await sb()
+    .from("activity_days")
+    .upsert({ user_id: userId, day }, { onConflict: "user_id,day", ignoreDuplicates: true });
+  if (error) throw error;
+}
 
 export async function upsertTransaction(userId: string, t: Transaction): Promise<void> {
   await sb().from("transactions").upsert(txToRow(userId, t));

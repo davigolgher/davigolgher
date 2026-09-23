@@ -33,7 +33,7 @@ function json(body: unknown, status = 200): Response {
 }
 
 /** Rows to clear before the user. Order doesn't matter — none reference another. */
-const TABLES = ["transactions", "subscriptions", "categories", "budgets", "preferences", "billing"];
+const TABLES = ["transactions", "subscriptions", "categories", "budgets", "preferences", "billing", "activity_days"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

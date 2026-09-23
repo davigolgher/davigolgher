@@ -90,5 +90,12 @@ export interface AppData {
   budgets: Budget[];
   notifications: never[];
   preferences: Preferences;
+  /**
+   * Days this account opened the app, as `dayKey()` strings — what the streak
+   * counts alongside days with an expense. Stored with the account, so it
+   * follows the person to a new phone and isn't shared with anyone else's
+   * account on this one.
+   */
+  activeDays: string[];
   isSimulated: boolean;
 }

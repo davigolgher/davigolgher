@@ -12,6 +12,7 @@ export function createInitialData(): AppData {
     subscriptions: [],
     budgets: [{ id: "bud_total", scope: "total", label: "Monthly budget", limit: 500000 }],
     notifications: [],
+    activeDays: [],
     preferences: {
       locale: "en-US",
       currency: "USD",

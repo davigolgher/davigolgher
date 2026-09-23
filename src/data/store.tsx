@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useState, ty
 import type { AppData, Budget, Category, Preferences, Receipt, Subscription, SubscriptionStatus, Transaction } from "./types";
 import { createInitialData } from "./mock";
 import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
+import { dayKey } from "@/lib/streak";
 import { isSupabaseConfigured } from "@/lib/backend/client";
 import { useOptionalAuth } from "@/features/auth/AuthProvider";
 import * as remote from "@/lib/backend/data";
@@ -27,6 +28,7 @@ type Action =
   | { type: "remove-category"; id: string }
   | { type: "update-prefs"; prefs: Partial<Preferences> }
   | { type: "hydrate"; data: Partial<AppData> }
+  | { type: "mark-active-day"; day: string }
   | { type: "reset-all" };
 
 function reducer(state: AppData, action: Action): AppData {
@@ -73,8 +75,14 @@ function reducer(state: AppData, action: Action): AppData {
         categories: p.categories ?? state.categories,
         budgets: p.budgets && p.budgets.length ? p.budgets : state.budgets,
         preferences: p.preferences ? { ...state.preferences, ...p.preferences } : state.preferences,
+        // Replaced, never merged — merging would carry one account's days into
+        // the next if the user changed without passing through a sign-out.
+        activeDays: p.activeDays ?? state.activeDays,
       };
     }
+    case "mark-active-day":
+      if (state.activeDays.includes(action.day)) return state;
+      return { ...state, activeDays: [...state.activeDays, action.day] };
     case "reset-all":
       return createInitialData();
     default:
@@ -152,10 +160,20 @@ export function StoreProvider({
     if (!isSupabaseConfigured) return;
     let cancelled = false;
     if (userId) {
+      // Opening the app counts toward this account's streak. Insert-or-ignore
+      // on the server, so relaunching, refreshing or a second device are all
+      // harmless — no read-modify-write to race.
+      const today = dayKey(new Date());
+      void remote.recordActiveDay(userId, today).catch((e) => console.warn("[sync] activity", e));
+
       remote
         .fetchAllData(userId)
         .then((data) => {
-          if (!cancelled) dispatch({ type: "hydrate", data });
+          if (cancelled) return;
+          dispatch({ type: "hydrate", data });
+          // The fetch may have run before the insert landed; today counts
+          // either way.
+          dispatch({ type: "mark-active-day", day: today });
         })
         .catch((e) => console.warn("[sync] hydrate failed", e));
     } else {

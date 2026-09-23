@@ -78,6 +78,7 @@ export const PRIVACY: Section[] = [
     bullets: [
       "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
+      "Usage: the calendar days you open the app, stored with your account to count your streak.",
       "Limited technical/diagnostic data needed to run and improve the app.",
     ],
   },
@@ -94,7 +95,7 @@ export const PRIVACY: Section[] = [
       `Your expenses, subscriptions, budgets, categories and settings are stored in ${N}'s database, which is hosted by Supabase (supabase.com). Supabase is our infrastructure provider: they hold the data on our behalf and do not use it for their own purposes.`,
       "It travels encrypted (TLS) and is encrypted at rest.",
       "Access is scoped per user by Row Level Security, enforced by the database itself: every query is restricted to the rows belonging to the signed-in account, so one user's data cannot be read by another even if the app asked for it.",
-      "A copy is also kept on your device so the app works offline.",
+      "Your financial data isn't stored on your device. The app keeps you signed in on the phone, holds your data in memory while it's open, and reads it from our database each time you sign in.",
     ],
   },
   {
@@ -147,7 +148,7 @@ export interface NutritionGroup {
 }
 export const NUTRITION: NutritionGroup[] = [
   { title: "Data used to track you", note: "Used to track you across other companies' apps and sites.", items: ["None"] },
-  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names"] },
+  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names", "Usage Data — days you opened the app, for your streak"] },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["Diagnostics — basic crash/usage data (if enabled)"] },
 ];
 
