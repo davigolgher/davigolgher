@@ -191,12 +191,17 @@ async function describeFunctionError(error: unknown): Promise<string> {
   try {
     const body = await res.text();
     let detail = body;
+    let step: string | undefined;
     try {
-      detail = (JSON.parse(body) as { error?: string }).error ?? body;
+      const parsed = JSON.parse(body) as { error?: string; step?: string };
+      detail = parsed.error ?? body;
+      step = parsed.step;
     } catch {
       /* not JSON — the raw body is still better than nothing */
     }
-    return detail ? `${detail} (HTTP ${res.status})` : `The function failed with HTTP ${res.status}.`;
+    if (!detail) return `The function failed with HTTP ${res.status}.`;
+    // The step narrows a page of possible causes to one line to check.
+    return step ? `${detail}\n\n(step: ${step}, HTTP ${res.status})` : `${detail} (HTTP ${res.status})`;
   } catch {
     return `The function failed with HTTP ${res.status}.`;
   }

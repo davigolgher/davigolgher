@@ -13,11 +13,11 @@
 //
 // Everything is in this one file on purpose: it can then be deployed by pasting
 // it into the dashboard's function editor, with no CLI and no Docker.
+//
+// Every failure names the step that failed and why. Nobody debugging this can
+// see inside the project from the phone showing the error, so "it didn't work"
+// costs a round trip that a sentence would have saved.
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,9 +32,38 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/** Rows to clear before the user. Order doesn't matter — none reference another. */
+const TABLES = ["transactions", "subscriptions", "categories", "budgets", "preferences", "billing"];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Supabase injects these. A project with the legacy JWT keys disabled can
+  // leave one empty, and `createClient` with an empty key throws a message
+  // about its arguments that says nothing about the real cause.
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+  const ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+  const missing = [
+    ["SUPABASE_URL", SUPABASE_URL],
+    ["SUPABASE_ANON_KEY", ANON],
+    ["SUPABASE_SERVICE_ROLE_KEY", SERVICE],
+  ]
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+
+  if (missing.length > 0) {
+    return json(
+      {
+        step: "env",
+        error: `The function is missing ${missing.join(", ")}. Supabase normally injects these; if the project has legacy API keys disabled, set them with \`supabase secrets set\`.`,
+      },
+      500,
+    );
+  }
+
+  let step = "authenticate";
   try {
     // Identify the caller from their own token. The id comes from the verified
     // session, never from the request body — otherwise anyone could pass
@@ -42,41 +71,55 @@ Deno.serve(async (req) => {
     const asUser = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
     });
-    const {
-      data: { user },
-    } = await asUser.auth.getUser();
-    if (!user) return json({ error: "Not authenticated" }, 401);
+    const { data, error: authError } = await asUser.auth.getUser();
+    const user = data?.user;
+    if (authError || !user) {
+      return json({ step, error: authError?.message ?? "No valid session on the request." }, 401);
+    }
 
     const userId = user.id;
     const admin = createClient(SUPABASE_URL, SERVICE);
 
-    // Rows first. Most cascade from auth.users anyway, but deleting them
-    // explicitly means a failure at the last step doesn't leave data behind.
-    await Promise.all([
-      admin.from("transactions").delete().eq("user_id", userId),
-      admin.from("subscriptions").delete().eq("user_id", userId),
-      admin.from("categories").delete().eq("user_id", userId),
-      admin.from("budgets").delete().eq("user_id", userId),
-      admin.from("preferences").delete().eq("user_id", userId),
-      admin.from("billing").delete().eq("user_id", userId),
-    ]);
+    // Rows first. Most cascade from auth.users anyway, so a table that refuses
+    // is worth reporting but not worth stopping for — the account still has to
+    // go, and the cascade will take the rows with it.
+    step = "rows";
+    const failures: string[] = [];
+    for (const table of TABLES) {
+      const { error } = await admin.from(table).delete().eq("user_id", userId);
+      if (error) failures.push(`${table}: ${error.message}`);
+    }
 
-    // Uploaded receipts live outside the tables.
+    // Uploaded files live outside the tables. There are none today — the app
+    // has no attachment feature — but an orphaned bucket after a delete would
+    // contradict the Privacy Policy, so it's cleared regardless.
+    step = "storage";
     try {
       const { data: files } = await admin.storage.from("receipts").list(userId);
       if (files?.length) {
         await admin.storage.from("receipts").remove(files.map((f) => `${userId}/${f.name}`));
       }
     } catch {
-      /* ignore — the rows are the primary record */
+      /* no bucket, or nothing in it */
     }
 
-    // The account itself. This is the part the client cannot do.
-    const { error } = await admin.auth.admin.deleteUser(userId);
-    if (error) return json({ error: error.message }, 500);
+    // The account itself. This is the part the client cannot do, and the part
+    // whose absence made deletion look like it worked while the login lived on.
+    step = "deleteUser";
+    const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
+    if (deleteError) {
+      return json(
+        {
+          step,
+          error: `${deleteError.message}. This is the step that needs the service role key — check that SUPABASE_SERVICE_ROLE_KEY is the service role key and not the anon key.`,
+          rowFailures: failures,
+        },
+        500,
+      );
+    }
 
-    return json({ deleted: true });
+    return json({ deleted: true, rowFailures: failures });
   } catch (e) {
-    return json({ error: (e as Error).message }, 400);
+    return json({ step, error: (e as Error)?.message ?? String(e) }, 500);
   }
 });
