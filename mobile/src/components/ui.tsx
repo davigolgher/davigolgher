@@ -163,11 +163,13 @@ export function Button({
  *
  * The border colour is a style, not a class. The field's fill is `ink-850`,
  * which is plain white — the same as the screen behind it — so the border is
- * the only thing that draws the box at all. Swapping it through a class meant
- * the focused state relied on Tailwind's `/50` opacity shorthand over a custom
- * colour, which NativeWind didn't resolve: on focus the border vanished and the
- * field became an invisible white rectangle until it was blurred and tapped
- * again.
+ * the only thing that draws the box at all, and it shouldn't hang on a
+ * class-string swap with an opacity shorthand (`border-chalk/50`) on every
+ * focus change.
+ *
+ * Don't auto-focus one of these inside a `FadeIn`: a field that takes focus
+ * while its parent is mid-animation on the native driver renders blank on iOS.
+ * See the budget step in OnboardingScreen.
  */
 const BORDER = { idle: "rgba(0,0,0,0.16)", focus: "rgba(10,10,10,0.5)" };
 

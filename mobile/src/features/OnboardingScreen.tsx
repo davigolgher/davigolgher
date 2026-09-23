@@ -94,26 +94,33 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         ) : null}
 
         {step === "budget" ? (
-          <FadeIn key="budget">
-            <Text className="text-center text-[28px] font-bold leading-tight tracking-tight text-chalk">
-              What&apos;s your monthly budget?
-            </Text>
-            <Text className="mx-auto mt-3 max-w-[20rem] text-center text-[15px] leading-relaxed text-chalk-mute">
-              Home shows what&apos;s left of it. You can change or remove it later in Settings.
-            </Text>
+          <View>
+            <FadeIn key="budget">
+              <Text className="text-center text-[28px] font-bold leading-tight tracking-tight text-chalk">
+                What&apos;s your monthly budget?
+              </Text>
+              <Text className="mx-auto mt-3 max-w-[20rem] text-center text-[15px] leading-relaxed text-chalk-mute">
+                Home shows what&apos;s left of it. You can change or remove it later in Settings.
+              </Text>
 
-            <View className="mt-8 items-center">
-              <FitNumber className="text-center text-[44px] font-bold leading-none tracking-tight text-chalk">
-                {money.format(cents)}
-              </FitNumber>
-            </View>
+              <View className="mt-8 items-center">
+                <FitNumber className="text-center text-[44px] font-bold leading-none tracking-tight text-chalk">
+                  {money.format(cents)}
+                </FitNumber>
+              </View>
+            </FadeIn>
 
+            {/* The field sits outside the FadeIn, and isn't auto-focused, on
+                purpose. It used to be both: it took focus the instant it
+                mounted, while its parent was still at opacity 0 and sliding
+                on the native driver, and iOS drew it as a blank white box
+                until it was blurred and tapped again. This is the only screen
+                in the app that combined the two — every other field works. */}
             <Input
               value={amountText}
               onChangeText={(t) => setAmountText(sanitizeAmountText(t))}
               keyboardType="decimal-pad"
               placeholder="0"
-              autoFocus
               className="mt-6"
               leading={<Text className="text-[16px] text-chalk-mute">{symbol}</Text>}
             />
@@ -132,7 +139,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
                 </Pressable>
               ))}
             </View>
-          </FadeIn>
+          </View>
         ) : null}
       </ScrollView>
 

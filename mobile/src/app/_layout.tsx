@@ -88,6 +88,12 @@ function Gate() {
     if (replaying) setUnlocked(false);
   }, [replaying]);
 
+  // An unlock belongs to the account that earned it. The gate outlives a sign
+  // out, so without this the next account on the phone inherited it.
+  useEffect(() => {
+    setUnlocked(false);
+  }, [auth.userId]);
+
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
   // Wait for the flags rather than flashing a screen that's about to be

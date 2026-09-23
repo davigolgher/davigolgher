@@ -77,7 +77,10 @@ supabase functions deploy revenuecat-webhook --no-verify-jwt   # RevenueCat has 
 
 Or from the dashboard — **Edge Functions → Deploy a new function → Via Editor**
 — by pasting the file in. No CLI, no Docker. Name the function exactly
-`delete-account`: that string is what `functions.invoke()` calls.
+`delete-account`: that string is what `functions.invoke()` calls. The editor
+fills the name with a random slug (`dynamic-task`, `super-endpoint`) and it's
+easy to deploy without changing it — the code then runs fine and the app gets a
+404 `NOT_FOUND`, because nothing is at the name it asks for.
 
 `delete-account` keeps JWT verification **on**: it takes the user id from the
 verified session, never from the request body, so nobody can delete someone
