@@ -7,7 +7,7 @@
  * it works the same on a day with no spending at all, which counts as fully as
  * any other. Nothing here asks you to spend, log more, or save a set amount.
  */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ import { Button, Eyebrow } from "~/components/ui";
 import { CheckIcon, PlusIcon } from "~/components/icons";
 import { streakCopy } from "~/features/streak/copy";
 import { useTodayKey } from "~/features/streak/useTodayKey";
+import { queueCelebration } from "~/features/streak/celebration";
 
 /** How far ahead "coming up" looks. Far enough to act on, near enough to matter. */
 const UPCOMING_DAYS = 3;
@@ -35,8 +36,15 @@ export default function Review() {
   const done = data.activeDays.includes(todayKey);
 
   const [saving, setSaving] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   // One confirmation, however fast the taps — the same guard as account deletion.
   const held = useRef(false);
+  // The automatic close after confirming. Cleared if the sheet is closed by
+  // hand first, or it would go back a second time — past Home's parent.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
 
   const entries = useMemo(
     () =>
@@ -68,9 +76,12 @@ export default function Review() {
     setSaving(true);
     try {
       await reviewDay(todayKey);
-      // Back to where the review was opened from; the streak there picks up
-      // the new day and plays its moment.
-      router.back();
+      // The first beat: the action is confirmed, here, before anything moves.
+      // Then back to where the review was opened from, whose streak takes the
+      // queued celebration as it comes into view.
+      queueCelebration(todayKey);
+      setConfirmed(true);
+      closeTimer.current = setTimeout(() => router.back(), 320);
     } catch {
       held.current = false;
       setSaving(false);
@@ -156,7 +167,12 @@ export default function Review() {
       </ScrollView>
 
       <View className="border-t border-line-soft px-6 pt-4" style={{ paddingBottom: insets.bottom + 16 }}>
-        {done ? (
+        {confirmed ? (
+          // Not `disabled`, which would fade it: this is the moment of success.
+          <Button variant="primary" size="lg" fullWidth leadingIcon={<CheckIcon size={18} color="#FFFFFF" strokeWidth={2.4} />}>
+            {t.ctaDone}
+          </Button>
+        ) : done ? (
           <View className="items-center py-2">
             <View className="flex-row items-center gap-2">
               <CheckIcon size={16} strokeWidth={2.4} />

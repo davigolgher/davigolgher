@@ -118,6 +118,7 @@ function Gate() {
         <Stack.Screen name="add-subscription" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal" options={{ presentation: "modal" }} />
         <Stack.Screen name="review" options={{ presentation: "modal" }} />
+        <Stack.Screen name="streak" options={{ presentation: "modal" }} />
       </Stack>
 
       {/* Always mounted, shown by `visible` — see TutorialOverlay. */}

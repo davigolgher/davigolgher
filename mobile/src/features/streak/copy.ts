@@ -79,6 +79,7 @@ interface Copy {
   a11yCard: (n: number, done: boolean) => string;
   a11yDay: (label: string, mark: string) => string;
   a11yMarks: Record<Mark, string>;
+  a11yReached: string;
 }
 
 const pt: Copy = {
@@ -159,6 +160,7 @@ const pt: Copy = {
     `Sequência de ${n === 1 ? "1 dia" : `${n} dias`}. ${done ? "Hoje está em dia." : "Hoje ainda não foi revisado."} Toque para ver detalhes.`,
   a11yDay: (label: string, mark: string) => `${label}: ${mark}`,
   a11yMarks: { done: "revisado", today: "hoje, pendente", missed: "não revisado", future: "ainda não chegou", idle: "antes do início" },
+  a11yReached: "alcançado",
 };
 
 const en: Copy = {
@@ -234,6 +236,7 @@ const en: Copy = {
     `${n === 1 ? "1 day" : `${n} days`} in a row. ${done ? "You're up to date today." : "Today isn't reviewed yet."} Tap for details.`,
   a11yDay: (label, mark) => `${label}: ${mark}`,
   a11yMarks: { done: "reviewed", today: "today, open", missed: "not reviewed", future: "not yet", idle: "before you started" },
+  a11yReached: "reached",
 };
 
 export function streakCopy(lang: Lang = deviceLang()): Copy {
