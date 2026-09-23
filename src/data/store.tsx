@@ -1,14 +1,18 @@
 /**
  * App store (Context + Reducer). Seeded EMPTY (start from zero), mutated
- * locally and persisted to Supabase in the background.
+ * locally and persisted to Supabase in the background, through a sync queue
+ * that is saved on the phone until the server confirms each change (see
+ * ./outbox).
  */
-import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { AppData, Budget, Category, Preferences, Receipt, Subscription, SubscriptionStatus, Transaction } from "./types";
 import { createInitialData } from "./mock";
 import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
 import { isSupabaseConfigured } from "@/lib/backend/client";
 import { useOptionalAuth } from "@/features/auth/AuthProvider";
 import * as remote from "@/lib/backend/data";
+import { applyPending, createSyncQueue, type Op, type SyncQueue, type SyncStatus } from "./outbox";
+import { loadPending, savePending } from "./pendingStore";
 
 let fallbackSeq = Date.now();
 const newId = (p = "id") =>
@@ -134,7 +138,18 @@ export interface StoreValue {
   reviewDay: (day: string) => Promise<void>;
   /** Re-hydrate from the backend (connected mode); no-op locally. */
   refresh: () => void;
+  /** Where the account's changes stand with the server. */
+  sync: SyncState;
+  /** Try sending waiting changes now, instead of at the next scheduled retry. */
+  retrySync: () => void;
 }
+
+export interface SyncState extends SyncStatus {
+  /** The last attempt to load the account from the server failed. */
+  loadFailed: boolean;
+}
+
+const IDLE: SyncState = { pending: 0, failing: false, loadFailed: false };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
@@ -152,6 +167,41 @@ export function StoreProvider({
   const [loading, setLoading] = useState(simulateLoading);
   const [refreshKey, setRefreshKey] = useState(0);
   const userId = useOptionalAuth()?.userId ?? null;
+  const [sync, setSync] = useState<SyncState>(IDLE);
+  const queueRef = useRef<SyncQueue | null>(null);
+  /** Settles once the queue holds what this account left unsent last time. */
+  const restoredRef = useRef<Promise<void>>(Promise.resolve());
+
+  // One queue per signed-in account, created before anything can be edited and
+  // restored from the phone as soon as the saved copy is read.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId) return;
+    let alive = true;
+    const loaded = loadPending(userId);
+    // Saves wait for that read, so an edit made in the first instant can't
+    // overwrite the saved copy before it has been read.
+    let saving: Promise<unknown> = loaded;
+    const q = createSyncQueue({
+      send: (op) => remote.sendOp(userId, op),
+      // In order, so an older snapshot can never land after a newer one.
+      save: (ops) => {
+        const snapshot = [...ops];
+        saving = saving.then(() => savePending(userId, snapshot));
+      },
+      onChange: (st) => setSync((prev) => ({ ...prev, ...st })),
+      onDrop: (op, e) => console.warn("[sync] refused, dropped", op.kind, e),
+    });
+    queueRef.current = q;
+    restoredRef.current = loaded.then((ops) => {
+      if (alive) q.restore(ops);
+    });
+    setSync(IDLE);
+    return () => {
+      alive = false;
+      q.dispose();
+      if (queueRef.current === q) queueRef.current = null;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!simulateLoading) return;
@@ -164,14 +214,30 @@ export function StoreProvider({
     if (!isSupabaseConfigured) return;
     let cancelled = false;
     if (userId) {
-      // Opening the app no longer counts toward the streak — only completing
-      // the daily review does (see reviewDay and lib/streak).
-      remote
-        .fetchAllData(userId)
-        .then((data) => {
-          if (!cancelled) dispatch({ type: "hydrate", data });
-        })
-        .catch((e) => console.warn("[sync] hydrate failed", e));
+      const q = queueRef.current;
+      const restored = restoredRef.current;
+      (async () => {
+        // First what this account left unsent last time, so it goes out now
+        // and is on screen whatever the server says.
+        await restored;
+        if (cancelled) return;
+        void q?.flush();
+        const mark = q?.mark() ?? 0;
+        try {
+          // Opening the app no longer counts toward the streak — only
+          // completing the daily review does (see reviewDay and lib/streak).
+          const data = await remote.fetchAllData(userId);
+          if (cancelled) return;
+          // Changes that landed while this was loading aren't in `data`;
+          // changes still waiting certainly aren't. Lay both back over it.
+          const pending: Op[] = q ? [...q.sentSince(mark), ...q.ops] : [];
+          dispatch({ type: "hydrate", data: applyPending(data, pending) });
+          setSync((prev) => ({ ...prev, loadFailed: false }));
+        } catch (e) {
+          console.warn("[sync] hydrate failed", e);
+          if (!cancelled) setSync((prev) => ({ ...prev, loadFailed: true }));
+        }
+      })();
     } else {
       dispatch({ type: "reset-all" });
     }
@@ -180,10 +246,14 @@ export function StoreProvider({
     };
   }, [userId, refreshKey]);
 
+  const retrySync = useCallback(() => {
+    void queueRef.current?.flush();
+  }, []);
+
   const value = useMemo<StoreValue>(() => {
     const canSync = isSupabaseConfigured && !!userId;
-    const bg = (run: () => Promise<unknown>) => {
-      if (canSync) void run().catch((e) => console.warn("[sync]", e));
+    const bg = (op: Op) => {
+      if (canSync) queueRef.current?.push(op);
     };
 
     return {
@@ -211,54 +281,57 @@ export function StoreProvider({
           receipt: input.receipt,
         };
         dispatch({ type: "add-tx", tx });
-        bg(() => remote.upsertTransaction(userId as string, tx));
+        bg({ kind: "tx.upsert", tx });
         return tx;
       },
       updateTransaction: (tx) => {
         const clean = cleanTx(tx);
         dispatch({ type: "update-tx", tx: clean });
-        bg(() => remote.upsertTransaction(userId as string, clean));
+        bg({ kind: "tx.upsert", tx: clean });
       },
       deleteTransaction: (id) => {
         dispatch({ type: "delete-tx", id });
-        bg(() => remote.deleteTransactionRow(userId as string, id));
+        bg({ kind: "tx.delete", id });
       },
 
       addSubscription(sub) {
         const created: Subscription = { ...sub, id: newId("sub"), name: sanitizeText(sub.name) };
         dispatch({ type: "add-sub", sub: created });
-        bg(() => remote.upsertSubscription(userId as string, created));
+        bg({ kind: "sub.upsert", sub: created });
         return created;
       },
       updateSubscription: (sub) => {
         const clean = { ...sub, name: sanitizeText(sub.name) };
         dispatch({ type: "update-sub", sub: clean });
-        bg(() => remote.upsertSubscription(userId as string, clean));
+        bg({ kind: "sub.upsert", sub: clean });
       },
       deleteSubscription: (id) => {
         dispatch({ type: "set-sub-status", id, status: "archived" });
-        bg(() => remote.deleteSubscriptionRow(userId as string, id));
+        bg({ kind: "sub.delete", id });
       },
 
       setMonthlyBudget: (limitCents) => {
         const budget: Budget = { id: "bud_total", scope: "total", label: "Monthly budget", limit: Math.max(0, Math.trunc(limitCents)) };
         dispatch({ type: "upsert-budget", budget });
-        bg(() => remote.upsertBudget(userId as string, budget));
+        bg({ kind: "budget.upsert", budget });
       },
       addCategory: (name) => {
         const label = sanitizeText(name);
         if (!label) return;
+        // The reducer ignores a name already in the list; so must the server
+        // write, or it's refused as a duplicate.
+        if (state.categories.some((c) => c.label.toLowerCase() === label.toLowerCase())) return;
         const category: Category = { id: newId("cat"), label, custom: true };
         dispatch({ type: "add-category", category });
-        bg(() => remote.upsertCategory(userId as string, category));
+        bg({ kind: "cat.upsert", category });
       },
       removeCategory: (id) => {
         dispatch({ type: "remove-category", id });
-        bg(() => remote.deleteCategoryRow(userId as string, id));
+        bg({ kind: "cat.delete", id });
       },
       setCurrency: (code) => {
         dispatch({ type: "update-prefs", prefs: { currency: code } });
-        bg(() => remote.updatePreferences(userId as string, { currency: code }));
+        bg({ kind: "prefs.update", prefs: { currency: code } });
       },
 
       async deleteAccount() {
@@ -266,6 +339,9 @@ export function StoreProvider({
         // Errors propagate so the caller can tell the user it didn't work,
         // rather than clearing the screen and leaving the account alive.
         if (canSync) await remote.deleteAccount();
+        // Nothing left to send changes to.
+        queueRef.current?.clear();
+        if (userId) await savePending(userId, []);
         dispatch({ type: "reset-all" });
       },
       async reviewDay(day) {
@@ -277,8 +353,10 @@ export function StoreProvider({
         dispatch({ type: "mark-active-day", day });
       },
       refresh: () => setRefreshKey((k) => k + 1),
+      sync,
+      retrySync,
     };
-  }, [state, now, loading, userId]);
+  }, [state, now, loading, userId, sync, retrySync]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

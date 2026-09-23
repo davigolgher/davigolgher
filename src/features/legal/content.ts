@@ -95,7 +95,7 @@ export const PRIVACY: Section[] = [
       `Your expenses, subscriptions, budgets, categories and settings are stored in ${N}'s database, which is hosted by Supabase (supabase.com). Supabase is our infrastructure provider: they hold the data on our behalf and do not use it for their own purposes.`,
       "It travels encrypted (TLS) and is encrypted at rest.",
       "Access is scoped per user by Row Level Security, enforced by the database itself: every query is restricted to the rows belonging to the signed-in account, so one user's data cannot be read by another even if the app asked for it.",
-      "Your financial data isn't stored on your device. The app keeps you signed in on the phone, holds your data in memory while it's open, and reads it from our database each time you sign in.",
+      "The app keeps you signed in on the phone, holds your data in memory while it's open, and reads it from our database each time you sign in. A change you make without a connection is kept on the phone, tied to your account, only until our database confirms it has it.",
     ],
   },
   {

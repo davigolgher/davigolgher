@@ -4,16 +4,23 @@
  * user_id are for indexing/clarity, not the security boundary.
  *
  * The store uses this in a local-first way: mutate local state immediately, then
- * persist here in the background. Receipts stay local for now (a receipt_path
- * column and storage bucket exist for wiring uploads later).
+ * persist here through its sync queue (see data/outbox). Every write throws a
+ * SyncError when Supabase refuses it — supabase-js returns errors rather than
+ * throwing them, so a write that ignored its `error` failed without a trace.
  */
 import { getSupabase } from "./client";
 import type { AppData, Budget, Category, Preferences, Subscription, Transaction } from "@/data/types";
+import { SyncError, type Op } from "@/data/outbox";
 
 function sb() {
   const c = getSupabase();
   if (!c) throw new Error("Backend not configured");
   return c;
+}
+
+/** Turn a Supabase `{ error, status }` into a thrown SyncError. */
+function check(res: { error: { message: string; code?: string } | null; status: number }): void {
+  if (res.error) throw new SyncError(res.error.message, res.status, res.error.code || undefined);
 }
 
 /* ── mappers ─────────────────────────────────────────────────────────────── */
@@ -90,24 +97,55 @@ function rowToBudget(r: Row): Budget {
 
 /* ── reads ───────────────────────────────────────────────────────────────── */
 
+/**
+ * The API returns at most 1,000 rows per request (Supabase's default), and
+ * past that the rest are silently left off — a year of daily entries would
+ * have lost its oldest months from every total. So read in pages.
+ */
+const PAGE = 1000;
+
+async function selectAll(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: { message: string; code?: string } | null; status: number }>,
+): Promise<Row[]> {
+  const rows: Row[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const res = await page(from, from + PAGE - 1);
+    check(res);
+    const batch = (res.data ?? []) as Row[];
+    rows.push(...batch);
+    if (batch.length < PAGE) return rows;
+  }
+}
+
+/**
+ * Everything the account holds. Throws if any part fails: a partial load would
+ * show, say, subscriptions without transactions, and totals built on it would
+ * be wrong with nothing to say so.
+ */
 export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
   const c = sb();
   const [tx, subs, cats, buds, prefs, days] = await Promise.all([
-    c.from("transactions").select("*").eq("user_id", userId).order("date", { ascending: false }),
-    c.from("subscriptions").select("*").eq("user_id", userId),
-    c.from("categories").select("*").eq("user_id", userId),
+    selectAll((a, b) =>
+      c.from("transactions").select("*").eq("user_id", userId).order("date", { ascending: false }).order("id").range(a, b),
+    ),
+    selectAll((a, b) => c.from("subscriptions").select("*").eq("user_id", userId).order("id").range(a, b)),
+    selectAll((a, b) => c.from("categories").select("*").eq("user_id", userId).order("created_at").order("id").range(a, b)),
     c.from("budgets").select("*").eq("user_id", userId),
     c.from("preferences").select("*").eq("user_id", userId).maybeSingle(),
     // A streak only ever looks back a few weeks; a year is plenty.
     c.from("activity_days").select("day").eq("user_id", userId).order("day", { ascending: false }).limit(400),
   ]);
+  check(buds);
+  check(prefs);
+  check(days);
 
-  const out: Partial<AppData> = {};
-  if (tx.data) out.transactions = (tx.data as Row[]).map(rowToTx);
-  if (subs.data) out.subscriptions = (subs.data as Row[]).map(rowToSub);
-  if (cats.data) out.categories = (cats.data as Row[]).map(rowToCategory);
+  const out: Partial<AppData> = {
+    transactions: tx.map(rowToTx),
+    subscriptions: subs.map(rowToSub),
+    categories: cats.map(rowToCategory),
+    activeDays: ((days.data ?? []) as Row[]).map((r) => String(r.day)),
+  };
   if (buds.data && (buds.data as Row[]).length) out.budgets = (buds.data as Row[]).map(rowToBudget);
-  if (days.data) out.activeDays = (days.data as Row[]).map((r) => String(r.day));
   if (prefs.data) {
     const p = prefs.data as Row;
     out.preferences = {
@@ -121,7 +159,7 @@ export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
   return out;
 }
 
-/* ── writes (fire-and-forget from the store) ─────────────────────────────── */
+/* ── writes (sent by the store's sync queue) ───────────────────────────────── */
 
 /**
  * Record that this account reviewed `day`. Keyed on (user, day) with conflicts
@@ -137,39 +175,61 @@ export async function recordActiveDay(userId: string, day: string): Promise<void
 }
 
 export async function upsertTransaction(userId: string, t: Transaction): Promise<void> {
-  await sb().from("transactions").upsert(txToRow(userId, t));
+  check(await sb().from("transactions").upsert(txToRow(userId, t)));
 }
 export async function upsertTransactions(userId: string, txs: Transaction[]): Promise<void> {
   if (!txs.length) return;
-  await sb().from("transactions").upsert(txs.map((t) => txToRow(userId, t)));
+  check(await sb().from("transactions").upsert(txs.map((t) => txToRow(userId, t))));
 }
 export async function deleteTransactionRow(_userId: string, id: string): Promise<void> {
-  await sb().from("transactions").delete().eq("id", id);
+  check(await sb().from("transactions").delete().eq("id", id));
 }
 
 export async function upsertSubscription(userId: string, s: Subscription): Promise<void> {
-  await sb().from("subscriptions").upsert(subToRow(userId, s));
+  check(await sb().from("subscriptions").upsert(subToRow(userId, s)));
 }
 export async function deleteSubscriptionRow(_userId: string, id: string): Promise<void> {
-  await sb().from("subscriptions").delete().eq("id", id);
+  check(await sb().from("subscriptions").delete().eq("id", id));
 }
 
 export async function upsertCategory(userId: string, c: Category): Promise<void> {
-  await sb().from("categories").upsert({ id: c.id, user_id: userId, label: c.label, custom: c.custom ?? true });
+  check(await sb().from("categories").upsert({ id: c.id, user_id: userId, label: c.label, custom: c.custom ?? true }));
 }
 export async function deleteCategoryRow(_userId: string, id: string): Promise<void> {
-  await sb().from("categories").delete().eq("id", id);
+  check(await sb().from("categories").delete().eq("id", id));
 }
 
 export async function upsertBudget(userId: string, b: Budget): Promise<void> {
-  await sb().from("budgets").upsert({ user_id: userId, scope: b.scope, label: b.label, limit: b.limit });
+  check(await sb().from("budgets").upsert({ user_id: userId, scope: b.scope, label: b.label, limit: b.limit }));
 }
 
 export async function updatePreferences(userId: string, patch: Partial<Preferences>): Promise<void> {
   const row: Row = { user_id: userId };
   if (patch.currency !== undefined) row.currency = patch.currency;
   if (patch.locale !== undefined) row.locale = patch.locale;
-  await sb().from("preferences").upsert(row);
+  check(await sb().from("preferences").upsert(row));
+}
+
+/** Send one queued change. */
+export async function sendOp(userId: string, op: Op): Promise<void> {
+  switch (op.kind) {
+    case "tx.upsert":
+      return upsertTransaction(userId, op.tx);
+    case "tx.delete":
+      return deleteTransactionRow(userId, op.id);
+    case "sub.upsert":
+      return upsertSubscription(userId, op.sub);
+    case "sub.delete":
+      return deleteSubscriptionRow(userId, op.id);
+    case "cat.upsert":
+      return upsertCategory(userId, op.category);
+    case "cat.delete":
+      return deleteCategoryRow(userId, op.id);
+    case "budget.upsert":
+      return upsertBudget(userId, op.budget);
+    case "prefs.update":
+      return updatePreferences(userId, op.prefs);
+  }
 }
 
 /**

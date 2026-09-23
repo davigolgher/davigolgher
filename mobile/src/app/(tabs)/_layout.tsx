@@ -1,4 +1,7 @@
+import { useEffect } from "react";
+import { AppState } from "react-native";
 import { Tabs } from "expo-router";
+import { useStore } from "@/data/store";
 import { BarChartIcon, GearIcon, HomeIcon, ReceiptIcon, RepeatIcon } from "~/components/icons";
 import { RemindersProvider } from "~/features/reminders";
 
@@ -8,6 +11,20 @@ const ACTIVE = "#0A0A0A";
 const INACTIVE = "#AEAEB4";
 
 export default function TabsLayout() {
+  const { sync, refresh, retrySync } = useStore();
+
+  // Back in the app is the likeliest moment the connection is back too: send
+  // what's waiting now rather than at the next scheduled retry, and have
+  // another go at an account that failed to load.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s !== "active") return;
+      if (sync.loadFailed) refresh();
+      else if (sync.pending > 0) retrySync();
+    });
+    return () => sub.remove();
+  }, [sync.loadFailed, sync.pending, refresh, retrySync]);
+
   return (
     // Above every tab, so a subscription edited on any screen reschedules its
     // reminder on the way back, and Settings drives the same single instance.

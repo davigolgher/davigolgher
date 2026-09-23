@@ -12,6 +12,7 @@ import { PlusIcon } from "~/components/icons";
 import { useFocusTick } from "~/lib/useFocusTick";
 import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
+import { SyncNotice } from "~/components/SyncNotice";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -60,6 +61,8 @@ export default function Home() {
           </Button>
         }
       />
+
+      <SyncNotice />
 
       {/* Budget hero — big number, status pill, spend progress. */}
       <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60} trigger={tick}>
