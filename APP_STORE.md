@@ -17,10 +17,9 @@ Sources:
 - **Account deletion in-app** (required since Jun 30, 2022) — Settings › Account › Delete account, available to all users, erases the account and data, and warns to cancel an App Store subscription first.
 - **Privacy Policy, Terms of Use (EULA), AI disclosure, privacy nutrition label** — Settings › Legal & privacy, and at public URLs for the store listing.
 - **Public Privacy Policy and Support URLs** — `/privacy` and `/support`, reachable with no account, which is what App Review opens from the listing.
-- **Camera / photo-library purpose strings** — `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` in `mobile/app.json`.
 - **Export compliance** — `ITSAppUsesNonExemptEncryption: false` (standard HTTPS only).
 - **Per-user data isolation** — Row Level Security (`auth.uid() = user_id`) on all 8 tables.
-- **Input sanitization** and receipt upload validation helpers (type/size/magic-byte) — see `SECURITY.md`.
+- **Input sanitization**, and upload validation helpers (type/size/magic-byte) kept for any future attachment feature — see `SECURITY.md`. The app has no attachments today, so it declares no camera or photo-library permission.
 
 ## Not done yet ⚠️
 
@@ -28,7 +27,6 @@ Listed separately so this file is not mistaken for a green light:
 
 - **Sign in with Apple (Guideline 4.8)** — required *if* a third-party login is offered. The app signs in with email and password only, so 4.8 doesn't bite yet; adding Google login makes Sign in with Apple mandatory.
 - **The purchase itself** — the paywall, its disclosure, Restore Purchases and the entitlement gate are built, but `react-native-purchases` isn't installed (it isn't in Expo Go) and the App Store Connect products don't exist. See `mobile/README.md` → Subscriptions for the ordered steps. Until then the paywall shows no prices, by design: a hard-coded price would be wrong in every other storefront.
-- **Receipt photo capture and upload** — helpers exist, the native flow does not.
 
 ## Native build / App Store Connect — TODO
 
