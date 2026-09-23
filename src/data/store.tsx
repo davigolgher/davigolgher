@@ -6,7 +6,6 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useState, ty
 import type { AppData, Budget, Category, Preferences, Receipt, Subscription, SubscriptionStatus, Transaction } from "./types";
 import { createInitialData } from "./mock";
 import { sanitizeMultiline, sanitizeText } from "@/lib/sanitize";
-import { dayKey } from "@/lib/streak";
 import { isSupabaseConfigured } from "@/lib/backend/client";
 import { useOptionalAuth } from "@/features/auth/AuthProvider";
 import * as remote from "@/lib/backend/data";
@@ -128,6 +127,11 @@ export interface StoreValue {
   setCurrency: (code: string) => void;
   /** Erase all data (used by "Delete account"). Also clears server rows when connected. */
   deleteAccount: () => Promise<void>;
+  /**
+   * Complete the daily review for `day` (a `dayKey`) — the one action that
+   * counts toward the streak. Resolves once the server has it.
+   */
+  reviewDay: (day: string) => Promise<void>;
   /** Re-hydrate from the backend (connected mode); no-op locally. */
   refresh: () => void;
 }
@@ -160,20 +164,12 @@ export function StoreProvider({
     if (!isSupabaseConfigured) return;
     let cancelled = false;
     if (userId) {
-      // Opening the app counts toward this account's streak. Insert-or-ignore
-      // on the server, so relaunching, refreshing or a second device are all
-      // harmless — no read-modify-write to race.
-      const today = dayKey(new Date());
-      void remote.recordActiveDay(userId, today).catch((e) => console.warn("[sync] activity", e));
-
+      // Opening the app no longer counts toward the streak — only completing
+      // the daily review does (see reviewDay and lib/streak).
       remote
         .fetchAllData(userId)
         .then((data) => {
-          if (cancelled) return;
-          dispatch({ type: "hydrate", data });
-          // The fetch may have run before the insert landed; today counts
-          // either way.
-          dispatch({ type: "mark-active-day", day: today });
+          if (!cancelled) dispatch({ type: "hydrate", data });
         })
         .catch((e) => console.warn("[sync] hydrate failed", e));
     } else {
@@ -271,6 +267,14 @@ export function StoreProvider({
         // rather than clearing the screen and leaving the account alive.
         if (canSync) await remote.deleteAccount();
         dispatch({ type: "reset-all" });
+      },
+      async reviewDay(day) {
+        // Awaited, unlike the other writes. The day is only marked once the
+        // server has it: celebrating a day that then reappears as undone on
+        // the next launch would be worse than a moment's wait. The insert
+        // ignores duplicates, so a second device or a double tap is a no-op.
+        if (canSync) await remote.recordActiveDay(userId as string, day);
+        dispatch({ type: "mark-active-day", day });
       },
       refresh: () => setRefreshKey((k) => k + 1),
     };

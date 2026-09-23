@@ -76,8 +76,8 @@ Declare collected data types and **required-reason APIs**. Starter template (adj
       <key>NSPrivacyCollectedDataTypePurposes</key>
       <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
     </dict>
-    <!-- The days the app was opened, stored with the account for the streak
-         (the `activity_days` table). -->
+    <!-- The days the daily review was completed, stored with the account for
+         the streak (the `activity_days` table). -->
     <dict>
       <key>NSPrivacyCollectedDataType</key><string>NSPrivacyCollectedDataTypeProductInteraction</string>
       <key>NSPrivacyCollectedDataTypeLinked</key><true/>

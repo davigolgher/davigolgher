@@ -91,10 +91,10 @@ export interface AppData {
   notifications: never[];
   preferences: Preferences;
   /**
-   * Days this account opened the app, as `dayKey()` strings — what the streak
-   * counts alongside days with an expense. Stored with the account, so it
-   * follows the person to a new phone and isn't shared with anyone else's
-   * account on this one.
+   * Days this account completed the daily review, as `dayKey()` strings — the
+   * only thing the streak counts (see lib/streak). Stored with the account in
+   * `activity_days`, so it follows the person to a new phone and isn't shared
+   * with anyone else's account on this one.
    */
   activeDays: string[];
   isSimulated: boolean;

@@ -78,7 +78,7 @@ export const PRIVACY: Section[] = [
     bullets: [
       "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
-      "Usage: the calendar days you open the app, stored with your account to count your streak.",
+      "Usage: the calendar days you complete your daily review, stored with your account to count your streak. Opening the app isn't recorded.",
       "Limited technical/diagnostic data needed to run and improve the app.",
     ],
   },
@@ -148,7 +148,7 @@ export interface NutritionGroup {
 }
 export const NUTRITION: NutritionGroup[] = [
   { title: "Data used to track you", note: "Used to track you across other companies' apps and sites.", items: ["None"] },
-  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names", "Usage Data — days you opened the app, for your streak"] },
+  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names", "Usage Data — days you completed your daily review, for your streak"] },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["Diagnostics — basic crash/usage data (if enabled)"] },
 ];
 

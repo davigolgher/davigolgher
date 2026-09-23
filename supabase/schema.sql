@@ -137,8 +137,10 @@ create policy "preferences owner" on public.preferences
 create policy "billing read own" on public.billing
   for select using (auth.uid() = user_id);
 
--- activity_days: the days each account opened the app, which the streak counts.
--- One row per account per day, so recording today twice is a no-op. See 0006.
+-- activity_days: the days each account completed its daily review — what the
+-- streak counts. One row per account per day, so recording today twice is a
+-- no-op, and a day can only be recorded on that day (± one, for time zones).
+-- See 0006 and 0007.
 create table if not exists public.activity_days (
   user_id uuid not null references auth.users (id) on delete cascade,
   day     date not null,
@@ -148,7 +150,10 @@ alter table public.activity_days enable row level security;
 create policy "activity_days read own" on public.activity_days
   for select using (auth.uid() = user_id);
 create policy "activity_days add own" on public.activity_days
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and day between current_date - 1 and current_date + 1
+  );
 
 -- Private bucket for receipt files. Objects are stored under `<user_id>/<file>`,
 -- so `owner = auth.uid()` scopes access to the uploader.

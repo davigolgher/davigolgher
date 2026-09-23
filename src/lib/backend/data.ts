@@ -124,9 +124,10 @@ export async function fetchAllData(userId: string): Promise<Partial<AppData>> {
 /* ── writes (fire-and-forget from the store) ─────────────────────────────── */
 
 /**
- * Count `day` as active for this account. Keyed on (user, day) with conflicts
- * ignored, so calling it again — relaunch, refresh, a second device — is a
- * no-op rather than an error.
+ * Record that this account reviewed `day`. Keyed on (user, day) with conflicts
+ * ignored, so a double tap or a second device is a no-op rather than an error.
+ * The database refuses a day more than one away from its own date (migration
+ * 0007), so a streak can't be rebuilt by writing past days.
  */
 export async function recordActiveDay(userId: string, day: string): Promise<void> {
   const { error } = await sb()
