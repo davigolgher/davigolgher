@@ -5,7 +5,7 @@
  * Money is parsed once here and held as integer cents everywhere after, the
  * same rule the rest of the app follows.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,9 +35,13 @@ export default function AddExpense() {
 
   const cents = amountTextToCents(amountText);
   const canSave = cents > 0;
+  // One save per sheet. The button stays live while the sheet slides away, and
+  // a quick double tap in that moment saved the entry twice.
+  const saved = useRef(false);
 
   const save = () => {
-    if (!canSave) return;
+    if (!canSave || saved.current) return;
+    saved.current = true;
     const fallback = direction === "income" ? "Income" : "Expense";
     if (existing) {
       updateTransaction({

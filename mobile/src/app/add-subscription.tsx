@@ -2,7 +2,7 @@
  * Add or edit a recurring subscription. Presented as a modal; passing `?id=`
  * switches it into edit mode.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -45,9 +45,13 @@ export default function AddSubscription() {
 
   const cents = amountTextToCents(amountText);
   const canSave = cents > 0 && name.trim().length > 0;
+  // One save per sheet. The button stays live while the sheet slides away, and
+  // a quick double tap in that moment saved the entry twice.
+  const saved = useRef(false);
 
   const save = () => {
-    if (!canSave) return;
+    if (!canSave || saved.current) return;
+    saved.current = true;
     if (existing) {
       // Editing leaves the next charge date alone — it's the schedule already in
       // flight, not something the amount or name should reset.
