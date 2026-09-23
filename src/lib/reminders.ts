@@ -14,6 +14,7 @@ import type { Subscription } from "@/data/types";
 import type { BillingRow } from "./backend/billing";
 import type { Cents } from "./money";
 import { startOfDay } from "./format";
+import { upcomingChargeDates } from "./recurrence";
 import { APP } from "@/config/app";
 
 /** How many days before a charge the reminder fires. */
@@ -76,11 +77,22 @@ export function planReminders(input: PlanInput): ReminderPlan[] {
     if (s.status !== "active" && s.status !== "trial") continue;
     if (!s.reminders) continue;
 
-    const fireAt = fireTime(s.nextChargeAt, lead, now);
-    if (!fireAt) continue;
+    // The next charge whose warning is still ahead. When that moment has
+    // passed for the coming charge (it's tomorrow, the lead is two days), the
+    // one after gets it, so the schedule never has a gap until the next launch.
+    let charge: Date | null = null;
+    let fireAt: Date | null = null;
+    for (const c of upcomingChargeDates(s, now, 2)) {
+      fireAt = fireTime(c.toISOString(), lead, now);
+      if (fireAt) {
+        charge = c;
+        break;
+      }
+    }
+    if (!charge || !fireAt) continue;
 
     out.push({
-      key: `sub:${s.id}:${startOfDay(new Date(s.nextChargeAt)).toISOString().slice(0, 10)}`,
+      key: `sub:${s.id}:${startOfDay(charge).toISOString().slice(0, 10)}`,
       title: `${s.name} renews ${when}`,
       body: `${input.formatAmount(s.amount)} is due. Cancel with ${s.name} if you don't want it.`,
       fireAt,

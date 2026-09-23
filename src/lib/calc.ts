@@ -4,7 +4,7 @@
  */
 import { Money, type Cents } from "./money";
 import { startOfDay } from "./format";
-import { monthlyEquivalent, annualEquivalent, daysUntil } from "./recurrence";
+import { monthlyEquivalent, annualEquivalent, daysUntil, daysUntilCharge, nextChargeDate } from "./recurrence";
 import type { Budget, CategoryId, Subscription, Transaction } from "@/data/types";
 
 export function isSameDay(a: Date, b: Date): boolean {
@@ -173,8 +173,10 @@ export function activeSubscriptions(subs: Subscription[]): Subscription[] {
   return subs.filter(isBillable);
 }
 
-export function upcomingCharges(subs: Subscription[]): Subscription[] {
-  return activeSubscriptions(subs).slice().sort((a, b) => +new Date(a.nextChargeAt) - +new Date(b.nextChargeAt));
+/** Active subscriptions, soonest next charge first. */
+export function upcomingCharges(subs: Subscription[], now: Date = new Date()): Subscription[] {
+  const at = (s: Subscription) => nextChargeDate(s, now)?.getTime() ?? Infinity;
+  return activeSubscriptions(subs).slice().sort((a, b) => at(a) - at(b));
 }
 
 export function spentForBudget(budget: Budget, txs: Transaction[], subs: Subscription[], now: Date = new Date()): Cents {
@@ -206,7 +208,7 @@ export function subscriptionInsights(subs: Subscription[], now: Date = new Date(
     }
     if (s.previousAmount && s.amount > s.previousAmount)
       out.push({ id: `price-${s.id}`, kind: "price-increase", subscription: s, message: "The price of this subscription went up." });
-    const renewIn = daysUntil(s.nextChargeAt, now);
+    const renewIn = daysUntilCharge(s, now);
     if (isBillable(s) && renewIn >= 0 && renewIn <= 3)
       out.push({ id: `renew-${s.id}`, kind: "renewal", subscription: s, message: `Renews ${renewIn === 0 ? "today" : `in ${renewIn} day${renewIn === 1 ? "" : "s"}`}.` });
     if (s.lastUsedAt) {

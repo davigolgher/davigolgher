@@ -49,9 +49,19 @@ describe("reminders — tracked subscriptions", () => {
     expect(plan([sub({ status: "trial" })])).toHaveLength(1);
   });
 
-  it("drops a reminder whose moment has already passed", () => {
-    // Charge tomorrow, lead of 7 days: that reminder was due last week.
-    expect(plan([sub({ nextChargeAt: "2026-09-22T00:00:00" })], 7)).toHaveLength(0);
+  it("skips to the next charge when this one's warning has passed", () => {
+    // Charge tomorrow, lead of 7 days: that reminder was due last week, so the
+    // one for the charge after it is the one to schedule.
+    const out = plan([sub({ nextChargeAt: "2026-09-22T00:00:00" })], 7);
+    expect(out).toHaveLength(1);
+    expect(out[0].fireAt.toISOString().slice(0, 10)).toBe("2026-10-15");
+    expect(out[0].key).toBe(`sub:s1:${new Date("2026-10-22T00:00:00").toISOString().slice(0, 10)}`);
+  });
+
+  it("keeps reminding after the first charge has gone by", () => {
+    // Entered in August; the stored date is the first charge and never moves.
+    const [r] = plan([sub({ nextChargeAt: "2026-08-10T00:00:00" })], 2);
+    expect(r.fireAt.toISOString().slice(0, 10)).toBe("2026-10-08");
   });
 
   it("still fires when the lead crosses into the previous month", () => {

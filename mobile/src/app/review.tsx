@@ -15,7 +15,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
 import { dayKey, fromDayKey } from "@/lib/streak";
-import { daysUntil } from "@/lib/recurrence";
+import { daysUntilCharge } from "@/lib/recurrence";
 import { capitalizeFirst } from "@/lib/format";
 import { Button, Eyebrow } from "~/components/ui";
 import { CheckIcon, PlusIcon } from "~/components/icons";
@@ -60,7 +60,7 @@ export default function Review() {
     () =>
       data.subscriptions
         .filter((s) => s.status === "active" || s.status === "trial")
-        .map((s) => ({ s, days: daysUntil(s.nextChargeAt, today) }))
+        .map((s) => ({ s, days: daysUntilCharge(s, today) }))
         .filter(({ days }) => days >= 0 && days <= UPCOMING_DAYS)
         .sort((a, b) => a.days - b.days),
     [data.subscriptions, today],

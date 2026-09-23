@@ -4,8 +4,8 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { subscriptionsAnnualTotal, subscriptionsMonthlyTotal } from "@/lib/calc";
-import { daysUntil, FREQUENCY_LABEL } from "@/lib/recurrence";
+import { subscriptionsAnnualTotal, subscriptionsMonthlyTotal, upcomingCharges } from "@/lib/calc";
+import { daysUntilCharge, FREQUENCY_LABEL } from "@/lib/recurrence";
 import { formatDaysUntil } from "@/lib/format";
 import { Button, Eyebrow, FadeIn, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
@@ -23,7 +23,7 @@ export default function Subs() {
   // $50/year plan came back as $50.04 that way.
   const monthly = subscriptionsMonthlyTotal(data.subscriptions);
   const yearly = subscriptionsAnnualTotal(data.subscriptions);
-  const upcoming = [...active].sort((a, b) => +new Date(a.nextChargeAt) - +new Date(b.nextChargeAt));
+  const upcoming = upcomingCharges(active, now);
 
   const confirmCancel = (id: string, name: string) => {
     Alert.alert(`Cancel ${name}?`, "It stops counting towards your recurring costs. This doesn't cancel it with the provider.", [
@@ -74,7 +74,7 @@ export default function Subs() {
                     {s.name}
                   </Text>
                   <Text className="mt-0.5 text-[13px] text-chalk-mute">
-                    {FREQUENCY_LABEL[s.frequency]} · {formatDaysUntil(daysUntil(s.nextChargeAt, now))}
+                    {FREQUENCY_LABEL[s.frequency]} · {formatDaysUntil(daysUntilCharge(s, now))}
                   </Text>
                 </View>
                 <Text className="shrink-0 text-[15px] font-semibold text-chalk">{money.format(s.amount)}</Text>
