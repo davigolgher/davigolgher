@@ -13,8 +13,7 @@
       // outside this project — so TypeScript would look for their React Native
       // imports in the web app's node_modules. Point those back here.
       "@react-native-async-storage/async-storage": ["./node_modules/@react-native-async-storage/async-storage"],
-      "expo-linking": ["./node_modules/expo-linking"],
-      "expo-web-browser": ["./node_modules/expo-web-browser"]
+      "expo-linking": ["./node_modules/expo-linking"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", ".expo/types/**/*.ts", "expo-env.d.ts"],
