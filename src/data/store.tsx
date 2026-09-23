@@ -162,7 +162,18 @@ export function StoreProvider({
   seed?: AppData;
   simulateLoading?: boolean;
 }) {
-  const now = useMemo(() => new Date(), []);
+  // Today, for every "this month" and "today" total. Fixed at launch it went
+  // stale: iOS keeps an app in memory for days, and Home went on showing
+  // September's figures into October until the app was closed. Checked every
+  // half minute, and replaced only when the date has changed.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => {
+      const d = new Date();
+      setNow((prev) => (prev.toDateString() === d.toDateString() ? prev : d));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
   const [state, dispatch] = useReducer(reducer, undefined, () => seed ?? createInitialData());
   const [loading, setLoading] = useState(simulateLoading);
   const [refreshKey, setRefreshKey] = useState(0);
