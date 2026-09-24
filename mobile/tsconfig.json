@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    // Resolve "./client" to "client.native.ts" the way Metro does, so TypeScript
+    // checks the same file the bundler will actually use.
+    "moduleSuffixes": [".native", ""],
+    "paths": {
+      "@/*": ["../src/*"],
+      "~/*": ["./src/*"],
+      // The *.native.ts files have to sit next to the shared modules they serve
+      // (that's how Metro's platform resolution finds them), which puts them
+      // outside this project — so TypeScript would look for their React Native
+      // imports in the web app's node_modules. Point those back here.
+      "@react-native-async-storage/async-storage": ["./node_modules/@react-native-async-storage/async-storage"],
+      "expo-linking": ["./node_modules/expo-linking"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules", "**/*.test.ts"]
+}

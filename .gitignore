@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+coverage
+*.tsbuildinfo
+
+# env (never commit real credentials)
+.env
+.env.*
+!.env.example
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
