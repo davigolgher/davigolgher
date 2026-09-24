@@ -58,7 +58,11 @@ writes it into the app as `PrivacyInfo.xcprivacy`. It says:
 - **Collected, linked to the user, for App Functionality only:** Email Address,
   User ID (the account id), Other Financial Info (expenses, income,
   subscriptions, budgets), Other User Content (descriptions, notes, category
-  names), Product Interaction (the days the daily review was completed).
+  names), Product Interaction (the days the daily review was completed), Other
+  Diagnostic Data (Supabase's request logs: IP address and time, with the
+  account id from the token, kept for the log retention period — Apple counts
+  anything kept past the request as collected, and says to declare IP
+  addresses by how they're used).
 - **Required-reason APIs** (React Native, AsyncStorage, Expo modules):
   UserDefaults `CA92.1`, file timestamps `C617.1`, system boot time `35F9.1`,
   disk space `E174.1`.

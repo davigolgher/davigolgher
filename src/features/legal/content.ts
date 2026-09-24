@@ -169,6 +169,7 @@ export const NUTRITION: NutritionGroup[] = [
       "Financial Info — expenses, income, subscriptions, budgets",
       "User Content — descriptions, notes and category names",
       "Usage Data — days you completed your daily review, for your streak",
+      "Diagnostics — server request logs (IP address, time), kept briefly for security and troubleshooting",
     ],
   },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["None"] },
