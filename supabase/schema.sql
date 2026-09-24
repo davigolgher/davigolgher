@@ -25,6 +25,10 @@ begin
   return new;
 end; $$;
 
+-- A trigger function, not an API: nobody calls it directly (see 0008).
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+grant execute on function public.handle_new_user() to supabase_auth_admin;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
@@ -119,23 +123,25 @@ alter table public.budgets       enable row level security;
 alter table public.preferences   enable row level security;
 alter table public.billing       enable row level security;
 
+-- `(select auth.uid())` is evaluated once per query rather than once per row
+-- (see 0008). Same comparison, same result.
 create policy "profiles self" on public.profiles
-  for all using (auth.uid() = id) with check (auth.uid() = id);
+  for all using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 create policy "transactions owner" on public.transactions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "subscriptions owner" on public.subscriptions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "categories owner" on public.categories
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "budgets owner" on public.budgets
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "preferences owner" on public.preferences
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 -- billing: users may read their own row; only the service role writes it.
 create policy "billing read own" on public.billing
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
 
 -- activity_days: the days each account completed its daily review — what the
 -- streak counts. One row per account per day, so recording today twice is a
@@ -148,10 +154,10 @@ create table if not exists public.activity_days (
 );
 alter table public.activity_days enable row level security;
 create policy "activity_days read own" on public.activity_days
-  for select using (auth.uid() = user_id);
+  for select using ((select auth.uid()) = user_id);
 create policy "activity_days add own" on public.activity_days
   for insert with check (
-    auth.uid() = user_id
+    (select auth.uid()) = user_id
     and day between current_date - 1 and current_date + 1
   );
 
