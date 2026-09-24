@@ -3,6 +3,9 @@ import { planReminders, DEFAULT_LEAD_DAYS } from "./reminders";
 import type { Subscription, SubscriptionStatus } from "@/data/types";
 
 const NOW = new Date("2026-09-21T12:00:00");
+/** The local calendar date — what a reminder's day means to the person getting it. */
+const localDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const money = (c: number) => `$${(c / 100).toFixed(2)}`;
 
 function sub(over: Partial<Subscription> = {}): Subscription {
@@ -26,7 +29,7 @@ const plan = (subs: Subscription[], leadDays = DEFAULT_LEAD_DAYS, billing?: Para
 describe("reminders — tracked subscriptions", () => {
   it("fires the morning of the lead day, not at the charge", () => {
     const [r] = plan([sub()], 2);
-    expect(r.fireAt.toISOString().slice(0, 10)).toBe("2026-09-29");
+    expect(localDay(r.fireAt)).toBe("2026-09-29");
     expect(r.fireAt.getHours()).toBe(9);
     expect(r.title).toBe("Netflix renews in 2 days");
     expect(r.body).toContain("$15.99");
@@ -54,19 +57,19 @@ describe("reminders — tracked subscriptions", () => {
     // one for the charge after it is the one to schedule.
     const out = plan([sub({ nextChargeAt: "2026-09-22T00:00:00" })], 7);
     expect(out).toHaveLength(1);
-    expect(out[0].fireAt.toISOString().slice(0, 10)).toBe("2026-10-15");
+    expect(localDay(out[0].fireAt)).toBe("2026-10-15");
     expect(out[0].key).toBe(`sub:s1:${new Date("2026-10-22T00:00:00").toISOString().slice(0, 10)}`);
   });
 
   it("keeps reminding after the first charge has gone by", () => {
     // Entered in August; the stored date is the first charge and never moves.
     const [r] = plan([sub({ nextChargeAt: "2026-08-10T00:00:00" })], 2);
-    expect(r.fireAt.toISOString().slice(0, 10)).toBe("2026-10-08");
+    expect(localDay(r.fireAt)).toBe("2026-10-08");
   });
 
   it("still fires when the lead crosses into the previous month", () => {
     const [r] = plan([sub({ nextChargeAt: "2026-10-02T00:00:00" })], 7);
-    expect(r.fireAt.toISOString().slice(0, 10)).toBe("2026-09-25");
+    expect(localDay(r.fireAt)).toBe("2026-09-25");
   });
 
   it("ignores an unparseable charge date instead of throwing", () => {
@@ -118,7 +121,7 @@ describe("reminders — Flow's own renewal", () => {
       trial_end: "2026-09-30T00:00:00",
       current_period_end: "2026-10-30T00:00:00",
     });
-    expect(r.fireAt.toISOString().slice(0, 10)).toBe("2026-09-28");
+    expect(localDay(r.fireAt)).toBe("2026-09-28");
     expect(r.title).toBe("Your Flow trial ends in 2 days");
     expect(r.body).toContain("charged");
   });
