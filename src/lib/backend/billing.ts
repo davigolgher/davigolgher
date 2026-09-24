@@ -35,7 +35,17 @@ export async function fetchBilling(): Promise<BillingRow | null> {
   return (data as BillingRow) ?? null;
 }
 
-/** Trialing counts as active: the user has access, Apple just hasn't charged yet. */
-export function isActive(b: BillingRow | null): boolean {
-  return Boolean(b && (b.status === "active" || b.status === "trialing"));
+/**
+ * Trialing counts as active: the user has access, Apple just hasn't charged yet.
+ *
+ * The row only repeats what the last webhook said. If the period it describes
+ * is over and no renewal arrived — a missed or failed delivery — it no longer
+ * grants anything; the store, checked alongside it, has the final word.
+ */
+export function isActive(b: BillingRow | null, now: number = Date.now()): boolean {
+  if (!b || (b.status !== "active" && b.status !== "trialing")) return false;
+  const end = b.status === "trialing" && b.trial_end ? b.trial_end : b.current_period_end;
+  if (!end) return true;
+  const t = Date.parse(end);
+  return !Number.isFinite(t) || t > now;
 }
