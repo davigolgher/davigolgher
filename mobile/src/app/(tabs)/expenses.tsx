@@ -48,7 +48,7 @@ export default function Expenses() {
           {all.map((t) => (
             <ExpenseRow key={t.id} transaction={t} />
           ))}
-          <Text className="mt-3 text-[12px] text-chalk-faint">Tap to edit · press and hold to delete.</Text>
+          <Text className="mt-3 text-[12px] text-chalk-mute">Tap to edit · press and hold to delete.</Text>
         </FadeIn>
       ) : (
         <Text className="mt-8 text-[15px] leading-relaxed text-chalk-mute">

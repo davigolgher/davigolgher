@@ -30,6 +30,8 @@ const DOT = 5.5;
 const HALO_R = 22.5;
 
 const INK = "#0A0A0A";
+// Lighter than chalk-faint on purpose: the dashed ring is decoration, hidden
+// from VoiceOver, with the same state spelled out in text beside it.
 const FAINT = "#AEAEB4";
 
 export type MarkState = "empty" | "open" | "closed";

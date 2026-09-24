@@ -67,6 +67,14 @@ export default function Subs() {
                 key={s.id}
                 onPress={() => router.push(`/add-subscription?id=${s.id}`)}
                 onLongPress={() => confirmCancel(s.id, s.name)}
+                accessibilityRole="button"
+                accessibilityLabel={`${s.name}, ${money.format(s.amount)}, ${FREQUENCY_LABEL[s.frequency]}, ${formatDaysUntil(daysUntilCharge(s, now))}`}
+                accessibilityHint="Opens it to edit."
+                // Press-and-hold can't be found with VoiceOver; offer it as an action.
+                accessibilityActions={[{ name: "cancel", label: "Cancel subscription" }]}
+                onAccessibilityAction={(e) => {
+                  if (e.nativeEvent.actionName === "cancel") confirmCancel(s.id, s.name);
+                }}
                 className="flex-row items-center gap-3 border-b border-line-soft py-3.5 active:opacity-60"
               >
                 <View className="min-w-0 flex-1">
@@ -80,7 +88,7 @@ export default function Subs() {
                 <Text className="shrink-0 text-[15px] font-semibold text-chalk">{money.format(s.amount)}</Text>
               </Pressable>
             ))}
-            <Text className="mt-3 text-[12px] text-chalk-faint">Tap to edit · press and hold to cancel.</Text>
+            <Text className="mt-3 text-[12px] text-chalk-mute">Tap to edit · press and hold to cancel.</Text>
           </View>
         ) : (
           <View className="mt-3 rounded-card border border-dashed border-line-strong p-6">

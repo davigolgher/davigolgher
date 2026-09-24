@@ -24,7 +24,8 @@ import { RollingCount } from "~/features/streak/RollingCount";
 import { DayDot } from "~/features/streak/DayDot";
 
 const INK = "#0A0A0A";
-const FAINT = "#AEAEB4";
+/** chalk-faint: the zero count is large text, where 3:1 is the bar. */
+const FAINT = "#8A8A8F";
 
 export function markStateFor(s: StreakSummary): MarkState {
   return s.doneToday ? "closed" : s.current > 0 ? "open" : "empty";
@@ -136,7 +137,7 @@ export function StreakCard() {
               style={{
                 fontSize: 11,
                 fontWeight: cell.isToday ? "700" : "500",
-                color: cell.isToday ? INK : cell.mark === "future" || cell.mark === "idle" ? "#8E8E93" : "#3F3F46",
+                color: cell.isToday ? INK : cell.mark === "future" || cell.mark === "idle" ? "#6E6E73" : "#3F3F46",
               }}
             >
               {t.weekInitials[i]}

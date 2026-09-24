@@ -97,7 +97,7 @@ export function Donut({ slices }: { slices: CategorySlice[] }) {
                 {money.format(total)}
               </FitNumber>
             </View>
-            <Text className="text-[11px] uppercase tracking-wide text-chalk-faint">spent</Text>
+            <Text className="text-[11px] uppercase tracking-wide text-chalk-mute">spent</Text>
           </Animated.View>
         </View>
       </View>

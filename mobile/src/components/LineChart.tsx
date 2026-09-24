@@ -149,7 +149,7 @@ export function LineChart({ months }: { months: MonthTotal[] }) {
 
       <View className="mt-2 flex-row justify-between">
         {months.map((m) => (
-          <Text key={m.key} className="text-[11px] text-chalk-faint">
+          <Text key={m.key} className="text-[11px] text-chalk-mute">
             {m.label}
           </Text>
         ))}

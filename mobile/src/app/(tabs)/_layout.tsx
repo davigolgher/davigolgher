@@ -5,10 +5,11 @@ import { useStore } from "@/data/store";
 import { BarChartIcon, GearIcon, HomeIcon, ReceiptIcon, RepeatIcon } from "~/components/icons";
 import { RemindersProvider } from "~/features/reminders";
 
-// From the shared design tokens: chalk for the active tab, chalk-faint for the
-// rest, hairline `line` border on top of a white bar.
+// From the shared design tokens: chalk for the active tab, chalk-mute for the
+// rest (their labels are text, so they need the 4.5:1 that mute has), hairline
+// `line` border on top of a white bar.
 const ACTIVE = "#0A0A0A";
-const INACTIVE = "#AEAEB4";
+const INACTIVE = "#6E6E73";
 
 export default function TabsLayout() {
   const { sync, refresh, retrySync } = useStore();

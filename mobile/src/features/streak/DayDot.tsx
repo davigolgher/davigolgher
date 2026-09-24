@@ -71,7 +71,7 @@ export function DayDot({
         style={{
           fontSize: size * 0.4,
           fontWeight: mark === "today" ? "700" : "500",
-          color: mark === "future" || mark === "idle" ? "#AEAEB4" : mark === "missed" ? "#8E8E93" : INK,
+          color: mark === "future" || mark === "idle" ? "#8A8A8F" : mark === "missed" ? "#6E6E73" : INK,
         }}
       >
         {number}

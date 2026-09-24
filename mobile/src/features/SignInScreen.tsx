@@ -141,11 +141,11 @@ export function SignInScreen() {
           />
 
           {creating && !passwordValid ? (
-            <Text className="text-[12px] text-chalk-faint">At least {MIN_PASSWORD_LENGTH} characters.</Text>
+            <Text className="text-[12px] text-chalk-mute">At least {MIN_PASSWORD_LENGTH} characters.</Text>
           ) : null}
 
           {creating ? (
-            <Text className="text-[12px] leading-relaxed text-chalk-faint">
+            <Text className="text-[12px] leading-relaxed text-chalk-mute">
               Use an address you can actually open. It&apos;s the only way back into your account if you forget your
               password.
             </Text>
@@ -172,13 +172,13 @@ export function SignInScreen() {
           </Text>
         </Pressable>
 
-        <Text className="mt-6 text-center text-[12px] leading-relaxed text-chalk-faint">
+        <Text className="mt-6 text-center text-[12px] leading-relaxed text-chalk-mute">
           By continuing you agree to the{" "}
-          <Text className="text-chalk-mute underline" onPress={() => setLegalDoc("terms")}>
+          <Text className="text-chalk-mute underline" accessibilityRole="link" onPress={() => setLegalDoc("terms")}>
             Terms
           </Text>{" "}
           &amp;{" "}
-          <Text className="text-chalk-mute underline" onPress={() => setLegalDoc("privacy")}>
+          <Text className="text-chalk-mute underline" accessibilityRole="link" onPress={() => setLegalDoc("privacy")}>
             Privacy Policy
           </Text>
           .

@@ -55,7 +55,7 @@ function Nutrition() {
       {NUTRITION.map((g) => (
         <View key={g.title} className="rounded-card border border-line bg-ink-850 p-4">
           <Text className="text-[15px] font-semibold text-chalk">{g.title}</Text>
-          <Text className="mt-0.5 text-[12px] text-chalk-faint">{g.note}</Text>
+          <Text className="mt-0.5 text-[12px] text-chalk-mute">{g.note}</Text>
           <View className="mt-3 flex-row flex-wrap gap-2">
             {g.items.map((it) => (
               <View key={it} className="rounded-pill border border-line bg-ink-800 px-3 py-1">
@@ -89,7 +89,7 @@ export function LegalDocView({ doc, onClose }: { doc: LegalDocId; onClose: () =>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}>
-        <Text className="text-[12px] uppercase tracking-wide text-chalk-faint">Last updated · {UPDATED}</Text>
+        <Text className="text-[12px] uppercase tracking-wide text-chalk-mute">Last updated · {UPDATED}</Text>
         {doc !== "nutrition" ? (
           <View className="mt-3 rounded-card-sm border border-line bg-ink-850 p-3.5">
             <Text className="text-[12px] leading-relaxed text-chalk-mute">

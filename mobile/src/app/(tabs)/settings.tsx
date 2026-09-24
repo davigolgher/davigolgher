@@ -48,7 +48,7 @@ function Row({ title, sub, onPress }: { title: string; sub?: string; onPress?: (
         <Text className="text-[15px] text-chalk">{title}</Text>
         {sub ? <Text className="mt-0.5 text-[13px] text-chalk-mute">{sub}</Text> : null}
       </View>
-      {onPress ? <ChevronRightIcon size={18} color="#AEAEB4" /> : null}
+      {onPress ? <ChevronRightIcon size={18} color="#8A8A8F" /> : null}
     </Pressable>
   );
 }
@@ -232,7 +232,7 @@ export default function Settings() {
             Save
           </Button>
         </View>
-        <Text className="mt-2 text-[12px] text-chalk-faint">
+        <Text className="mt-2 text-[12px] text-chalk-mute">
           {budget > 0 ? `Currently ${money.format(budget)} per month.` : "No budget set — the Home screen shows total spending instead."}
         </Text>
       </Section>
@@ -272,13 +272,20 @@ export default function Settings() {
             <Pressable
               key={c.id}
               onLongPress={() => confirmRemoveCategory(c.id, c.label)}
+              accessibilityRole="button"
+              accessibilityLabel={`${c.label} category`}
+              // Press-and-hold can't be found with VoiceOver; offer it as an action.
+              accessibilityActions={[{ name: "remove", label: "Remove" }]}
+              onAccessibilityAction={(e) => {
+                if (e.nativeEvent.actionName === "remove") confirmRemoveCategory(c.id, c.label);
+              }}
               className="rounded-pill border border-line-strong bg-ink-800 px-3.5 py-2 active:opacity-70"
             >
               <Text className="text-[13px] text-chalk">{c.label}</Text>
             </Pressable>
           ))}
         </View>
-        <Text className="mt-2 text-[12px] text-chalk-faint">Press and hold a category to remove it.</Text>
+        <Text className="mt-2 text-[12px] text-chalk-mute">Press and hold a category to remove it.</Text>
         <View className="mt-3 flex-row items-center gap-2">
           <Input
             value={newCategory}
@@ -316,7 +323,7 @@ export default function Settings() {
 
         {reminders.prefs?.enabled ? (
           <>
-            <Text className="mt-3 text-[12px] text-chalk-faint">How much warning</Text>
+            <Text className="mt-3 text-[12px] text-chalk-mute">How much warning</Text>
             <View className="mt-2 flex-row flex-wrap gap-2">
               {LEAD_DAY_CHOICES.map((d) => {
                 const on = d === reminders.prefs?.leadDays;
@@ -341,7 +348,7 @@ export default function Settings() {
           </>
         ) : null}
 
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
           A notification before each subscription renews, including {APP.name} itself. Scheduled on this phone — no
           alerts are sent from a server, and turning the switch off cancels them.
         </Text>
@@ -363,7 +370,7 @@ export default function Settings() {
             {savingPassword ? "Saving…" : "Save"}
           </Button>
         </View>
-        <Text className="mt-2 text-[12px] text-chalk-faint">
+        <Text className="mt-2 text-[12px] text-chalk-mute">
           At least {MIN_PASSWORD_LENGTH} characters. Set one here if your account was created before passwords, or to
           change the one you have.
         </Text>
@@ -381,7 +388,7 @@ export default function Settings() {
           sub="Opens the App Store, where you can change plan or cancel"
           onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {})}
         />
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
           Purchases go through your Apple ID, so cancelling happens there — the same few taps as subscribing. Access
           continues until the end of the period you already paid for.
         </Text>
@@ -394,7 +401,7 @@ export default function Settings() {
           sub={APP.supportEmail}
           onPress={() => Linking.openURL(`mailto:${APP.supportEmail}`).catch(() => {})}
         />
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-faint">
+        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
           Your data is stored with Supabase, our database provider, and scoped to your account. The Privacy Policy above
           has the details.
         </Text>
@@ -413,7 +420,7 @@ export default function Settings() {
         </View>
       </Section>
 
-      <Text className="mt-8 text-[12px] text-chalk-faint">
+      <Text className="mt-8 text-[12px] text-chalk-mute">
         {APP.name} v{APP.version}
       </Text>
     </ScrollView>

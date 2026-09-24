@@ -24,7 +24,8 @@ import { RollingCount } from "~/features/streak/RollingCount";
 import { DayDot } from "~/features/streak/DayDot";
 
 const INK = "#0A0A0A";
-const FAINT = "#AEAEB4";
+/** chalk-faint: the zero count is large text, where 3:1 is the bar. */
+const FAINT = "#8A8A8F";
 
 export default function StreakDetail() {
   const insets = useSafeAreaInsets();
@@ -151,7 +152,7 @@ export default function StreakDetail() {
                     style={{
                       fontSize: m >= 100 ? 10.5 : 12.5,
                       fontWeight: "700",
-                      color: reached ? "#FFFFFF" : isNext ? INK : "#8E8E93",
+                      color: reached ? "#FFFFFF" : isNext ? INK : "#6E6E73",
                       fontVariant: ["tabular-nums"],
                     }}
                   >

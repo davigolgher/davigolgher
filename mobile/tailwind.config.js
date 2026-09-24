@@ -22,11 +22,15 @@ module.exports = {
           700: "#E7E7E9",
           600: "#D6D6DA",
         },
+        // Contrast on white (WCAG): chalk 19.4:1, soft 10.4:1, mute 5.1:1 —
+        // every size of text passes AA from mute up. faint is 3.4:1: enough for
+        // large text, icons and placeholders, not for small text, so small text
+        // never uses it. (mute was #8E8E93 at 3.3:1 and faint #AEAEB4 at 2.2:1.)
         chalk: {
           DEFAULT: "#0A0A0A",
           soft: "#3F3F46",
-          mute: "#8E8E93",
-          faint: "#AEAEB4",
+          mute: "#6E6E73",
+          faint: "#8A8A8F",
         },
         line: {
           DEFAULT: "rgba(0,0,0,0.10)",

@@ -69,7 +69,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 /* ── Text bits ───────────────────────────────────────────────────────────── */
 
 export function Eyebrow({ children }: { children: ReactNode }) {
-  return <Text className="text-eyebrow uppercase text-chalk-faint">{children}</Text>;
+  return <Text className="text-eyebrow uppercase text-chalk-mute">{children}</Text>;
 }
 
 export function Pill({ children }: { children: ReactNode }) {
@@ -187,7 +187,7 @@ export function Input({
     >
       {leading}
       <TextInput
-        placeholderTextColor="#AEAEB4"
+        placeholderTextColor="#8A8A8F"
         {...props}
         onFocus={(e) => {
           setFocused(true);
