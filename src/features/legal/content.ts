@@ -20,6 +20,8 @@ export interface Section {
 }
 
 const N = APP.name;
+/** The one address that's read. The legal@ / ai@ addresses these pages used to name don't exist. */
+const CONTACT = APP.supportEmail;
 
 export const TERMS: Section[] = [
   { heading: "1. Acceptance", body: [`By creating an account or using ${N} ("the app"), you agree to these Terms. If you do not agree, do not use the app.`] },
@@ -62,13 +64,13 @@ export const TERMS: Section[] = [
     bullets: [
       "Class-action waiver: disputes will be brought only in an individual capacity — not as a plaintiff or class member in any class, consolidated, or representative action.",
       "Jury-trial waiver: you and we waive any right to a jury trial.",
-      `30-day opt-out: you may reject this arbitration agreement by emailing legal@${(N.toLowerCase().replace(/\s+/g, ""))}.app within 30 days of first accepting these Terms.`,
+      `30-day opt-out: you may reject this arbitration agreement by emailing ${CONTACT} within 30 days of first accepting these Terms.`,
     ],
   },
   { heading: "13. Governing law", body: ["These Terms are governed by the laws of the state/country you designate for your business, without regard to conflict-of-laws rules, and subject to the arbitration section above."] },
   { heading: "14. Changes", body: ["We may update these Terms; material changes will be notified in the app. Continued use after changes take effect means you accept them."] },
   { heading: "15. Termination", body: ["You may stop using the app and delete your account at any time. We may suspend or end access for violations of these Terms or where required by law."] },
-  { heading: "16. Contact", body: [`Questions? Contact legal@${(N.toLowerCase().replace(/\s+/g, ""))}.app.`] },
+  { heading: "16. Contact", body: [`Questions? Contact ${CONTACT}.`] },
 ];
 
 export const PRIVACY: Section[] = [
@@ -79,14 +81,14 @@ export const PRIVACY: Section[] = [
       "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
       "Usage: the calendar days you complete your daily review, stored with your account to count your streak. Opening the app isn't recorded.",
-      "Limited technical/diagnostic data needed to run and improve the app.",
+      "Technical data our hosting provider records when the app talks to our server — such as IP address and the time of the request — kept for a short period for security and troubleshooting. We don't use analytics, advertising or crash-reporting tools.",
     ],
   },
   { heading: "How we use it", bullets: ["To provide the app's features (tracking, summaries, reminders), process your subscription, support you, keep the app secure, and comply with law. We do not sell your personal data."] },
   {
     heading: "Automated processing & AI",
     body: [
-      `${N} may use automated systems and AI to categorize transactions and generate spending summaries. These process your financial data only to provide those features. They do not make legally significant decisions about you, and your data is not used to train third-party AI models without your consent. See the AI Disclosure for details.`,
+      `${N} doesn't use artificial intelligence. Totals, summaries, next charge dates and reminders are calculated by fixed rules from the entries you make. Nothing about you is decided automatically, and your data isn't used to train AI models. If that ever changes, we'll ask you first — see the AI Disclosure.`,
     ],
   },
   {
@@ -102,7 +104,7 @@ export const PRIVACY: Section[] = [
     heading: "Third-party service providers",
     body: ["We use third parties that process your data on our behalf, under contract and only as needed to run the app:"],
     bullets: [
-      "Supabase — database, authentication, and file storage (our backend/hosting provider).",
+      "Supabase — database and authentication (our backend/hosting provider).",
       "Apple — processes your subscription purchase through the App Store; we never receive your card details.",
       "RevenueCat — records which subscription you hold so the app can unlock; it does not receive payment details.",
       "Legal/safety: disclosed when required by law or to protect rights and safety.",
@@ -112,33 +114,43 @@ export const PRIVACY: Section[] = [
   {
     heading: "Your rights",
     bullets: [
-      "Access and export your data.",
+      `See all of your data in the app, and ask us for a copy of it by emailing ${CONTACT}.`,
       "Delete your account and data at any time from Settings > Delete account.",
       "Depending on where you live (e.g. GDPR/CCPA), you may have additional rights to correct, restrict, or object; contact us to exercise them.",
     ],
   },
-  { heading: "Data retention", body: ["We keep your data while your account is active. Deleting your account from Settings removes your rows from the database and your files from storage; backups are purged on a rolling schedule."] },
+  { heading: "Data retention", body: ["We keep your data while your account is active. Deleting your account from Settings deletes the account and every record it holds from our database straight away; our hosting provider's backups expire on a rolling schedule."] },
   { heading: "Children", body: [`${N} is not directed to children under 13 (or the minimum age in your region) and we do not knowingly collect their data.`] },
   { heading: "Changes", body: ["We may update this policy; material changes will be notified in the app."] },
   { heading: "Contact", body: [`Privacy questions? Email ${APP.supportEmail}.`] },
 ];
 
 export const AI: Section[] = [
-  { heading: "Why you're seeing this", body: [`${N} may use automated and AI systems for some features. In line with FTC guidance, we tell you clearly where AI is involved and what it can and cannot do.`] },
   {
-    heading: "Where AI is used",
-    bullets: [
-      "Suggesting a category for a transaction.",
-      "Generating summaries and insights about your spending.",
-      "Any recommendation or \"picked for you\" content is algorithmic, not a personalized professional opinion.",
+    heading: "In short",
+    body: [
+      `${N} doesn't use artificial intelligence (AI). Every category is one you chose, and nothing is guessed for you. In line with FTC guidance we say so plainly, rather than leave you to guess what is automated and what isn't.`,
     ],
   },
-  { heading: "AI output can be wrong", body: ["Automated results may be inaccurate, incomplete, or out of date. Review anything important and correct it — you are always in control of your records."] },
-  { heading: "Not professional advice", body: ["AI features are for organization and information only. They are not financial, investment, tax, legal, or medical advice."] },
-  { heading: "Safety", body: [`${N} has no chat or conversational AI. If we ever add one, messages that indicate self-harm or crisis will be met with support resources (such as a crisis hotline) and will not be handled as ordinary requests.`] },
-  { heading: "Human control", body: ["You can edit, override, or delete any AI-suggested value. We do not make solely-automated decisions that would have legal or similarly significant effects on you."] },
-  { heading: "Your data & AI", body: ["Your financial data is used to power features for you. We do not sell it and do not use it to train third-party AI models without your consent."] },
-  { heading: "Questions", body: [`Contact ai@${(N.toLowerCase().replace(/\s+/g, ""))}.app.`] },
+  {
+    heading: "What is automated",
+    body: ["A few things are calculated for you, by fixed rules that give the same answer every time:"],
+    bullets: [
+      "Totals, percentages, charts and month-to-month comparisons.",
+      "Each subscription's next charge date, and the renewal reminders built from it.",
+      "Your streak, counted from the days you complete the daily review.",
+    ],
+  },
+  { heading: "It can still be wrong", body: ["A calculation is only as good as the entries behind it. Check anything important — you can edit or delete any entry at any time."] },
+  { heading: "Not professional advice", body: [`${N} is for organizing your own records. It is not financial, investment, tax or legal advice.`] },
+  {
+    heading: "If we add AI",
+    body: [
+      "We'll update this page and tell you in the app before any AI feature is switched on. If a feature would send your data to an outside AI provider, we'll name the provider and ask for your permission first — nothing is sent until you agree, and you can say no and keep using the app.",
+    ],
+  },
+  { heading: "Your data", body: ["We don't sell your data and don't use it to train AI models."] },
+  { heading: "Questions", body: [`Contact ${CONTACT}.`] },
 ];
 
 export interface NutritionGroup {
@@ -148,8 +160,18 @@ export interface NutritionGroup {
 }
 export const NUTRITION: NutritionGroup[] = [
   { title: "Data used to track you", note: "Used to track you across other companies' apps and sites.", items: ["None"] },
-  { title: "Data linked to you", note: "May be linked to your identity.", items: ["Contact Info — email address", "Financial Info — expenses, income, subscriptions, budgets", "User Content — notes and category names", "Usage Data — days you completed your daily review, for your streak"] },
-  { title: "Data not linked to you", note: "Not linked to your identity.", items: ["Diagnostics — basic crash/usage data (if enabled)"] },
+  {
+    title: "Data linked to you",
+    note: "May be linked to your identity. Used only to run the app for you.",
+    items: [
+      "Contact Info — email address",
+      "Identifiers — your account ID",
+      "Financial Info — expenses, income, subscriptions, budgets",
+      "User Content — descriptions, notes and category names",
+      "Usage Data — days you completed your daily review, for your streak",
+    ],
+  },
+  { title: "Data not linked to you", note: "Not linked to your identity.", items: ["None"] },
 ];
 
 export const LEGAL_TITLES: Record<LegalDocId, string> = {
