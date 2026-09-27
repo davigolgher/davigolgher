@@ -15,9 +15,12 @@ in this order:
 
 They are the app's real screens (this version of the code), filled with
 **fictitious data** and generic names — no real brands, since a third-party
-name in a screenshot can be read as an endorsement. The status bar and the
-phone outline are drawn around them; the captions are in English, the listing's
-primary language.
+name in a screenshot can be read as an endorsement. Around them: an iPhone 16
+Pro outline with the Dynamic Island, the iOS status bar (9:41, signal, Wi-Fi,
+full battery), and the three screens that open over the app — Add expense, Your
+streak, Review my day — shown as iOS presents them, as a sheet with the screen
+behind peeking at the top. The captions are in English, the listing's primary
+language.
 
 The screens were rendered from the app's web build with the Inter font, the
 closest open font to iOS's own. If you'd rather have pixel-for-pixel iPhone
