@@ -24,7 +24,13 @@ const N = APP.name;
 const CONTACT = APP.supportEmail;
 
 export const TERMS: Section[] = [
-  { heading: "1. Acceptance", body: [`By creating an account or using ${N} ("the app"), you agree to these Terms. If you do not agree, do not use the app.`] },
+  {
+    heading: "1. Acceptance",
+    body: [
+      `By creating an account or using ${N} ("the app"), you agree to these Terms. If you do not agree, do not use the app.`,
+      "If you got the app from Apple's App Store, Apple's Licensed Application End User License Agreement (https://www.apple.com/legal/internet-services/itunes/appstore/dev/stdeula/) also applies to your use of it.",
+    ],
+  },
   { heading: "2. Eligibility", body: ["You must be at least 18 years old, or the age of majority where you live, and able to form a binding contract."] },
   { heading: "3. The service", body: [`${N} helps you record expenses and subscriptions and see summaries of them. It is an organizational tool for your personal use and does not provide financial, tax, accounting, or investment advice.`] },
   { heading: "4. Your account", body: ["You are responsible for the activity on your account and for keeping your credentials secure. You may delete your account at any time from Settings; deletion removes your data as described in the Privacy Policy."] },

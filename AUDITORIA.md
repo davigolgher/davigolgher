@@ -243,7 +243,7 @@ Tipos: **B** = bloqueio · **R** = risco de rejeição · **D** = defeito funcio
 
 | Prio. | Problema | Evidência | Onde | Requisito | Correção | Status |
 |---|---|---|---|---|---|---|
-| B1 | Paywall obrigatório sem compra funcionando em Release | [I] `canSkip` só em `__DEV__`; sem `react-native-purchases` | `features/useEntitlement.ts:91`, `lib/purchases.ts`, `app/_layout.tsx` | 2.1(a)(b), 3.1.1 | Integrar IAP ou lançar gratuito | **Pendente (decisão sua)** |
+| B1 | Paywall obrigatório sem compra funcionando em Release | [I] `canSkip` só em `__DEV__`; sem `react-native-purchases` | `features/useEntitlement.ts:91`, `lib/purchases.ts`, `app/_layout.tsx` | 2.1(a)(b), 3.1.1 | Decisão (27/09): grátis para baixar, assinatura obrigatória. Compra integrada via RevenueCat (`a60d63a`) | **Código pronto; falta configurar Apple e RevenueCat** |
 | B2 | Build de produção sem variáveis do Supabase rodava sem conta, sem avisar | [I] + `expo export` | `app/_layout.tsx`, `mobile/eas.json` | 2.1(a) | Tela de erro, `eas.json` e README | Corrigido (falta criar as variáveis no EAS) |
 | B3 | Sem conta demo, ficha, screenshots; URLs não verificadas | — | App Store Connect | 2.1(a), 5.1.1(i) | Criar e conferir | **Pendente** |
 | R1 | Texto provisório na lei aplicável; arbitragem AAA para consumidor brasileiro | [I] | `features/legal/content.ts` (Termos §12–13) | 2.1(a) | Definir com advogado | **Pendente** |
@@ -327,17 +327,14 @@ Os testes de lembretes comparavam datas em UTC e por isso falhavam em UTC+14 (Ki
 
 ## Pendências que dependem de você (em ordem)
 
-1. **Decidir a monetização (B1).**
-   - (A) **IAP agora:**
-     - Entrar no Apple Developer Program e aceitar o contrato de apps pagos (dados fiscais e bancários).
-     - Criar 2 assinaturas num grupo, com período de teste gratuito.
-     - Configurar o RevenueCat (projeto, entitlement `pro`, offering).
-     - Me passar a chave pública do iOS para eu integrar o `react-native-purchases`.
-     - Publicar o `revenuecat-webhook` com o segredo.
-   - (B) **Lançar gratuito primeiro:** me peça e eu tiro o paywall do fluxo.
+1. **Assinatura (B1).** Decidido em 27/09: grátis para baixar, assinatura obrigatória. O código da compra já está no app (`a60d63a`). Falta, fora do código (passos em `mobile/README.md` → Subscriptions):
+   - Entrar no Apple Developer Program e aceitar o contrato de apps pagos (dados fiscais e bancários).
+   - Criar 2 assinaturas num grupo, com o período de teste gratuito se quiser um.
+   - Configurar o RevenueCat (projeto, entitlement `pro`, offering com Monthly e Annual) e pôr a chave pública do iOS no EAS.
+   - Criar o segredo do webhook no Supabase; aí eu publico o `revenuecat-webhook`.
 2. **Conta de desenvolvedor:** pessoa física ou organização (R7). Trader status, se for distribuir na UE.
 3. **EAS:**
-   - Rode `eas env:create` com a URL e a anon key (comandos no `mobile/README.md`).
+   - Rode `eas env:create` com a URL, a anon key e a chave do RevenueCat (comandos no `mobile/README.md`).
    - Rode `eas build --profile production`. Confira no log que o Xcode é o 26 e o SDK é o iOS 26.
    - Veja se o upload traz avisos ITMS.
 4. **Jurídico:**

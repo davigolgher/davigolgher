@@ -91,6 +91,43 @@ Provide and verify **trader status** in App Store Connect (required to distribut
 ### 7. Store metadata & assets
 1024×1024 app icon (no alpha), device screenshots, description, keywords, subtitle, **support URL** and **privacy policy URL** (host the in-app policy publicly too), category, and — for auto-renewable subscriptions — the required subscription info and a link to the Terms of Use (EULA) in the description.
 
+### 7b. Store listing — draft (English)
+
+The app's screens are in English (the streak switches to Portuguese on a phone set to Portuguese), so the listing's primary language is English. Counts are within App Store Connect's limits.
+
+- **Name** (30 max): `Flow: Expense Tracker` — "Flow" alone is likely taken; the name must be unique on the store.
+- **Subtitle** (30 max): `Budget, bills & subscriptions`
+- **Keywords** (100 bytes max, no spaces, none repeated from the name or subtitle): `spending,money,finance,savings,income,monthly,planner,renewal,reminder,habit,report,wallet`
+- **Promotional text** (170 max): `Write down what you spend, see where it goes, and never miss a renewal.`
+- **Category**: Finance.
+- **License Agreement**: leave Apple's standard EULA; its link goes in the description, below.
+
+**Description:**
+
+```
+Flow is a calm, simple way to keep track of your money.
+
+Write down what you spend and earn in seconds, set a monthly budget, and see at a glance how much is left. Keep every subscription in one place, with a reminder before each renewal. Monthly reports show where your money goes, by category and over time.
+
+• Expenses and income in two taps
+• A monthly budget, with what's left to spend
+• Every subscription in one place, with renewal reminders
+• Category and month-by-month reports
+• A daily review streak that builds the habit — no spending required
+• Synced to your account and private by design: no ads, no tracking, no bank connection
+
+Flow doesn't connect to your bank or move money. You write down what matters; Flow does the math.
+
+SUBSCRIPTION
+Flow is free to download. Using it requires a Flow Pro subscription, billed monthly or yearly through your Apple ID[, with a free trial for new subscribers]. It renews automatically unless cancelled at least 24 hours before the end of the current period, and your account is charged for the renewal within the 24 hours before it ends. Manage or cancel it at any time in your Apple ID's subscription settings. [If there's a free trial: Any unused part of the free trial is forfeited when you buy a subscription.]
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/appstore/dev/stdeula/
+Terms of Service: https://davigolgher-lmhg.vercel.app/terms
+Privacy Policy: https://davigolgher-lmhg.vercel.app/privacy
+```
+
+Fill or delete the two bracketed parts to match the products you create, and check that both site links open before submitting.
+
 ### 8. TestFlight (beta) → release
 Set up App Store Connect, answer **export-compliance** questions, add **beta app description** and **test information** (contact + notes), invite testers, then submit the build for App Review and release.
 
