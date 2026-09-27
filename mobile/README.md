@@ -78,7 +78,13 @@ What has to exist outside the code, in this order:
 2. **App Store Connect → your app → Subscriptions**: one group (e.g. "Flow
    Pro") with two auto-renewable subscriptions, monthly and yearly. Each needs a
    price, a display name and description, and a review screenshot of the
-   paywall. A free trial is an **introductory offer** on each one.
+   paywall. The **14-day free trial** is an introductory offer on each one:
+   Subscription Prices → Introductory Offers → type *Free*, duration *2
+   weeks*, for new subscribers. The paywall reads it from the store and shows
+   "Start 14-day free trial" by itself — nothing to change in the code.
+   Price the yearly plan clearly below twelve months of the monthly one: the
+   paywall then works out the saving ("Save 44%", "5 months free") from the
+   real prices in each country.
 3. **RevenueCat**: a project with the App Store app (bundle id
    `com.davigolgher.flow`) and its In-App Purchase key, both products imported,
    an entitlement called **`pro`** containing both, and the **current offering**

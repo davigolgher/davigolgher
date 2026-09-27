@@ -329,7 +329,7 @@ Os testes de lembretes comparavam datas em UTC e por isso falhavam em UTC+14 (Ki
 
 1. **Assinatura (B1).** Decidido em 27/09: grátis para baixar, assinatura obrigatória. O código da compra já está no app (`a60d63a`). Falta, fora do código (passos em `mobile/README.md` → Subscriptions):
    - Entrar no Apple Developer Program e aceitar o contrato de apps pagos (dados fiscais e bancários).
-   - Criar 2 assinaturas num grupo, com o período de teste gratuito se quiser um.
+   - Criar 2 assinaturas num grupo, cada uma com a oferta introdutória de 14 dias grátis ("Free", 2 semanas).
    - Configurar o RevenueCat (projeto, entitlement `pro`, offering com Monthly e Annual) e pôr a chave pública do iOS no EAS.
    - Criar o segredo do webhook no Supabase; aí eu publico o `revenuecat-webhook`.
 2. **Conta de desenvolvedor:** pessoa física ou organização (R7). Trader status, se for distribuir na UE.
@@ -392,7 +392,8 @@ Email confirmation is off, so a new account can also be created in the app.
 
 SUBSCRIPTION
 After sign-in and a two-screen introduction, a paywall offers
-[MONTHLY_PRODUCT_ID] and [YEARLY_PRODUCT_ID] ([TRIAL_LENGTH] free trial).
+[MONTHLY_PRODUCT_ID] and [YEARLY_PRODUCT_ID], each with a 14-day free trial
+for new subscribers.
 Prices come from StoreKit. "Restore purchases" is on the same screen;
 "Manage subscription" is in Settings.
 [IF LAUNCHING FREE: replace this section with "There are no in-app purchases."]

@@ -17,6 +17,7 @@ import { APP } from "@/config/app";
 import type { LegalDocId } from "@/features/legal/content";
 import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
+import { monthsFreeOnYearly, yearlySavingsPercent } from "~/lib/purchasesFormat";
 import { Button, FadeIn } from "~/components/ui";
 import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
@@ -65,6 +66,15 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
   }, []);
 
   const plan = plans?.find((p) => p.id === selected) ?? null;
+
+  // The case for the yearly plan, made with the store's real prices: it's
+  // preselected, and the saving is stated plainly. Nothing is hidden or
+  // guilt-tripped; Apple rejects manipulative paywalls, and the numbers make
+  // the argument on their own.
+  const monthlyAmount = plans?.find((p) => p.id === "monthly")?.amount;
+  const yearlyAmount = plans?.find((p) => p.id === "yearly")?.amount;
+  const savings = yearlySavingsPercent(monthlyAmount, yearlyAmount);
+  const freeMonths = monthsFreeOnYearly(monthlyAmount, yearlyAmount);
 
   const buy = async () => {
     setBusy(true);
@@ -140,12 +150,37 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
                   }`}
                 >
                   <View className="min-w-0 flex-1">
-                    <Text className="text-[15px] font-semibold text-chalk">{label}</Text>
-                    <Text className="mt-0.5 text-[13px] text-chalk-mute">
-                      {offer
-                        ? `${offer.trialDays > 0 ? `${offer.trialDays}-day free trial, then ` : ""}${offer.price} / ${offer.period}`
-                        : "Price set by the App Store"}
-                    </Text>
+                    <View className="flex-row flex-wrap items-center gap-2">
+                      <Text className="text-[15px] font-semibold text-chalk">{label}</Text>
+                      {id === "yearly" && savings ? (
+                        <View className="rounded-pill bg-chalk px-2 py-0.5">
+                          <Text className="text-[11px] font-bold uppercase tracking-wide text-ink-950">
+                            Best value · Save {savings}%
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    {offer ? (
+                      <>
+                        {/* What's charged is the most prominent price; the per-month
+                            figure is a comparison, so it's smaller and lighter. */}
+                        <Text className="mt-1 text-[14px] font-semibold text-chalk">
+                          {offer.price} / {offer.period}
+                        </Text>
+                        {offer.trialDays > 0 || offer.perMonth ? (
+                          <Text className="mt-0.5 text-[12px] text-chalk-mute">
+                            {[
+                              offer.trialDays > 0 ? `${offer.trialDays} days free, then billed ${offer.period === "year" ? "yearly" : "monthly"}` : null,
+                              offer.perMonth ? `${offer.perMonth} a month` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </Text>
+                        ) : null}
+                      </>
+                    ) : (
+                      <Text className="mt-0.5 text-[13px] text-chalk-mute">Price set by the App Store</Text>
+                    )}
                   </View>
                   <View
                     className={`h-5 w-5 items-center justify-center rounded-full border ${
@@ -158,6 +193,22 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
               );
             })}
           </View>
+
+          {/* Only on Monthly, only with real numbers: the difference, once, and
+              an easy way back. No hidden option and no guilt-tripping copy. */}
+          {selected === "monthly" && freeMonths ? (
+            <Pressable
+              onPress={() => setSelected("yearly")}
+              accessibilityRole="button"
+              hitSlop={8}
+              className="mt-3 self-center px-2 py-2 active:opacity-60"
+            >
+              <Text className="text-center text-[13px] text-chalk-soft">
+                Yearly works out to <Text className="font-semibold text-chalk">{freeMonths} months free</Text>.{" "}
+                <Text className="font-semibold text-chalk underline">Switch to Yearly</Text>
+              </Text>
+            </Pressable>
+          ) : null}
         </FadeIn>
 
         <FadeIn className="mt-6 gap-3" delay={180}>
@@ -183,7 +234,7 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
             {plan ? (
               <>
                 {plan.trialDays > 0
-                  ? `Your ${plan.trialDays}-day free trial is free; after it ends the subscription costs ${plan.price} per ${plan.period}. `
+                  ? `The first ${plan.trialDays} days are free; after that, the subscription costs ${plan.price} per ${plan.period}. `
                   : `The subscription costs ${plan.price} per ${plan.period}. `}
                 It renews automatically at {plan.price} per {plan.period} unless cancelled at least 24 hours before the
                 current period ends. Payment is charged to your Apple ID at confirmation of purchase. Manage or cancel

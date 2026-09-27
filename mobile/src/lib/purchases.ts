@@ -34,6 +34,10 @@ export interface Plan {
   id: PlanId;
   /** Localized price as the store formats it, e.g. "US$4.99" or "R$ 24,90". */
   price: string;
+  /** The same price as a number, in the storefront's currency — for comparing plans only. */
+  amount: number;
+  /** For the yearly plan, the store's own per-month figure ("R$ 16,66"); null otherwise. */
+  perMonth: string | null;
   /** Localized period, e.g. "month". */
   period: string;
   /** Free trial length in days, 0 when there's no trial this person can still use. */
@@ -149,6 +153,8 @@ class RevenueCatPurchases implements Purchases {
       return {
         id,
         price: p.priceString,
+        amount: p.price,
+        perMonth: id === "yearly" ? (p.pricePerMonthString ?? null) : null,
         period: periodLabel(p.subscriptionPeriod) ?? (id === "yearly" ? "year" : "month"),
         trialDays: canTrial ? trialDays(p.introPrice) : 0,
         productId: p.identifier,

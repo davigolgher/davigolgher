@@ -119,14 +119,14 @@ Write down what you spend and earn in seconds, set a monthly budget, and see at 
 Flow doesn't connect to your bank or move money. You write down what matters; Flow does the math.
 
 SUBSCRIPTION
-Flow is free to download. Using it requires a Flow Pro subscription, billed monthly or yearly through your Apple ID[, with a free trial for new subscribers]. It renews automatically unless cancelled at least 24 hours before the end of the current period, and your account is charged for the renewal within the 24 hours before it ends. Manage or cancel it at any time in your Apple ID's subscription settings. [If there's a free trial: Any unused part of the free trial is forfeited when you buy a subscription.]
+Flow is free to download. Using it requires a Flow Pro subscription, billed monthly or yearly through your Apple ID, with a 14-day free trial for new subscribers. It renews automatically unless cancelled at least 24 hours before the end of the current period, and your account is charged for the renewal within the 24 hours before it ends. Manage or cancel it at any time in your Apple ID's subscription settings. Any unused part of the free trial is forfeited when you buy a subscription.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/appstore/dev/stdeula/
 Terms of Service: https://davigolgher-lmhg.vercel.app/terms
 Privacy Policy: https://davigolgher-lmhg.vercel.app/privacy
 ```
 
-Fill or delete the two bracketed parts to match the products you create, and check that both site links open before submitting.
+Keep the trial sentence only while the 14-day offer is set on the products, and check that both site links open before submitting.
 
 ### 8. TestFlight (beta) → release
 Set up App Store Connect, answer **export-compliance** questions, add **beta app description** and **test information** (contact + notes), invite testers, then submit the build for App Review and release.

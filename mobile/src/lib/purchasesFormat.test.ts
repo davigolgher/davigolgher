@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasEntitlement, periodLabel, trialDays } from "./purchasesFormat";
+import { hasEntitlement, monthsFreeOnYearly, periodLabel, trialDays, yearlySavingsPercent } from "./purchasesFormat";
 
 describe("purchase wording", () => {
   it("names a single period without its number", () => {
@@ -30,5 +30,23 @@ describe("purchase wording", () => {
     expect(hasEntitlement({ entitlements: { active: {} } })).toBe(false);
     expect(hasEntitlement({ entitlements: { active: { other: {} } } })).toBe(false);
     expect(hasEntitlement(null)).toBe(false);
+  });
+});
+
+describe("yearly plan, in honest numbers", () => {
+  it("computes the saving from the store's prices, rounded down", () => {
+    // R$ 29,90 a month is R$ 358,80 a year; R$ 199,90 is 44.28% less.
+    expect(yearlySavingsPercent(29.9, 199.9)).toBe(44);
+    expect(monthsFreeOnYearly(29.9, 199.9)).toBe(5);
+    expect(yearlySavingsPercent(4.99, 39.99)).toBe(33);
+    expect(monthsFreeOnYearly(4.99, 39.99)).toBe(3);
+  });
+
+  it("claims nothing when yearly isn't cheaper or a price is missing", () => {
+    expect(yearlySavingsPercent(10, 120)).toBeNull();
+    expect(yearlySavingsPercent(10, 130)).toBeNull();
+    expect(monthsFreeOnYearly(10, 115)).toBeNull();
+    expect(yearlySavingsPercent(null, 99)).toBeNull();
+    expect(monthsFreeOnYearly(9.99, undefined)).toBeNull();
   });
 });

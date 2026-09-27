@@ -53,3 +53,25 @@ export function trialDays(intro: IntroLike | null | undefined): number {
 export function hasEntitlement(info: { entitlements: { active: Record<string, unknown> } } | null | undefined): boolean {
   return Boolean(info?.entitlements.active[ENTITLEMENT]);
 }
+
+/**
+ * How much less a year costs on the yearly plan than twelve monthly payments,
+ * in whole percent, from the store's own prices in the person's currency.
+ * Rounded down, so the badge never promises more than the real saving. Null
+ * when a price is missing or yearly isn't actually cheaper.
+ */
+export function yearlySavingsPercent(monthly: number | null | undefined, yearly: number | null | undefined): number | null {
+  if (!monthly || !yearly || monthly <= 0 || yearly <= 0) return null;
+  const pct = Math.floor((1 - yearly / (monthly * 12)) * 100);
+  return pct >= 1 ? pct : null;
+}
+
+/**
+ * The same saving counted in months: twelve months on the yearly plan cost
+ * what this many fewer months of the monthly plan would. Rounded down.
+ */
+export function monthsFreeOnYearly(monthly: number | null | undefined, yearly: number | null | undefined): number | null {
+  if (!monthly || !yearly || monthly <= 0 || yearly <= 0) return null;
+  const n = Math.floor(12 - yearly / monthly);
+  return n >= 1 ? n : null;
+}
