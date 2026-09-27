@@ -112,7 +112,7 @@ class ExamplePrices extends Unavailable {
     return [
       // The planned US prices (see mobile/README.md → Subscriptions).
       { id: "monthly", price: "$8.99", amount: 8.99, perMonth: null, period: "month", trialDays: 14, productId: "example.monthly" },
-      { id: "yearly", price: "$59.99", amount: 59.99, perMonth: "$5.00", period: "year", trialDays: 14, productId: "example.yearly" },
+      { id: "yearly", price: "$69.99", amount: 69.99, perMonth: "$5.83", period: "year", trialDays: 14, productId: "example.yearly" },
     ];
   }
 }

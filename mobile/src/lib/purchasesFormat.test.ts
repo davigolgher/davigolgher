@@ -40,9 +40,10 @@ describe("yearly plan, in honest numbers", () => {
     expect(monthsFreeOnYearly(29.9, 199.9)).toBe(5);
     expect(yearlySavingsPercent(4.99, 39.99)).toBe(33);
     expect(monthsFreeOnYearly(4.99, 39.99)).toBe(3);
-    // Flow's planned prices: US$ 8.99 a month, US$ 59.99 a year (107.88 → 44.39% less).
-    expect(yearlySavingsPercent(8.99, 59.99)).toBe(44);
-    expect(monthsFreeOnYearly(8.99, 59.99)).toBe(5);
+    // Flow's planned prices: US$ 8.99 a month, US$ 69.99 a year (107.88 → 35.12% less,
+    // 12 months for the price of 7.8 → 4 months free).
+    expect(yearlySavingsPercent(8.99, 69.99)).toBe(35);
+    expect(monthsFreeOnYearly(8.99, 69.99)).toBe(4);
   });
 
   it("claims nothing when yearly isn't cheaper or a price is missing", () => {
