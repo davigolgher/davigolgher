@@ -29,3 +29,12 @@ same size, same order.
 
 When the app's screens change, the screenshots have to change with them:
 App Review checks that they show the app as it is.
+
+## Subscription review screenshot — `iap-review/paywall.png`
+
+App Store Connect asks for a screenshot of the purchase screen on each
+subscription (the product → Review Information → Screenshot). It's seen only by
+App Review, never on the store. This one is the paywall as a release build
+shows it, with the planned prices — US$ 8.99 a month, US$ 74.99 a year, 14 days
+free — at 1320 × 2868. Use the same image for both subscriptions. If the prices
+change, it should be taken again so it matches what the reviewer will see.
