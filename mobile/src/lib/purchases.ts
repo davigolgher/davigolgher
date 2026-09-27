@@ -2,21 +2,31 @@
  * Subscriptions, behind one seam.
  *
  * Purchases go through Apple In-App Purchase (Guideline 3.1.1 leaves no choice
- * for a digital subscription consumed in the app), wrapped by RevenueCat. That
- * means `react-native-purchases`, which is **not** bundled in Expo Go — adding
- * it would end testing over a QR code and force a development build for every
- * change.
+ * for a digital subscription consumed in the app), wrapped by RevenueCat
+ * (`react-native-purchases`).
  *
- * So the store is reached through this adapter instead. Today it reports itself
- * unavailable; wiring RevenueCat is the `loadNativePurchases` function below and
- * nothing else. Everything on top — the paywall, the gate, the entitlement
- * check — is finished and will not need revisiting.
+ * Which adapter runs:
+ *   - a real build (TestFlight, App Store, a development build) with
+ *     EXPO_PUBLIC_REVENUECAT_IOS_KEY set → RevenueCat, real StoreKit;
+ *   - Expo Go, the web preview, or no key → `Unavailable`: no prices, and in
+ *     development only, a way past the paywall. The SDK has a mock mode for
+ *     Expo Go, but a paywall selling pretend products would make testing
+ *     there look like something it isn't.
  *
  * Prices are deliberately not hard-coded anywhere. App Review requires the price
  * and period shown at the point of purchase to be the storefront's own, which
- * only StoreKit can supply, so a release build without the native module shows
- * no prices at all rather than plausible-looking fiction.
+ * only StoreKit can supply, so a release build without the store shows no
+ * prices at all rather than plausible-looking fiction.
  */
+import { Platform } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import RevenueCat, {
+  INTRO_ELIGIBILITY_STATUS,
+  PURCHASES_ERROR_CODE,
+  type PurchasesError,
+  type PurchasesPackage,
+} from "react-native-purchases";
+import { hasEntitlement, periodLabel, trialDays } from "./purchasesFormat";
 
 export type PlanId = "monthly" | "yearly";
 
@@ -26,7 +36,7 @@ export interface Plan {
   price: string;
   /** Localized period, e.g. "month". */
   period: string;
-  /** Free trial length in days, 0 when the product has no intro offer. */
+  /** Free trial length in days, 0 when there's no trial this person can still use. */
   trialDays: number;
   /** Store product identifier, for support and debugging. */
   productId: string;
@@ -35,11 +45,23 @@ export interface Plan {
 export interface PurchaseResult {
   /** True when the user now holds the entitlement. */
   entitled: boolean;
+  /** The person closed Apple's purchase sheet. Not an error; say nothing. */
+  cancelled?: boolean;
+  /** Waiting on approval (Ask to Buy, or a bank step). Access comes when it clears. */
+  pending?: boolean;
 }
 
 export interface Purchases {
-  /** False when the native module isn't present (Expo Go) or isn't configured. */
+  /** False when the store can't be reached from this build (Expo Go, no key). */
   readonly available: boolean;
+  /**
+   * Tie purchases to the signed-in account — or to no one, on sign-out.
+   *
+   * The store's customer id becomes the Supabase user id, which is what lets
+   * the RevenueCat webhook write the right `billing` row, and what makes a
+   * subscription follow the account to another device.
+   */
+  identify(userId: string | null): Promise<void>;
   /** Plans as the store describes them. Empty when unavailable. */
   getPlans(): Promise<Plan[]>;
   purchase(plan: PlanId): Promise<PurchaseResult>;
@@ -52,16 +74,18 @@ export interface Purchases {
 class Unavailable implements Purchases {
   readonly available = false;
 
+  async identify(): Promise<void> {}
+
   async getPlans(): Promise<Plan[]> {
     return [];
   }
 
   async purchase(): Promise<PurchaseResult> {
-    throw new Error("In-app purchases need a native build — they aren't available in Expo Go.");
+    throw new Error("In-app purchases need a build from EAS — they aren't available in Expo Go.");
   }
 
   async restore(): Promise<PurchaseResult> {
-    throw new Error("Restoring purchases needs a native build — it isn't available in Expo Go.");
+    throw new Error("Restoring purchases needs a build from EAS — it isn't available in Expo Go.");
   }
 
   async isEntitled(): Promise<boolean> {
@@ -69,23 +93,109 @@ class Unavailable implements Purchases {
   }
 }
 
-/**
- * Swap in RevenueCat here once `react-native-purchases` is installed and the
- * App Store Connect products exist. The rest of the app doesn't change.
- *
- *   import Purchases from "react-native-purchases";
- *   await Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY });
- *   await Purchases.logIn(supabaseUserId);   // ties the purchase to the account
- *
- * `getPlans` reads `Purchases.getOfferings()`, taking `product.priceString` and
- * the intro offer for the trial — never a literal from this repo. `isEntitled`
- * reads `customerInfo.entitlements.active["pro"]`.
- *
- * See mobile/README.md for the full setup, and `supabase/functions/
- * revenuecat-webhook` for how the entitlement reaches the database.
- */
-function loadNativePurchases(): Purchases | null {
-  return null;
+/** The offering's packages that map to our two plans. */
+const PACKAGE_FOR: Record<PlanId, "monthly" | "annual"> = { monthly: "monthly", yearly: "annual" };
+
+class RevenueCatPurchases implements Purchases {
+  readonly available = true;
+  /** Every call waits for the latest identify(), so nothing runs as the wrong account. */
+  private ready: Promise<void> = Promise.resolve();
+  private user: string | null = null;
+  private packages = new Map<PlanId, PurchasesPackage>();
+
+  constructor(apiKey: string) {
+    // Anonymous until identify() names the account; logIn then carries over
+    // anything bought in between.
+    RevenueCat.configure({ apiKey });
+  }
+
+  identify(userId: string | null): Promise<void> {
+    const run = this.ready.then(async () => {
+      if (userId === this.user) return;
+      if (userId) await RevenueCat.logIn(userId);
+      else if (!(await RevenueCat.isAnonymous())) await RevenueCat.logOut();
+      this.user = userId;
+      this.packages.clear();
+    });
+    this.ready = run.catch(() => {});
+    return run;
+  }
+
+  async getPlans(): Promise<Plan[]> {
+    await this.ready;
+    const offering = (await RevenueCat.getOfferings()).current;
+    if (!offering) return [];
+
+    const found: [PlanId, PurchasesPackage][] = [];
+    for (const id of ["monthly", "yearly"] as PlanId[]) {
+      const pkg = offering[PACKAGE_FOR[id]];
+      if (pkg) found.push([id, pkg]);
+    }
+
+    // Show a trial only to someone who can still take it. Apple gives one per
+    // subscription group; promising it to someone who's used theirs misstates
+    // what they'll be charged.
+    let eligible: Record<string, { status: INTRO_ELIGIBILITY_STATUS }> = {};
+    try {
+      eligible = await RevenueCat.checkTrialOrIntroductoryPriceEligibility(found.map(([, p]) => p.product.identifier));
+    } catch {
+      /* unknown → no trial shown; Apple's sheet still states the real terms */
+    }
+
+    this.packages = new Map(found);
+    return found.map(([id, pkg]) => {
+      const p = pkg.product;
+      const canTrial = eligible[p.identifier]?.status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE;
+      return {
+        id,
+        price: p.priceString,
+        period: periodLabel(p.subscriptionPeriod) ?? (id === "yearly" ? "year" : "month"),
+        trialDays: canTrial ? trialDays(p.introPrice) : 0,
+        productId: p.identifier,
+      };
+    });
+  }
+
+  async purchase(plan: PlanId): Promise<PurchaseResult> {
+    await this.ready;
+    if (!this.packages.has(plan)) await this.getPlans();
+    const pkg = this.packages.get(plan);
+    if (!pkg) throw new Error("This plan isn't available right now. Try again in a moment.");
+    try {
+      const { customerInfo } = await RevenueCat.purchasePackage(pkg);
+      return { entitled: hasEntitlement(customerInfo) };
+    } catch (e) {
+      const err = e as PurchasesError;
+      if (err?.userCancelled || err?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
+        return { entitled: false, cancelled: true };
+      }
+      if (err?.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return { entitled: false, pending: true };
+      throw e;
+    }
+  }
+
+  async restore(): Promise<PurchaseResult> {
+    await this.ready;
+    return { entitled: hasEntitlement(await RevenueCat.restorePurchases()) };
+  }
+
+  async isEntitled(): Promise<boolean> {
+    await this.ready;
+    return hasEntitlement(await RevenueCat.getCustomerInfo());
+  }
 }
 
-export const purchases: Purchases = loadNativePurchases() ?? new Unavailable();
+/** The public RevenueCat key for iOS ("appl_…"). Public by design, like the Supabase anon key. */
+export const REVENUECAT_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY?.trim() || null;
+
+function load(): Purchases {
+  if (Platform.OS !== "ios" || !REVENUECAT_IOS_KEY) return new Unavailable();
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return new Unavailable(); // Expo Go
+  try {
+    return new RevenueCatPurchases(REVENUECAT_IOS_KEY);
+  } catch {
+    return new Unavailable();
+  }
+}
+
+export const purchases: Purchases = load();

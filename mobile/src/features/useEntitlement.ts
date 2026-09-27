@@ -13,6 +13,7 @@
  * than being given away.
  */
 import { useCallback, useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { fetchBilling, isActive } from "@/lib/backend/billing";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { purchases } from "~/lib/purchases";
@@ -62,9 +63,20 @@ export function useEntitlement(): Entitlement {
     setLoading(true);
   }, [configured, userId]);
 
+  // A subscription can lapse or renew while the app sits in the background for
+  // days; check again whenever it comes back. In the background, like refresh.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") setTick((t) => t + 1);
+    });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     // Without a backend there's nothing to check and nothing to sell.
     if (!configured || !userId) {
+      // Nobody signed in: purchases stop belonging to the last account.
+      purchases.identify(null).catch(() => {});
       setEntitled(false);
       setLoading(false);
       return;
@@ -74,7 +86,17 @@ export function useEntitlement(): Entitlement {
 
     (async () => {
       const [fromStore, fromServer] = await Promise.all([
-        settled(purchases.isEntitled(), false),
+        // The store answers for the account only once it knows which one it is.
+        // Offline, naming the account can fail while the store's cached answer
+        // for it is still right — so ask anyway rather than lock out a
+        // subscriber who opened the app on a plane.
+        settled(
+          purchases
+            .identify(userId)
+            .catch(() => {})
+            .then(() => purchases.isEntitled()),
+          false,
+        ),
         settled(fetchBilling().then(isActive), false),
       ]);
 

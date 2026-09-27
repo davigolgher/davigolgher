@@ -59,40 +59,42 @@ Three shared modules touch browser APIs and so have native counterparts in
 
 ## Subscriptions (Apple IAP via RevenueCat)
 
-The paywall, the gate, the restore path and the entitlement check are built. What
-is missing is the native module, deliberately: `react-native-purchases` is not in
-Expo Go, so installing it ends QR-code testing and forces a development build for
-every change. Until then `src/lib/purchases.ts` reports the store unavailable, the
-paywall shows no prices, and a dev build can step past it.
+Flow is free to download and needs a subscription to use: after sign-in and the
+introduction, the paywall sells a monthly and a yearly plan through Apple
+In-App Purchase, wrapped by RevenueCat (`react-native-purchases`).
 
-To finish it, in this order:
+The app side is done: `src/lib/purchases.ts` reads the plans and prices from
+the store, buys, restores, and ties every purchase to the Supabase account
+(`logIn(userId)`), so the webhook knows whose `billing` row to write and the
+subscription follows the account to another device. It runs in any build from
+EAS that has `EXPO_PUBLIC_REVENUECAT_IOS_KEY`. Expo Go keeps working, without
+prices and with the development-only way past the paywall.
 
-1. **Apple Developer Program** (~US$99/yr), then in **App Store Connect** create
-   two auto-renewable subscriptions in one group (monthly and yearly), each with
-   the free trial as an introductory offer.
-2. **RevenueCat**: create the project, add the App Store app, upload the
-   in-app-purchase key, and make an **entitlement** (`pro`) containing both
-   products, exposed through an **offering**.
-3. **Webhook**: RevenueCat → Integrations → Webhooks →
-   `https://<ref>.supabase.co/functions/v1/revenuecat-webhook`, with a secret in
-   the Authorization field. Same value as `REVENUECAT_WEBHOOK_SECRET` in Supabase.
-4. **Install and wire**:
-   ```bash
-   npx expo install react-native-purchases
-   ```
-   then fill in `loadNativePurchases()` in `src/lib/purchases.ts` — that function
-   is the whole integration point. Read prices from `getOfferings()`; never type a
-   price into the repo, since App Review requires the storefront's own localized
-   price at the point of purchase.
-5. **Development build** — purchases cannot run in Expo Go:
-   ```bash
-   npx expo install expo-dev-client
-   eas build --profile development --platform ios
-   ```
-   Test with a **sandbox tester** account from App Store Connect.
+What has to exist outside the code, in this order:
 
-`Purchases.logIn(supabaseUserId)` matters: it makes RevenueCat's `app_user_id`
-the Supabase user id, which is how the webhook knows whose `billing` row to write.
+1. **Apple Developer Program**, then in App Store Connect → Business, the
+   **Paid Apps Agreement** with banking and tax details. IAP is unavailable
+   until it's active — even in a free app.
+2. **App Store Connect → your app → Subscriptions**: one group (e.g. "Flow
+   Pro") with two auto-renewable subscriptions, monthly and yearly. Each needs a
+   price, a display name and description, and a review screenshot of the
+   paywall. A free trial is an **introductory offer** on each one.
+3. **RevenueCat**: a project with the App Store app (bundle id
+   `com.davigolgher.flow`) and its In-App Purchase key, both products imported,
+   an entitlement called **`pro`** containing both, and the **current offering**
+   with a *Monthly* and an *Annual* package. The public iOS key ("appl_…") goes
+   in EAS as `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (see "Building for TestFlight").
+4. **Webhook**: in Supabase → Edge Functions → Secrets, set
+   `REVENUECAT_WEBHOOK_SECRET` to a long random value; deploy
+   `revenuecat-webhook` with JWT verification off; in RevenueCat →
+   Integrations → Webhooks, point it at
+   `https://<ref>.supabase.co/functions/v1/revenuecat-webhook` with the same
+   value in the Authorization header.
+5. **Test** on a TestFlight build with a **sandbox tester** (App Store Connect →
+   Users and Access → Sandbox): buy, cancel, restore, and let it expire.
+
+The first subscriptions go to App Review **together with the app version** —
+attach them to the version before submitting.
 
 ## Checks
 
@@ -135,18 +137,20 @@ rejects an app icon that has one, even a fully opaque one.
 refused for reusing one; `version` in `app.json` is the number people see.
 
 EAS builds from the repository, and `mobile/.env` isn't in it. Give each profile
-the two public values once (the anon key is public by design — RLS protects the
-data; never add the service role key here):
+the three public values once (the anon key and RevenueCat's iOS key are public
+by design — RLS and the store protect what matters; never add the service role
+key or any secret key here):
 
 ```bash
 eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://<ref>.supabase.co --visibility plaintext
 eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key> --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_REVENUECAT_IOS_KEY --value appl_<key> --visibility plaintext
 eas build --profile production --platform ios
 eas submit --profile production --platform ios
 ```
 
-A release build made without them opens on a screen saying so, instead of
-running without an account.
+A release build made without them opens on a screen naming what's missing,
+instead of running without an account or with nothing to sell.
 
 ## Before submitting to the App Store
 

@@ -12,12 +12,14 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
+import { isSupabaseConfigured } from "@/lib/backend/client";
 import { StoreProvider } from "@/data/store";
 import { SignInScreen } from "~/features/SignInScreen";
 import { PaywallScreen } from "~/features/PaywallScreen";
 import { OnboardingScreen } from "~/features/OnboardingScreen";
 import { TutorialOverlay } from "~/features/TutorialOverlay";
 import { MissingConfigScreen } from "~/features/MissingConfigScreen";
+import { REVENUECAT_IOS_KEY } from "~/lib/purchases";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
 import { clearReminders } from "~/lib/notifications";
@@ -26,6 +28,12 @@ import { clearReminders } from "~/lib/notifications";
 // each account now (see the `activity_days` table); the old log can't be told
 // apart by account, so it's dropped rather than handed to whoever signs in next.
 AsyncStorage.removeItem("flow.activity.v1").catch(() => {});
+
+/** Build settings a release can't work without, by the name EAS knows them. */
+const missingSettings = [
+  ...(isSupabaseConfigured ? [] : ["EXPO_PUBLIC_SUPABASE_URL", "EXPO_PUBLIC_SUPABASE_ANON_KEY"]),
+  ...(REVENUECAT_IOS_KEY ? [] : ["EXPO_PUBLIC_REVENUECAT_IOS_KEY"]),
+];
 
 export default function RootLayout() {
   // Nothing to load before the first frame any more — the streak arrives with
@@ -98,9 +106,10 @@ function Gate() {
     if (!auth.userId || (previous && previous !== auth.userId)) void clearReminders();
   }, [auth.configured, auth.loading, auth.userId]);
 
-  // Local mode, with no backend, is for development only. A release build in
-  // that state was built without its settings and must not pass for working.
-  if (!auth.configured && !__DEV__) return <MissingConfigScreen />;
+  // Local mode, with no backend, is for development only, and so is a paywall
+  // with no store behind it. A release build in either state was built without
+  // its settings and must not pass for working.
+  if (!__DEV__ && missingSettings.length > 0) return <MissingConfigScreen missing={missingSettings} />;
   if (auth.configured && auth.loading) return <Splash />;
   if (auth.configured && !auth.session) return <SignInScreen />;
   // Wait for the flags rather than flashing a screen that's about to be

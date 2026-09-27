@@ -69,8 +69,15 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
   const buy = async () => {
     setBusy(true);
     try {
-      const { entitled } = await purchases.purchase(selected);
+      const { entitled, pending } = await purchases.purchase(selected);
       if (entitled) onUnlocked();
+      else if (pending) {
+        Alert.alert(
+          "Waiting for approval",
+          "The purchase needs approval first (for example, Ask to Buy). Flow unlocks as soon as it goes through.",
+        );
+      }
+      // Cancelled: the person closed Apple's sheet on purpose. Nothing to say.
     } catch (e) {
       Alert.alert("Couldn't complete the purchase", (e as Error)?.message ?? "Try again.");
     } finally {

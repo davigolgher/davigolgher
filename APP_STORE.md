@@ -26,7 +26,7 @@ Sources:
 Listed separately so this file is not mistaken for a green light:
 
 - **Sign in with Apple (Guideline 4.8)** — required *if* a third-party login is offered. The app signs in with email and password only, so 4.8 doesn't bite yet; adding Google login makes Sign in with Apple mandatory.
-- **The purchase itself** — the paywall, its disclosure, Restore Purchases and the entitlement gate are built, but `react-native-purchases` isn't installed (it isn't in Expo Go) and the App Store Connect products don't exist. See `mobile/README.md` → Subscriptions for the ordered steps. Until then the paywall shows no prices, by design: a hard-coded price would be wrong in every other storefront.
+- **The subscription products** — the app is free to download and requires a subscription. The purchase code is in (`react-native-purchases`, wired to the account); what's missing is outside the code: the Paid Apps Agreement, the two products in App Store Connect, RevenueCat, and the webhook secret. See `mobile/README.md` → Subscriptions for the ordered steps. Until they exist the paywall shows no prices, by design: a hard-coded price would be wrong in every other storefront.
 
 ## Native build / App Store Connect — TODO
 
@@ -44,8 +44,8 @@ Built:
 Remaining, in order — see `mobile/README.md` → Subscriptions:
 - App Store Connect: the two auto-renewable products and their introductory offer.
 - RevenueCat: project, entitlement, offering, webhook secret.
-- `npx expo install react-native-purchases`, then fill in `loadNativePurchases()`.
-- A development build (`expo-dev-client` + EAS) — purchases cannot run in Expo Go — and a sandbox tester to try it.
+- The public iOS key in EAS as `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (the code is in: `mobile/src/lib/purchases.ts`).
+- A TestFlight build — purchases don't run in Expo Go — and a sandbox tester to try it.
 
 Note: there is no web purchase path, so nothing in the app links out to an
 external payment page.
@@ -67,7 +67,8 @@ writes it into the app as `PrivacyInfo.xcprivacy`. It says:
   UserDefaults `CA92.1`, file timestamps `C617.1`, system boot time `35F9.1`,
   disk space `E174.1`.
 
-When IAP ships, add **Purchase History** (the `billing` row RevenueCat writes).
+Also **Purchase History** — the subscription plan and status RevenueCat reports
+and the webhook stores in `billing`, linked, for app functionality.
 Adding a crash reporter or analytics SDK means adding what it collects here too.
 
 Keep the **App Privacy** answers in App Store Connect consistent with this file and
