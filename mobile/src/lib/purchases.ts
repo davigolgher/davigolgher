@@ -110,8 +110,9 @@ class ExamplePrices extends Unavailable {
 
   async getPlans(): Promise<Plan[]> {
     return [
-      { id: "monthly", price: "$4.99", amount: 4.99, perMonth: null, period: "month", trialDays: 14, productId: "example.monthly" },
-      { id: "yearly", price: "$39.99", amount: 39.99, perMonth: "$3.33", period: "year", trialDays: 14, productId: "example.yearly" },
+      // The planned US prices (see mobile/README.md → Subscriptions).
+      { id: "monthly", price: "$8.99", amount: 8.99, perMonth: null, period: "month", trialDays: 14, productId: "example.monthly" },
+      { id: "yearly", price: "$74.99", amount: 74.99, perMonth: "$6.25", period: "year", trialDays: 14, productId: "example.yearly" },
     ];
   }
 }

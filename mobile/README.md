@@ -82,9 +82,15 @@ What has to exist outside the code, in this order:
    Subscription Prices → Introductory Offers → type *Free*, duration *2
    weeks*, for new subscribers. The paywall reads it from the store and shows
    "Start 14-day free trial" by itself — nothing to change in the code.
-   Price the yearly plan clearly below twelve months of the monthly one: the
-   paywall then works out the saving ("Save 44%", "5 months free") from the
-   real prices in each country.
+   **Prices**: US$ **8.99** a month and US$ **74.99** a year. Twelve months
+   cost US$ 107.88, so the yearly plan is 30.49% less — the paywall shows
+   "Best value · Save 30%", "$6.25 a month" and, on Monthly, "Yearly works out
+   to 3 months free". Set the United States price on each product and App
+   Store Connect fills in every other country; the saving is recomputed from
+   each country's real prices, so it stays true everywhere (it can differ by a
+   point or two after rounding). To use round local prices in Brazil instead,
+   edit that country's price by hand — keep the yearly one at about 70% of
+   twelve monthly payments.
 3. **RevenueCat**: a project with the App Store app (bundle id
    `com.davigolgher.flow`) and its In-App Purchase key, both products imported,
    an entitlement called **`pro`** containing both, and the **current offering**
