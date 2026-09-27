@@ -246,7 +246,7 @@ Tipos: **B** = bloqueio · **R** = risco de rejeição · **D** = defeito funcio
 | B1 | Paywall obrigatório sem compra funcionando em Release | [I] `canSkip` só em `__DEV__`; sem `react-native-purchases` | `features/useEntitlement.ts:91`, `lib/purchases.ts`, `app/_layout.tsx` | 2.1(a)(b), 3.1.1 | Decisão (27/09): grátis para baixar, assinatura obrigatória. Compra integrada via RevenueCat (`a60d63a`) | **Código pronto; falta configurar Apple e RevenueCat** |
 | B2 | Build de produção sem variáveis do Supabase rodava sem conta, sem avisar | [I] + `expo export` | `app/_layout.tsx`, `mobile/eas.json` | 2.1(a) | Tela de erro, `eas.json` e README | Corrigido (falta criar as variáveis no EAS) |
 | B3 | Sem conta demo, ficha, screenshots; URLs não verificadas | — | App Store Connect | 2.1(a), 5.1.1(i) | Criar e conferir | **Pendente** |
-| R1 | Texto provisório na lei aplicável; arbitragem AAA para consumidor brasileiro | [I] | `features/legal/content.ts` (Termos §12–13) | 2.1(a) | Definir com advogado | **Pendente** |
+| R1 | Texto provisório na lei aplicável; arbitragem AAA para consumidor brasileiro; aviso "Template for review…" visível no app e no site | [I] | `features/legal/content.ts`, `LegalDoc.tsx`, `PublicPages.tsx` | 2.1(a) | Leis do Brasil, foro do consumidor, sem arbitragem, cláusula do CDC, seção LGPD; aviso removido (27/09) | Corrigido (revisão de advogado recomendada) |
 | R2 | Divulgação de IA descrevia IA inexistente | [I] | `content.ts` | 5.1.2(i), 5.1.1(i) | Reescrita | Corrigido |
 | R3 | E-mails legais inexistentes (`legal@flow.app`, `ai@flow.app`) | [I] | `content.ts` | 5.1.1(i) | E-mail de suporte | Corrigido |
 | R4 | Sem manifesto de privacidade no app | [E] prebuild | `mobile/app.json` | Required Reason APIs | `ios.privacyManifests` | Corrigido |
@@ -338,10 +338,9 @@ Os testes de lembretes comparavam datas em UTC e por isso falhavam em UTC+14 (Ki
    - Rode `eas build --profile production`. Confira no log que o Xcode é o 26 e o SDK é o iOS 26.
    - Veja se o upload traz avisos ITMS.
 4. **Jurídico:**
-   - Lei e foro aplicáveis (R1).
-   - Revisar a arbitragem para consumidores brasileiros (CDC).
-   - Nome do vendedor ou da empresa (`APP.company`).
-   - Idade mínima coerente com a classificação etária.
+   - Feito em 27/09: leis do Brasil, foro do domicílio do consumidor, sem arbitragem obrigatória, cláusula de direitos do consumidor (CDC) e seção da LGPD (controlador, bases legais, transferência para os EUA, direitos, ANPD). Uma leitura de advogado continua recomendada.
+   - Nome do vendedor ou da empresa (`APP.company`): quando preenchido, aparece nos Termos e na Privacidade no lugar de "desenvolvedor independente no Brasil".
+   - Idade mínima coerente com a classificação etária (os Termos exigem 18 anos).
 5. **Publicar o site de novo** (`/privacy` e `/support`) com os textos novos e confirmar que abrem sem login.
 6. **App Store Connect:**
    - Nome (verifique se "Flow" está disponível), subtítulo, descrição mencionando a assinatura, categoria Finanças.

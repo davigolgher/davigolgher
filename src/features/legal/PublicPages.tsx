@@ -118,12 +118,6 @@ export function LegalPage({ doc }: { doc: LegalDocId }) {
   return (
     <Shell title={LEGAL_TITLES[doc]}>
       <p className="text-[12px] uppercase tracking-wide text-chalk-faint">Last updated · {UPDATED}</p>
-      {doc !== "nutrition" && (
-        <div className="mt-3 rounded-card-sm border border-line bg-ink-850 p-3.5 text-[12px] leading-relaxed text-chalk-mute">
-          Template for review by your legal counsel before launch — this is not legal advice, and details (company,
-          governing law, arbitration provider, contact) must be completed for your business.
-        </div>
-      )}
       <div className="mt-6">{sections ? <Prose sections={sections} /> : <Nutrition />}</div>
     </Shell>
   );

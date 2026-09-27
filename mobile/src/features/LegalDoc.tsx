@@ -90,14 +90,6 @@ export function LegalDocView({ doc, onClose }: { doc: LegalDocId; onClose: () =>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}>
         <Text className="text-[12px] uppercase tracking-wide text-chalk-mute">Last updated · {UPDATED}</Text>
-        {doc !== "nutrition" ? (
-          <View className="mt-3 rounded-card-sm border border-line bg-ink-850 p-3.5">
-            <Text className="text-[12px] leading-relaxed text-chalk-mute">
-              Template for review by your legal counsel before launch — this is not legal advice, and details (company,
-              governing law, arbitration provider, contact) must be completed for your business.
-            </Text>
-          </View>
-        ) : null}
 
         <View className="mt-6">{sections ? <Prose sections={sections} /> : <Nutrition />}</View>
       </ScrollView>
