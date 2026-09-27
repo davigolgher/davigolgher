@@ -91,6 +91,8 @@ Provide and verify **trader status** in App Store Connect (required to distribut
 ### 7. Store metadata & assets
 1024×1024 app icon (no alpha), device screenshots, description, keywords, subtitle, **support URL** and **privacy policy URL** (host the in-app policy publicly too), category, and — for auto-renewable subscriptions — the required subscription info and a link to the Terms of Use (EULA) in the description.
 
+Screenshots are ready in `store-assets/screenshots/iphone-6.9/` — six images at 1320 × 2868, fictitious data, upload order in `store-assets/README.md`.
+
 ### 7b. Store listing — draft (English)
 
 The app's screens are in English (the streak switches to Portuguese on a phone set to Portuguese), so the listing's primary language is English. Counts are within App Store Connect's limits.
