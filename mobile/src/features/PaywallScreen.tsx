@@ -152,29 +152,31 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
                   <View className="min-w-0 flex-1">
                     <View className="flex-row flex-wrap items-center gap-2">
                       <Text className="text-[15px] font-semibold text-chalk">{label}</Text>
-                      {id === "yearly" && savings ? (
-                        <View className="rounded-pill bg-chalk px-2 py-0.5">
-                          <Text className="text-[11px] font-bold uppercase tracking-wide text-ink-950">
-                            Best value · Save {savings}%
+                      {id === "yearly" && (freeMonths || savings) ? (
+                        <View className="rounded-pill bg-chalk px-2.5 py-1">
+                          <Text className="text-[11.5px] font-bold uppercase tracking-wide text-ink-950">
+                            {freeMonths ? `${freeMonths} months free` : `Best value · Save ${savings}%`}
                           </Text>
                         </View>
                       ) : null}
                     </View>
                     {offer ? (
                       <>
-                        {/* What's charged is the most prominent price; the per-month
-                            figure is a comparison, so it's smaller and lighter. */}
-                        <Text className="mt-1 text-[14px] font-semibold text-chalk">
+                        {/* What's charged stays the biggest price on the card; the
+                            saving and the per-month figure are comparisons, smaller. */}
+                        <Text className="mt-1.5 text-[16px] font-bold text-chalk">
                           {offer.price} / {offer.period}
                         </Text>
-                        {offer.trialDays > 0 || offer.perMonth ? (
-                          <Text className="mt-0.5 text-[12px] text-chalk-mute">
-                            {[
-                              offer.trialDays > 0 ? `${offer.trialDays} days free, then billed ${offer.period === "year" ? "yearly" : "monthly"}` : null,
-                              offer.perMonth ? `${offer.perMonth} a month` : null,
-                            ]
+                        {id === "yearly" && (savings || offer.perMonth) ? (
+                          <Text className="mt-0.5 text-[12.5px] font-medium text-chalk-soft">
+                            {[savings ? `Save ${savings}% vs. monthly` : null, offer.perMonth ? `${offer.perMonth} a month` : null]
                               .filter(Boolean)
                               .join(" · ")}
+                          </Text>
+                        ) : null}
+                        {offer.trialDays > 0 ? (
+                          <Text className="mt-0.5 text-[12px] text-chalk-mute">
+                            {offer.trialDays} days free, then billed {offer.period === "year" ? "yearly" : "monthly"}
                           </Text>
                         ) : null}
                       </>
@@ -194,19 +196,32 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
             })}
           </View>
 
-          {/* Only on Monthly, only with real numbers: the difference, once, and
-              an easy way back. No hidden option and no guilt-tripping copy. */}
-          {selected === "monthly" && freeMonths ? (
+          {/* The months free, said once more where it's decided. On Yearly, as a
+              plain confirmation; on Monthly, as a card that switches back in one
+              tap. Always "compared with paying monthly" — never a claim that the
+              months cost nothing — and always from the store's real prices. */}
+          {freeMonths && selected === "yearly" ? (
+            <View className="mt-3 flex-row items-center justify-center gap-1.5">
+              <CheckIcon size={14} strokeWidth={2.6} />
+              <Text className="text-[13px] font-semibold text-chalk">
+                {freeMonths} months free compared with paying monthly
+              </Text>
+            </View>
+          ) : null}
+          {freeMonths && selected === "monthly" ? (
             <Pressable
               onPress={() => setSelected("yearly")}
               accessibilityRole="button"
-              hitSlop={8}
-              className="mt-3 self-center px-2 py-2 active:opacity-60"
+              accessibilityLabel={`Switch to Yearly: ${freeMonths} months free compared with paying monthly`}
+              className="mt-3 flex-row items-center gap-3 rounded-card bg-chalk px-4 py-3.5 active:opacity-90"
             >
-              <Text className="text-center text-[13px] text-chalk-soft">
-                Yearly works out to <Text className="font-semibold text-chalk">{freeMonths} months free</Text>.{" "}
-                <Text className="font-semibold text-chalk underline">Switch to Yearly</Text>
-              </Text>
+              <View className="min-w-0 flex-1">
+                <Text className="text-[15px] font-bold text-ink-950">Get {freeMonths} months free</Text>
+                <Text className="mt-0.5 text-[12px] text-ink-700">by paying yearly instead of monthly</Text>
+              </View>
+              <View className="rounded-pill bg-ink-950 px-3.5 py-2">
+                <Text className="text-[13px] font-semibold text-chalk">Switch</Text>
+              </View>
             </Pressable>
           ) : null}
         </FadeIn>
