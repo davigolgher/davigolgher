@@ -221,7 +221,12 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
             Restore purchases
           </Button>
 
-          {!purchases.available ? (
+          {purchases.example ? (
+            <Text className="text-center text-[11px] leading-relaxed text-chalk-mute">
+              Example prices, shown only while developing. The App Store sets the real ones in each country, and
+              buying works in the TestFlight build.
+            </Text>
+          ) : !purchases.available ? (
             <Text className="text-center text-[11px] leading-relaxed text-chalk-mute">
               Prices and purchasing come from the App Store, which this build can&apos;t reach.
             </Text>

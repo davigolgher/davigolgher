@@ -58,6 +58,8 @@ export interface PurchaseResult {
 export interface Purchases {
   /** False when the store can't be reached from this build (Expo Go, no key). */
   readonly available: boolean;
+  /** The plans are made-up examples (development only), not the store's. */
+  readonly example: boolean;
   /**
    * Tie purchases to the signed-in account — or to no one, on sign-out.
    *
@@ -77,6 +79,7 @@ export interface Purchases {
 
 class Unavailable implements Purchases {
   readonly available = false;
+  readonly example: boolean = false;
 
   async identify(): Promise<void> {}
 
@@ -97,11 +100,28 @@ class Unavailable implements Purchases {
   }
 }
 
+/**
+ * Development only: example prices, so the paywall — trial, savings badge and
+ * all — can be seen in Expo Go, where the App Store can't be reached. The
+ * screen labels them as examples; a release build never gets here.
+ */
+class ExamplePrices extends Unavailable {
+  readonly example = true;
+
+  async getPlans(): Promise<Plan[]> {
+    return [
+      { id: "monthly", price: "$4.99", amount: 4.99, perMonth: null, period: "month", trialDays: 14, productId: "example.monthly" },
+      { id: "yearly", price: "$39.99", amount: 39.99, perMonth: "$3.33", period: "year", trialDays: 14, productId: "example.yearly" },
+    ];
+  }
+}
+
 /** The offering's packages that map to our two plans. */
 const PACKAGE_FOR: Record<PlanId, "monthly" | "annual"> = { monthly: "monthly", yearly: "annual" };
 
 class RevenueCatPurchases implements Purchases {
   readonly available = true;
+  readonly example = false;
   /** Every call waits for the latest identify(), so nothing runs as the wrong account. */
   private ready: Promise<void> = Promise.resolve();
   private user: string | null = null;
@@ -195,8 +215,9 @@ class RevenueCatPurchases implements Purchases {
 export const REVENUECAT_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY?.trim() || null;
 
 function load(): Purchases {
-  if (Platform.OS !== "ios" || !REVENUECAT_IOS_KEY) return new Unavailable();
-  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return new Unavailable(); // Expo Go
+  const noStore = () => (__DEV__ ? new ExamplePrices() : new Unavailable());
+  if (Platform.OS !== "ios" || !REVENUECAT_IOS_KEY) return noStore();
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return noStore(); // Expo Go
   try {
     return new RevenueCatPurchases(REVENUECAT_IOS_KEY);
   } catch {
