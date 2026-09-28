@@ -5,6 +5,11 @@ live on the server. Flow is a native app (`mobile/`) talking to Supabase, so
 anything depending on a secret runs in an Edge Function — never shipped in the
 app, where it could simply be read out of the bundle.
 
+> The latest security audit — findings, evidence, what's still to do on the
+> Supabase, RevenueCat and Vercel dashboards, and what wasn't verified — is in
+> [SEGURANCA.md](SEGURANCA.md) (28/09/2026, in Portuguese). The isolation and
+> input-limit checks it ran can be re-run from `supabase/tests/`.
+
 ## In the app (client-side)
 
 - **Input sanitization** (`src/lib/sanitize.ts`) — all user-entered text (merchant,
@@ -22,12 +27,23 @@ app, where it could simply be read out of the bundle.
   permission for the same reason.
 - **Account deletion** — Settings → Account → Delete account removes the rows,
   the uploaded files **and the auth user**, through the `delete-account` Edge
-  Function. The client can't delete the user itself (that needs the service role
-  key), and deleting only the data would leave the login alive — which Apple
-  treats as not having deleted the account (Guideline 5.1.1(v)).
-- **Legal/compliance surfaces** — Terms (with a binding-arbitration clause and a
-  user-generated-content liability disclaimer), Privacy Policy, an FTC-style AI
-  disclosure, and an Apple-style privacy nutrition label, all in Settings → Legal.
+  Function, once the password typed there has been checked by the function. The
+  client can't delete the user itself (that needs the service role key), and
+  deleting only the data would leave the login alive — which Apple treats as not
+  having deleted the account (Guideline 5.1.1(v)).
+- **Session in the Keychain** — the Supabase session (refresh token) is stored
+  with `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`: never in backups or on another
+  phone, and discarded if the app is deleted and reinstalled.
+- **Nothing on show outside the app** — a white cover hides the screen in the
+  app switcher; renewal notifications leave amounts out unless the person turns
+  "Show amounts" on; sync warnings are printed in development builds only.
+- **Re-authentication** — changing the password asks for the current one;
+  deleting the account asks for the password.
+- **HTTPS only** — store builds drop the local-network exception from App
+  Transport Security (`mobile/app.config.js`).
+- **Legal/compliance surfaces** — Terms (Brazilian law, the consumer's own
+  courts, no mandatory arbitration), Privacy Policy, an AI disclosure, and an
+  Apple-style privacy nutrition label, all in Settings → Legal.
 
 > Client-side checks improve UX and stop casual abuse, but they are **not** a security
 > boundary. Every check below must be **repeated on the server** once a backend exists.
@@ -85,8 +101,9 @@ some, a shared secret for others).
   anon/publishable keys may appear client-side.
 - **Account deletion** — cascade the delete across the database and purge backups on a
   defined schedule to honor the Privacy Policy.
-- **Security headers / CSP** — send a Content-Security-Policy, `X-Content-Type-Options:
-  nosniff`, HSTS, and frame protections from the server hosting the app.
+- **Security headers / CSP** — the legal and support site sends a strict
+  Content-Security-Policy, `X-Content-Type-Options: nosniff`, HSTS and frame
+  protections, set in `vercel.json`.
 
 ## Reporting
 
