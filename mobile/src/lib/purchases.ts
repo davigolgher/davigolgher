@@ -73,8 +73,11 @@ export interface Purchases {
   purchase(plan: PlanId): Promise<PurchaseResult>;
   /** Apple requires a restore path for previously bought subscriptions. */
   restore(): Promise<PurchaseResult>;
-  /** Whether the signed-in user currently holds the entitlement. */
-  isEntitled(): Promise<boolean>;
+  /**
+   * Whether `userId` — the signed-in account — currently holds the
+   * entitlement. False when the store is acting for any other account.
+   */
+  isEntitled(userId: string): Promise<boolean>;
 }
 
 class Unavailable implements Purchases {
@@ -125,7 +128,11 @@ class RevenueCatPurchases implements Purchases {
   readonly example = false;
   /** Every call waits for the latest identify(), so nothing runs as the wrong account. */
   private ready: Promise<void> = Promise.resolve();
-  private user: string | null = null;
+  /**
+   * The account the store acts for: an id, null for nobody, or undefined
+   * while a change of account hasn't gone through (offline, say).
+   */
+  private user: string | null | undefined = null;
   private packages = new Map<PlanId, PurchasesPackage>();
 
   constructor(apiKey: string) {
@@ -137,6 +144,9 @@ class RevenueCatPurchases implements Purchases {
   identify(userId: string | null): Promise<void> {
     const run = this.ready.then(async () => {
       if (userId === this.user) return;
+      // Unknown until the store confirms. If this fails, purchases stay
+      // refused rather than landing on whichever id the store is left with.
+      this.user = undefined;
       if (userId) await RevenueCat.logIn(userId);
       else if (!(await RevenueCat.isAnonymous())) await RevenueCat.logOut();
       this.user = userId;
@@ -183,8 +193,21 @@ class RevenueCatPurchases implements Purchases {
     });
   }
 
+  /**
+   * Purchases and restores happen only as the signed-in account. Bought
+   * under any other id — anonymous after a failed logIn, or the previous
+   * account on this phone — a subscription wouldn't reach this account's
+   * billing row, and a restore would move it to the wrong account.
+   */
+  private async requireAccount(): Promise<void> {
+    if (!this.user || (await RevenueCat.getAppUserID()) !== this.user) {
+      throw new Error("Couldn't link this to your account. Check your connection and try again.");
+    }
+  }
+
   async purchase(plan: PlanId): Promise<PurchaseResult> {
     await this.ready;
+    await this.requireAccount();
     if (!this.packages.has(plan)) await this.getPlans();
     const pkg = this.packages.get(plan);
     if (!pkg) throw new Error("This plan isn't available right now. Try again in a moment.");
@@ -203,11 +226,17 @@ class RevenueCatPurchases implements Purchases {
 
   async restore(): Promise<PurchaseResult> {
     await this.ready;
+    await this.requireAccount();
     return { entitled: hasEntitlement(await RevenueCat.restorePurchases()) };
   }
 
-  async isEntitled(): Promise<boolean> {
+  async isEntitled(userId: string): Promise<boolean> {
     await this.ready;
+    // The store answers for whichever account it is on. If naming this one
+    // failed, it may still be on the previous account on this phone, whose
+    // subscription mustn't unlock this one. Opening the app offline is fine:
+    // the store starts on the last account it was given, so the ids match.
+    if ((await RevenueCat.getAppUserID()) !== userId) return false;
     return hasEntitlement(await RevenueCat.getCustomerInfo());
   }
 }

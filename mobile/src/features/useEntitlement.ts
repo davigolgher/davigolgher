@@ -94,7 +94,7 @@ export function useEntitlement(): Entitlement {
           purchases
             .identify(userId)
             .catch(() => {})
-            .then(() => purchases.isEntitled()),
+            .then(() => purchases.isEntitled(userId)),
           false,
         ),
         settled(fetchBilling().then(isActive), false),
