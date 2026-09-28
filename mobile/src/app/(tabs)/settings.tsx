@@ -451,17 +451,13 @@ export default function Settings() {
                 editable={!deleting}
                 className="mt-4"
               />
-              <View className="mt-3 flex-row gap-2">
-                <View className="flex-1">
-                  <Button variant="secondary" fullWidth disabled={deleting} onPress={closeDelete}>
-                    Cancel
-                  </Button>
-                </View>
-                <View className="flex-1">
-                  <Button variant="primary" fullWidth disabled={!deletePassword || deleting} onPress={confirmDelete}>
-                    {deleting ? "Deleting…" : "Delete everything"}
-                  </Button>
-                </View>
+              <View className="mt-3 gap-2">
+                <Button variant="primary" fullWidth disabled={!deletePassword || deleting} onPress={confirmDelete}>
+                  {deleting ? "Deleting…" : "Delete everything"}
+                </Button>
+                <Button variant="secondary" fullWidth disabled={deleting} onPress={closeDelete}>
+                  Cancel
+                </Button>
               </View>
             </View>
           ) : (
