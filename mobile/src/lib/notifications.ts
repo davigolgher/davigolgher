@@ -169,6 +169,14 @@ export async function sendTestReminder(): Promise<boolean> {
   }
 }
 
+/**
+ * Drop an account's reminder settings from this phone — for when the account
+ * itself is deleted, so nothing of it is left behind.
+ */
+export async function forgetReminderPrefs(userId: string): Promise<void> {
+  await AsyncStorage.removeItem(keyFor(userId)).catch(() => {});
+}
+
 export function useReminderPrefs() {
   const { userId } = useAuth();
   /** null while reading storage, so the UI shows nothing rather than the wrong state. */

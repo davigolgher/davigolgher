@@ -15,5 +15,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     css: false,
+    // Edge Functions import npm packages the Deno way; tests resolve them from node_modules.
+    alias: { "npm:@supabase/supabase-js@2": "@supabase/supabase-js" },
   },
 });

@@ -129,8 +129,11 @@ export interface StoreValue {
   addCategory: (name: string) => void;
   removeCategory: (id: string) => void;
   setCurrency: (code: string) => void;
-  /** Erase all data (used by "Delete account"). Also clears server rows when connected. */
-  deleteAccount: () => Promise<void>;
+  /**
+   * Erase all data (used by "Delete account"). Connected, it deletes the
+   * account itself, which the server allows only with the account's password.
+   */
+  deleteAccount: (password: string) => Promise<void>;
   /**
    * Complete the daily review for `day` (a `dayKey`) — the one action that
    * counts toward the streak. Resolves once the server has it.
@@ -345,11 +348,11 @@ export function StoreProvider({
         bg({ kind: "prefs.update", prefs: { currency: code } });
       },
 
-      async deleteAccount() {
+      async deleteAccount(password) {
         // Deletes the auth user too, not just the rows — see remote.deleteAccount.
         // Errors propagate so the caller can tell the user it didn't work,
         // rather than clearing the screen and leaving the account alive.
-        if (canSync) await remote.deleteAccount();
+        if (canSync) await remote.deleteAccount(password);
         // Nothing left to send changes to.
         queueRef.current?.clear();
         if (userId) await savePending(userId, []);

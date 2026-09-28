@@ -241,9 +241,13 @@ export async function sendOp(userId: string, op: Op): Promise<void> {
  * account. Apple treats that as not having deleted the account at all
  * (Guideline 5.1.1(v)).
  *
+ * The password goes with the request: the function checks it before erasing
+ * anything, so a session on its own — an unlocked phone, a copied token —
+ * can't destroy the account.
+ *
  * Throws if it didn't work, so the UI can say so rather than claiming success.
  */
-export async function deleteAccount(): Promise<void> {
+export async function deleteAccount(password: string): Promise<void> {
   const c = sb();
   // With no session, invoke() quietly sends the anon key instead of a user
   // token, and the function answers "missing sub claim" — accurate, and
@@ -252,7 +256,7 @@ export async function deleteAccount(): Promise<void> {
   if (!auth.session) {
     throw new Error("You're signed out, so there's no account here to delete. Sign in to it first.");
   }
-  const { data, error } = await c.functions.invoke("delete-account", { body: {} });
+  const { data, error } = await c.functions.invoke("delete-account", { body: { password } });
   if (error) throw new Error(await describeFunctionError(error));
   if (!(data as { deleted?: boolean })?.deleted) throw new Error("The account could not be deleted.");
 }
@@ -276,7 +280,8 @@ async function describeFunctionError(error: unknown): Promise<string> {
     let detail = body;
     let step: string | undefined;
     try {
-      const parsed = JSON.parse(body) as { error?: string; step?: string };
+      const parsed = JSON.parse(body) as { error?: string; step?: string; code?: string };
+      if (parsed.code === "wrong_password") return "That password isn't right. Nothing was deleted.";
       detail = parsed.error ?? body;
       step = parsed.step;
     } catch {

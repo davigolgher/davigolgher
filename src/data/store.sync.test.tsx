@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   server: new Map<string, Transaction>(),
   phone: new Map<string, string>(),
   sent: [] as string[],
+  deletedWith: null as string | null,
 }));
 
 vi.mock("@/lib/backend/client", () => ({ isSupabaseConfigured: true, getSupabase: () => null }));
@@ -37,7 +38,9 @@ vi.mock("@/lib/backend/data", () => ({
     if (op.kind === "tx.upsert") h.server.set(op.tx.id, op.tx);
     if (op.kind === "tx.delete") h.server.delete(op.id);
   },
-  deleteAccount: async () => {},
+  deleteAccount: async (password: string) => {
+    h.deletedWith = password;
+  },
   recordActiveDay: async () => {},
 }));
 
@@ -162,10 +165,12 @@ describe("store sync", () => {
     expect(h.phone.size).toBe(1);
     h.online = true;
     await act(async () => {
-      await app.store().deleteAccount();
+      await app.store().deleteAccount("correct horse");
     });
     await settle();
     expect(h.phone.size).toBe(0);
     expect(app.store().sync.pending).toBe(0);
+    // The password reaches the server call, where it is checked.
+    expect(h.deletedWith).toBe("correct horse");
   });
 });

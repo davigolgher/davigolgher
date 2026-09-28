@@ -16,7 +16,7 @@ import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
 import { LEAD_DAY_CHOICES } from "@/lib/reminders";
 import { APP } from "@/config/app";
 import { useFlowFlags } from "~/lib/flow";
-import { sendTestReminder } from "~/lib/notifications";
+import { forgetReminderPrefs, sendTestReminder } from "~/lib/notifications";
 import { useRenewalReminders } from "~/features/reminders";
 import { Button, Eyebrow, Input, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
@@ -134,63 +134,51 @@ export default function Settings() {
   };
 
   /**
-   * One deletion, and one confirmation, at a time.
+   * Deleting the account takes the password, typed here and checked by the
+   * delete-account function before anything is erased. A session alone was
+   * enough before, so an unlocked phone or a copied token could wipe years of
+   * records beyond recovery (MASVS-AUTH-3: sensitive operations need more
+   * than an existing session).
    *
-   * Held from the moment the dialog opens, not from when deletion starts. A
-   * double tap on the button queued a second dialog behind the first; it
-   * surfaced the instant the account was gone, and confirming it called the
-   * function with no session left. The function correctly refused — and the
-   * app reported that the deletion had failed when it had in fact worked.
+   * One deletion at a time: `deleteHeld` is set before the request, since a
+   * double tap otherwise sent a second request after the account was gone,
+   * which the function rightly refused — and the app then reported a failed
+   * deletion that had in fact worked.
    */
   const deleteHeld = useRef(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const confirmDelete = () => {
-    if (deleteHeld.current) return;
+  const closeDelete = () => {
+    setDeleteOpen(false);
+    setDeletePassword("");
+  };
+
+  const confirmDelete = async () => {
+    if (deleteHeld.current || !deletePassword) return;
     deleteHeld.current = true;
-    const release = () => {
+    setDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+    } catch (e) {
       deleteHeld.current = false;
       setDeleting(false);
-    };
-
-    Alert.alert(
-      "Delete your account?",
-      "This erases your expenses, subscriptions, budgets and categories, and closes the account itself. It cannot be undone.\n\nIf you subscribed through the App Store, cancel that first in iOS Settings → your name → Subscriptions, or you'll keep being charged.",
-      [
-        { text: "Cancel", style: "cancel", onPress: release },
-        {
-          text: "Delete everything",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              await deleteAccount();
-            } catch (e) {
-              release();
-              // Say so rather than clearing the screen and looking deleted: the
-              // login would still exist, and signing up again would reopen it.
-              Alert.alert(
-                "Couldn't delete the account",
-                (e as Error)?.message ||
-                  "Nothing was deleted. Check that the delete-account function is deployed, then try again.",
-              );
-              return;
-            }
-            // Deliberately not released: the account is gone, and nothing left
-            // on this screen should be able to start another deletion before
-            // signing out unmounts it.
-            //
-            // The streak's days went with the account (they cascade from it on
-            // the server). The first-run flags are on this phone, keyed to the
-            // account, so they're cleared here rather than left behind.
-            await resetFlowFlags();
-            await signOut();
-          },
-        },
-      ],
-      // Android only: tapping outside dismisses without pressing a button.
-      { cancelable: true, onDismiss: release },
-    );
+      // Say so rather than clearing the screen and looking deleted: the login
+      // would still exist, and signing up again would reopen it.
+      Alert.alert("Couldn't delete the account", (e as Error)?.message || "Nothing was deleted. Try again.");
+      return;
+    }
+    // Deliberately not released: the account is gone, and nothing left on
+    // this screen should be able to start another deletion before signing out
+    // unmounts it.
+    //
+    // The streak's days went with the account (they cascade from it on the
+    // server). What's kept on this phone for the account — the first-run
+    // flags, the reminder settings — goes here rather than being left behind.
+    await resetFlowFlags();
+    if (auth.userId) await forgetReminderPrefs(auth.userId);
+    await signOut();
   };
 
   const confirmRemoveCategory = (id: string, label: string) => {
@@ -441,11 +429,46 @@ export default function Settings() {
           <Button variant="secondary" fullWidth onPress={confirmSignOut}>
             Sign out
           </Button>
-          <Pressable onPress={confirmDelete} disabled={deleting} className="items-center py-3 active:opacity-60">
-            <Text className="text-[14px] font-semibold text-chalk-soft">
-              {deleting ? "Deleting…" : "Delete account"}
-            </Text>
-          </Pressable>
+          {deleteOpen ? (
+            <View className="rounded-card border border-line bg-ink-850 p-5">
+              <Text className="text-[15px] font-semibold text-chalk">Delete your account?</Text>
+              <Text className="mt-2 text-[13px] leading-relaxed text-chalk-mute">
+                This erases your expenses, subscriptions, budgets and categories, and closes the account itself. It
+                cannot be undone.
+              </Text>
+              <Text className="mt-2 text-[13px] leading-relaxed text-chalk-mute">
+                If you subscribed through the App Store, cancel that first in iOS Settings → your name → Subscriptions,
+                or you&apos;ll keep being charged.
+              </Text>
+              <Input
+                value={deletePassword}
+                onChangeText={setDeletePassword}
+                placeholder="Your password"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                editable={!deleting}
+                className="mt-4"
+              />
+              <View className="mt-3 flex-row gap-2">
+                <View className="flex-1">
+                  <Button variant="secondary" fullWidth disabled={deleting} onPress={closeDelete}>
+                    Cancel
+                  </Button>
+                </View>
+                <View className="flex-1">
+                  <Button variant="primary" fullWidth disabled={!deletePassword || deleting} onPress={confirmDelete}>
+                    {deleting ? "Deleting…" : "Delete everything"}
+                  </Button>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <Pressable onPress={() => setDeleteOpen(true)} className="items-center py-3 active:opacity-60">
+              <Text className="text-[14px] font-semibold text-chalk-soft">Delete account</Text>
+            </Pressable>
+          )}
         </View>
       </Section>
 
