@@ -129,14 +129,16 @@ export class SyncError extends Error {
 
 /**
  * Worth trying again later: no connection, a server hiccup, an expired session
- * that is about to refresh, or rate limiting. Anything else — a malformed row, a
- * duplicate the database refuses — would fail the same way forever, and
- * keeping it would block every change queued behind it.
+ * that is about to refresh, rate limiting — or 402, a change the server holds
+ * back until the subscription is active again (supabase/prepared/0010), which
+ * must wait rather than be lost. Anything else — a malformed row, a duplicate
+ * the database refuses — would fail the same way forever, and keeping it would
+ * block every change queued behind it.
  */
 export function isRetryable(e: unknown): boolean {
   if (!(e instanceof SyncError)) return true;
   const s = e.status;
-  return s === 0 || s === 401 || s === 408 || s === 429 || s >= 500;
+  return s === 0 || s === 401 || s === 402 || s === 408 || s === 429 || s >= 500;
 }
 
 export interface SyncStatus {

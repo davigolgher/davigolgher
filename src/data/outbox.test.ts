@@ -85,6 +85,8 @@ describe("isRetryable", () => {
     expect(isRetryable(new SyncError("expired", 401))).toBe(true);
     expect(isRetryable(new SyncError("busy", 503))).toBe(true);
     expect(isRetryable(new TypeError("fetch failed"))).toBe(true);
+    // Held until the subscription is active again: kept, never dropped.
+    expect(isRetryable(new SyncError("An active subscription is needed", 402, "PT402"))).toBe(true);
     expect(isRetryable(new SyncError("duplicate", 409, "23505"))).toBe(false);
     expect(isRetryable(new SyncError("bad uuid", 400, "22P02"))).toBe(false);
   });
