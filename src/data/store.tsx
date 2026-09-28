@@ -13,6 +13,7 @@ import { useOptionalAuth } from "@/features/auth/AuthProvider";
 import * as remote from "@/lib/backend/data";
 import { applyPending, createSyncQueue, type Op, type SyncQueue, type SyncStatus } from "./outbox";
 import { loadPending, savePending } from "./pendingStore";
+import { devWarn } from "@/lib/devLog";
 
 let fallbackSeq = Date.now();
 const newId = (p = "id") =>
@@ -203,7 +204,7 @@ export function StoreProvider({
         saving = saving.then(() => savePending(userId, snapshot));
       },
       onChange: (st) => setSync((prev) => ({ ...prev, ...st })),
-      onDrop: (op, e) => console.warn("[sync] refused, dropped", op.kind, e),
+      onDrop: (op, e) => devWarn("[sync] refused, dropped", op.kind, e),
     });
     queueRef.current = q;
     restoredRef.current = loaded.then((ops) => {
@@ -248,7 +249,7 @@ export function StoreProvider({
           dispatch({ type: "hydrate", data: applyPending(data, pending) });
           setSync((prev) => ({ ...prev, loadFailed: false }));
         } catch (e) {
-          console.warn("[sync] hydrate failed", e);
+          devWarn("[sync] hydrate failed", e);
           if (!cancelled) setSync((prev) => ({ ...prev, loadFailed: true }));
         }
       })();
