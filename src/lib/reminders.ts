@@ -46,6 +46,12 @@ export interface PlanInput {
   now?: Date;
   /** Injected, so this module needs to know nothing about the user's currency. */
   formatAmount: (cents: Cents) => string;
+  /**
+   * Put the amount in the notification. Off unless the person turns it on:
+   * a notification is readable on the Lock Screen by whoever holds the phone,
+   * and what someone pays for, and how much, is theirs to show.
+   */
+  showAmounts?: boolean;
   max?: number;
 }
 
@@ -94,7 +100,9 @@ export function planReminders(input: PlanInput): ReminderPlan[] {
     out.push({
       key: `sub:${s.id}:${startOfDay(charge).toISOString().slice(0, 10)}`,
       title: `${s.name} renews ${when}`,
-      body: `${input.formatAmount(s.amount)} is due. Cancel with ${s.name} if you don't want it.`,
+      body: input.showAmounts
+        ? `${input.formatAmount(s.amount)} is due. Cancel with ${s.name} if you don't want it.`
+        : `Cancel with ${s.name} before then if you don't want it.`,
       fireAt,
     });
   }

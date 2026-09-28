@@ -15,7 +15,7 @@ import { fetchBilling, type BillingRow } from "@/lib/backend/billing";
 import { clearReminders, ensurePermission, hasPermission, syncReminders, useReminderPrefs } from "~/lib/notifications";
 
 export interface Reminders {
-  prefs: { enabled: boolean; leadDays: number } | null;
+  prefs: { enabled: boolean; leadDays: number; showAmounts: boolean } | null;
   /** How many are queued with the OS; null while it's being worked out. */
   scheduled: number | null;
   /** False when iOS is blocking them — the switch can be on and nothing arrive. */
@@ -23,6 +23,7 @@ export interface Reminders {
   /** Returns false if permission was refused, so the switch doesn't lie. */
   setEnabled: (on: boolean) => Promise<boolean>;
   setLeadDays: (days: number) => void;
+  setShowAmounts: (on: boolean) => void;
 }
 
 const Ctx = createContext<Reminders | null>(null);
@@ -71,7 +72,13 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
       }
 
       const count = await syncReminders(
-        planReminders({ subscriptions, billing, leadDays: prefs.leadDays, formatAmount: money.format }),
+        planReminders({
+          subscriptions,
+          billing,
+          leadDays: prefs.leadDays,
+          showAmounts: prefs.showAmounts,
+          formatAmount: money.format,
+        }),
       );
       if (alive) setScheduled(count);
     })();
@@ -99,10 +106,11 @@ export function RemindersProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setLeadDays = useCallback((leadDays: number) => update({ leadDays }), [update]);
+  const setShowAmounts = useCallback((showAmounts: boolean) => update({ showAmounts }), [update]);
 
   const value = useMemo(
-    () => ({ prefs, scheduled, allowed, setEnabled, setLeadDays }),
-    [prefs, scheduled, allowed, setEnabled, setLeadDays],
+    () => ({ prefs, scheduled, allowed, setEnabled, setLeadDays, setShowAmounts }),
+    [prefs, scheduled, allowed, setEnabled, setLeadDays, setShowAmounts],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

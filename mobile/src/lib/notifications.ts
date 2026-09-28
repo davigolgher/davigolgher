@@ -47,13 +47,15 @@ try {
 export interface ReminderPrefs {
   enabled: boolean;
   leadDays: number;
+  /** Amounts in the notification text. Off by default — see planReminders. */
+  showAmounts: boolean;
 }
 
 /**
  * Off until asked for. Turning it on is what triggers the iOS permission
  * prompt, and a prompt nobody asked for is the one people deny for good.
  */
-const DEFAULTS: ReminderPrefs = { enabled: false, leadDays: DEFAULT_LEAD_DAYS };
+const DEFAULTS: ReminderPrefs = { enabled: false, leadDays: DEFAULT_LEAD_DAYS, showAmounts: false };
 
 /** True if notifications may be shown. Returns false rather than throwing. */
 export async function ensurePermission(): Promise<boolean> {

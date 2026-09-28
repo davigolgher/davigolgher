@@ -342,9 +342,22 @@ export default function Settings() {
                 );
               })}
             </View>
-            <View className="mt-2">
-              <Row title="Send a test reminder" sub="Arrives in about five seconds" onPress={testReminder} />
+            <View className="mt-2 flex-row items-center gap-3 border-b border-line-soft py-3.5">
+              <View className="min-w-0 flex-1">
+                <Text className="text-[15px] text-chalk">Show amounts</Text>
+                <Text className="mt-0.5 text-[13px] text-chalk-mute">
+                  Off: the name only. Notifications can be read on the Lock Screen.
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(reminders.prefs?.showAmounts)}
+                onValueChange={reminders.setShowAmounts}
+                trackColor={SWITCH_TRACK}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={SWITCH_TRACK.false}
+              />
             </View>
+            <Row title="Send a test reminder" sub="Arrives in about five seconds" onPress={testReminder} />
           </>
         ) : null}
 

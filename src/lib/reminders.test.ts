@@ -23,8 +23,12 @@ function sub(over: Partial<Subscription> = {}): Subscription {
   };
 }
 
-const plan = (subs: Subscription[], leadDays = DEFAULT_LEAD_DAYS, billing?: Parameters<typeof planReminders>[0]["billing"]) =>
-  planReminders({ subscriptions: subs, billing, leadDays, now: NOW, formatAmount: money });
+const plan = (
+  subs: Subscription[],
+  leadDays = DEFAULT_LEAD_DAYS,
+  billing?: Parameters<typeof planReminders>[0]["billing"],
+  showAmounts = true,
+) => planReminders({ subscriptions: subs, billing, leadDays, now: NOW, formatAmount: money, showAmounts });
 
 describe("reminders — tracked subscriptions", () => {
   it("fires the morning of the lead day, not at the charge", () => {
@@ -33,6 +37,15 @@ describe("reminders — tracked subscriptions", () => {
     expect(r.fireAt.getHours()).toBe(9);
     expect(r.title).toBe("Netflix renews in 2 days");
     expect(r.body).toContain("$15.99");
+  });
+
+  it("leaves the amount off the Lock Screen unless it's been asked for", () => {
+    const [hidden] = planReminders({ subscriptions: [sub()], leadDays: 2, now: NOW, formatAmount: money });
+    expect(hidden.title).toBe("Netflix renews in 2 days");
+    expect(hidden.body).not.toMatch(/\$|15[.,]99|1599/);
+    expect(hidden.body).toContain("Netflix");
+    const [shown] = plan([sub()], 2, undefined, true);
+    expect(shown.body).toContain("$15.99");
   });
 
   it("says tomorrow rather than 'in 1 days'", () => {
