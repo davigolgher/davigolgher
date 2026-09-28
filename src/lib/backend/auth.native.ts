@@ -19,8 +19,14 @@
 import { getSupabase } from "./client";
 import type { Session, User } from "@supabase/supabase-js";
 
-/** Supabase's default minimum. Checked here so the error arrives before the round trip. */
-export const MIN_PASSWORD_LENGTH = 6;
+/**
+ * Minimum for a *new* password (sign-up, change). OWASP ASVS asks for at least
+ * 8, Supabase's own default is 6 — set the project's minimum to match this
+ * (Authentication → Providers → Email → Minimum password length), since only
+ * the server's check actually binds. Signing in accepts whatever length an
+ * existing password already has.
+ */
+export const MIN_PASSWORD_LENGTH = 8;
 
 function client() {
   const sb = getSupabase();
@@ -51,15 +57,26 @@ export async function signInWithPassword(email: string, password: string): Promi
 }
 
 /**
- * Set or change the signed-in user's password.
+ * Change the signed-in user's password, proving the current one first.
  *
- * Also the migration path for accounts created before password auth: those were
- * made passwordless, so they have nothing to sign in with until this is called
- * from a session that's still valid.
+ * A session alone used to be enough, so whoever had an unlocked phone (or a
+ * copied token) could set a new password and lock the owner out (OWASP ASVS
+ * V6.2.3: changing a password takes the current and the new one). The current
+ * password travels as `current_password`, which Supabase checks when
+ * "Require current password when changing password" is on in the project's
+ * Auth settings — the server is what makes this binding, not this screen.
  */
-export async function updatePassword(password: string): Promise<void> {
-  const { error } = await client().auth.updateUser({ password });
-  if (error) throw error;
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const { error } = await client().auth.updateUser({ password: newPassword, current_password: currentPassword });
+  if (!error) return;
+  // Supabase's wording varies by version; name the likely cause plainly.
+  if (/current.?password|invalid.*credentials|reauthenticat/i.test(`${error.message} ${error.code ?? ""}`)) {
+    throw new Error("Your current password isn't right.");
+  }
+  if (/same.?password|different from the old/i.test(`${error.message} ${error.code ?? ""}`)) {
+    throw new Error("Choose a password different from the current one.");
+  }
+  throw error;
 }
 
 export async function signOut(): Promise<void> {

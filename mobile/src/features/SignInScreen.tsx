@@ -29,7 +29,8 @@ export function SignInScreen() {
 
   const creating = mode === "signUp";
   const emailValid = isEmailShaped(email);
-  const passwordValid = password.length >= MIN_PASSWORD_LENGTH;
+  // The minimum applies to a new password; an existing one is whatever it is.
+  const passwordValid = creating ? password.length >= MIN_PASSWORD_LENGTH : password.length > 0;
   const canSubmit = emailValid && passwordValid && !busy;
 
   // Offered, never enforced. Nothing here can tell whether a mailbox exists —

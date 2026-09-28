@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
-import { MIN_PASSWORD_LENGTH, signOut, updatePassword } from "@/lib/backend/auth";
+import { MIN_PASSWORD_LENGTH, changePassword, signOut } from "@/lib/backend/auth";
 import { toCents, toMain } from "@/lib/money";
 import { CURRENCIES, currencyByCode } from "@/data/currencies";
 import { LEGAL_TITLES, type LegalDocId } from "@/features/legal/content";
@@ -69,6 +69,7 @@ export default function Settings() {
       { text: "Cancel", style: "cancel" },
       { text: "Show it", onPress: () => void resetFlowFlags() },
     ]);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const reminders = useRenewalReminders();
@@ -109,9 +110,10 @@ export default function Settings() {
   const savePassword = async () => {
     setSavingPassword(true);
     try {
-      await updatePassword(newPassword);
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
       setNewPassword("");
-      Alert.alert("Password saved", "You can now sign in with your email and this password.");
+      Alert.alert("Password changed", "Use the new one the next time you sign in.");
     } catch (e) {
       Alert.alert("Couldn't save", (e as Error)?.message || "Try again.");
     } finally {
@@ -368,24 +370,38 @@ export default function Settings() {
       </Section>
 
       <Section label="Password">
-        <View className="flex-row items-center gap-2">
+        <View className="gap-2">
           <Input
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="New password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Current password"
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
-            textContentType="newPassword"
-            className="flex-1"
+            textContentType="password"
           />
-          <Button variant="primary" disabled={newPassword.length < MIN_PASSWORD_LENGTH || savingPassword} onPress={savePassword}>
-            {savingPassword ? "Saving…" : "Save"}
-          </Button>
+          <View className="flex-row items-center gap-2">
+            <Input
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="New password"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              textContentType="newPassword"
+              className="flex-1"
+            />
+            <Button
+              variant="primary"
+              disabled={!currentPassword || newPassword.length < MIN_PASSWORD_LENGTH || savingPassword}
+              onPress={savePassword}
+            >
+              {savingPassword ? "Saving…" : "Save"}
+            </Button>
+          </View>
         </View>
         <Text className="mt-2 text-[12px] text-chalk-mute">
-          At least {MIN_PASSWORD_LENGTH} characters. Set one here if your account was created before passwords, or to
-          change the one you have.
+          Your current password, then a new one of at least {MIN_PASSWORD_LENGTH} characters.
         </Text>
       </Section>
 
