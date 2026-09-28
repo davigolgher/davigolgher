@@ -15,6 +15,7 @@ import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
 import { CategoryPicker } from "~/components/CategoryPicker";
+import { PrivacyShield } from "~/components/PrivacyShield";
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets();
@@ -149,6 +150,7 @@ export default function AddExpense() {
           </Button>
         </View>
       </ScrollView>
+      <PrivacyShield />
     </KeyboardAvoidingView>
   );
 }

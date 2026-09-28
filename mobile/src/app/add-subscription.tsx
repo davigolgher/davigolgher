@@ -13,6 +13,7 @@ import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
 import { CategoryPicker } from "~/components/CategoryPicker";
+import { PrivacyShield } from "~/components/PrivacyShield";
 
 const FREQUENCIES: Frequency[] = ["weekly", "monthly", "yearly"];
 
@@ -181,6 +182,7 @@ export default function AddSubscription() {
           </Button>
         </View>
       </ScrollView>
+      <PrivacyShield />
     </KeyboardAvoidingView>
   );
 }

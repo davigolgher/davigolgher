@@ -22,6 +22,7 @@ import { CheckIcon, PlusIcon } from "~/components/icons";
 import { streakCopy } from "~/features/streak/copy";
 import { useTodayKey } from "~/features/streak/useTodayKey";
 import { queueCelebration } from "~/features/streak/celebration";
+import { PrivacyShield } from "~/components/PrivacyShield";
 
 /** How far ahead "coming up" looks. Far enough to act on, near enough to matter. */
 const UPCOMING_DAYS = 3;
@@ -186,6 +187,7 @@ export default function Review() {
           </Button>
         )}
       </View>
+      <PrivacyShield />
     </View>
   );
 }

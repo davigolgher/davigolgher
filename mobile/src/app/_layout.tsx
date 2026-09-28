@@ -19,6 +19,7 @@ import { PaywallScreen } from "~/features/PaywallScreen";
 import { OnboardingScreen } from "~/features/OnboardingScreen";
 import { TutorialOverlay } from "~/features/TutorialOverlay";
 import { MissingConfigScreen } from "~/features/MissingConfigScreen";
+import { PrivacyShield } from "~/components/PrivacyShield";
 import { REVENUECAT_IOS_KEY } from "~/lib/purchases";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
@@ -54,6 +55,8 @@ export default function RootLayout() {
           <Gate />
         </StoreProvider>
       </AuthProvider>
+      {/* Last, so it draws over everything — modals and the tour included. */}
+      <PrivacyShield />
     </SafeAreaProvider>
   );
 }

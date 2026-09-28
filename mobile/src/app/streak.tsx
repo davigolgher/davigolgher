@@ -22,6 +22,7 @@ import { useStreakCelebration } from "~/features/streak/celebration";
 import { StreakMark } from "~/features/streak/StreakMark";
 import { RollingCount } from "~/features/streak/RollingCount";
 import { DayDot } from "~/features/streak/DayDot";
+import { PrivacyShield } from "~/components/PrivacyShield";
 
 const INK = "#0A0A0A";
 /** chalk-faint: the zero count is large text, where 3:1 is the bar. */
@@ -217,6 +218,7 @@ export default function StreakDetail() {
         <Text className="mt-8 text-[13px] leading-relaxed text-chalk-mute">{t.rule}</Text>
         <Text className="mt-2 text-[13px] leading-relaxed text-chalk-mute">{t.lapse}</Text>
       </ScrollView>
+      <PrivacyShield />
     </View>
   );
 }
