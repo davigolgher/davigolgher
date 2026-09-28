@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessFor, isStale, statusFor } from "./logic";
+import { accessFor, isStale, statusFor, updatesFor } from "./logic";
 
 const NOW = Date.parse("2026-09-24T12:00:00Z");
 const LATER = NOW + 30 * 86_400_000;
@@ -42,5 +42,21 @@ describe("RevenueCat webhook — ordering", () => {
     expect(isStale({ event_timestamp_ms: NOW + 60_000 }, new Date(NOW).toISOString())).toBe(false);
     expect(isStale({ event_timestamp_ms: NOW }, null)).toBe(false);
     expect(isStale({}, new Date(NOW).toISOString())).toBe(false);
+  });
+});
+
+describe("RevenueCat webhook — which accounts an event changes", () => {
+  it("a transfer changes the accounts it left, not the anonymous ones", () => {
+    expect(updatesFor({ type: "TRANSFER", transferred_from: ["user-a", "$RCAnonymousID:x"], transferred_to: ["user-b"] })).toEqual([
+      { userId: "user-a", access: { status: "inactive", willRenew: false } },
+    ]);
+  });
+
+  it("any other event changes its own app user, if it's an account", () => {
+    expect(updatesFor({ type: "RENEWAL", app_user_id: "user-a", expiration_at_ms: LATER }, NOW)).toEqual([
+      { userId: "user-a", access: { status: "active", willRenew: true } },
+    ]);
+    expect(updatesFor({ type: "RENEWAL", app_user_id: "$RCAnonymousID:x", expiration_at_ms: LATER }, NOW)).toEqual([]);
+    expect(updatesFor({ type: "RENEWAL" }, NOW)).toEqual([]);
   });
 });

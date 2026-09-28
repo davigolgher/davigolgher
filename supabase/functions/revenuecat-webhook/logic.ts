@@ -13,6 +13,9 @@ export interface RcEvent {
   /** On CANCELLATION: CUSTOMER_SUPPORT means Apple refunded it. */
   cancel_reason?: string | null;
   store?: string;
+  /** TRANSFER only: the app user ids the purchase moved from, and to. */
+  transferred_from?: string[] | null;
+  transferred_to?: string[] | null;
 }
 
 export interface Access {
@@ -28,7 +31,6 @@ export function statusFor(event: RcEvent): Access {
     case "RENEWAL":
     case "UNCANCELLATION":
     case "PRODUCT_CHANGE":
-    case "TRANSFER":
       return { status: trial ? "trialing" : "active", willRenew: true };
 
     case "CANCELLATION":
@@ -73,4 +75,34 @@ export function isStale(event: RcEvent, lastAppliedIso: string | null | undefine
   if (!lastAppliedIso || event.event_timestamp_ms == null) return false;
   const last = Date.parse(lastAppliedIso);
   return Number.isFinite(last) && event.event_timestamp_ms < last;
+}
+
+/** A Flow account id, as opposed to one of RevenueCat's own anonymous ids. */
+export function isAccountId(id: string | null | undefined): id is string {
+  return typeof id === "string" && id.length > 0 && !id.startsWith("$RCAnonymousID:");
+}
+
+export interface Update {
+  userId: string;
+  access: Access;
+}
+
+/**
+ * Which accounts an event changes, and to what.
+ *
+ * TRANSFER is the one event about more than one account: a restore on another
+ * Flow account (same Apple ID) moved the subscription. It carries
+ * `transferred_from` / `transferred_to` instead of `app_user_id`, so reading
+ * `app_user_id` skipped it — and the account the subscription left kept an
+ * "active" row, and access, until its period ran out. The accounts it left lose
+ * access now. The account it went to gets its row from the next event about it;
+ * until then the store vouches for it on the device.
+ */
+export function updatesFor(event: RcEvent, now: number = Date.now()): Update[] {
+  if (event.type === "TRANSFER") {
+    return (event.transferred_from ?? [])
+      .filter(isAccountId)
+      .map((userId) => ({ userId, access: { status: "inactive", willRenew: false } }));
+  }
+  return isAccountId(event.app_user_id) ? [{ userId: event.app_user_id, access: accessFor(event, now) }] : [];
 }
