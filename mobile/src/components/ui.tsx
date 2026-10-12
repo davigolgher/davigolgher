@@ -170,6 +170,12 @@ export function Button({
  * Don't auto-focus one of these inside a `FadeIn`: a field that takes focus
  * while its parent is mid-animation on the native driver renders blank on iOS.
  * See the budget step in OnboardingScreen.
+ *
+ * Fields say what they are to iOS AutoFill. One that doesn't is left to iOS's
+ * guesswork, which can take an amount field right after sign-up for part of
+ * the password form: it turns yellow ("Strong Password") and hides what's
+ * typed. So a field that names no content type is marked as having none —
+ * the email and password fields name theirs, and keep AutoFill.
  */
 const BORDER = { idle: "rgba(0,0,0,0.16)", focus: "rgba(10,10,10,0.5)" };
 
@@ -180,6 +186,7 @@ export function Input({
   ...props
 }: TextInputProps & { leading?: ReactNode; trailing?: ReactNode; className?: string }) {
   const [focused, setFocused] = useState(false);
+  const plain = props.textContentType == null && props.autoComplete == null;
   return (
     <View
       className={`h-[52px] flex-row items-center gap-2 rounded-field border bg-ink-850 px-4 ${className}`}
@@ -188,6 +195,7 @@ export function Input({
       {leading}
       <TextInput
         placeholderTextColor="#8A8A8F"
+        {...(plain ? { textContentType: "none" as const, autoComplete: "off" as const } : null)}
         {...props}
         onFocus={(e) => {
           setFocused(true);
