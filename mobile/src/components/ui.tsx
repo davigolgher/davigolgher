@@ -22,7 +22,11 @@ import { EASE_OUT, usePressFeedback, useReducedMotion } from "~/lib/motion";
  *
  * `delay` staggers siblings so a screen resolves top to bottom. Keep the gaps
  * short (30–80ms): longer and the screen feels slow to load. Nothing waits on
- * it, so taps work while it plays. `trigger` replays it when its value changes.
+ * it, so taps work while it plays.
+ *
+ * It plays once, when the content first mounts. Tab screens stay mounted, so
+ * switching back to one shows it as it was — tabs are switched dozens of times
+ * a day, and content that re-arrives every time feels slow, not alive.
  *
  * Runs on the native driver, so it stays smooth while the rest of the screen is
  * still laying out. 260ms with a strong ease-out: felt, not watched. With
@@ -32,20 +36,17 @@ export function FadeIn({
   children,
   delay = 0,
   distance = 8,
-  trigger,
   className,
 }: {
   children: ReactNode;
   delay?: number;
   distance?: number;
-  trigger?: number;
   className?: string;
 }) {
   const t = useRef(new Animated.Value(0)).current;
   const reduced = useReducedMotion();
 
   useEffect(() => {
-    t.setValue(0);
     const animation = Animated.timing(t, {
       toValue: 1,
       duration: 260,
@@ -56,7 +57,7 @@ export function FadeIn({
     animation.start();
     // Stop rather than leave it running if the screen leaves mid-animation.
     return () => animation.stop();
-  }, [t, delay, trigger]);
+  }, [t, delay]);
 
   return (
     <Animated.View

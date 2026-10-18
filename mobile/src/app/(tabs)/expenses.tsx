@@ -8,12 +8,10 @@ import { useMoney } from "@/lib/useMoney";
 import { totalThisMonth } from "@/lib/calc";
 import { Button, FadeIn, ScreenHeader } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
-import { useFocusTick } from "~/lib/useFocusTick";
 import { ExpenseRow } from "~/components/rows";
 
 export default function Expenses() {
   const insets = useSafeAreaInsets();
-  const tick = useFocusTick();
   const { data, now } = useStore();
   const money = useMoney();
 
@@ -44,7 +42,7 @@ export default function Expenses() {
       />
 
       {all.length > 0 ? (
-        <FadeIn className="mt-5" delay={60} trigger={tick}>
+        <FadeIn className="mt-5" delay={60}>
           {all.map((t) => (
             <ExpenseRow key={t.id} transaction={t} />
           ))}

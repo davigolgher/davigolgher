@@ -7,11 +7,12 @@
  * percentages, never by colour alone — the ramp is grey.
  */
 import { useEffect, useRef } from "react";
-import { Animated, Easing, Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
 import Svg, { Circle, G } from "react-native-svg";
 import type { CategorySlice } from "@/lib/reports";
 import { useMoney } from "@/lib/useMoney";
 import { FitNumber } from "./ui";
+import { EASE_OUT, useReducedMotion } from "~/lib/motion";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -33,20 +34,31 @@ export function Donut({ slices }: { slices: CategorySlice[] }) {
   const sweep = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
+  const reduced = useReducedMotion();
+
+  // Drawn in once, when the chart first appears, then left alone: it's a chart
+  // to read, and one that re-draws itself on every visit gets watched instead.
+  // Under Reduce Motion the ring is simply there and the labels fade in.
   useEffect(() => {
-    sweep.setValue(0);
+    sweep.setValue(reduced ? 1 : 0);
     fade.setValue(0);
     Animated.parallel([
       Animated.timing(sweep, {
         toValue: 1,
-        duration: 700,
-        easing: Easing.out(Easing.cubic),
+        duration: reduced ? 0 : 480,
+        easing: EASE_OUT,
         // strokeDashoffset can't run on the native driver.
         useNativeDriver: false,
       }),
-      Animated.timing(fade, { toValue: 1, duration: 400, delay: 180, useNativeDriver: true }),
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 260,
+        delay: reduced ? 0 : 120,
+        easing: EASE_OUT,
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [sweep, fade, slices.length]);
+  }, [sweep, fade, slices.length, reduced]);
 
   // A single slice gets no gap — a full ring with a notch cut in it just looks
   // broken. With two or more, the gap is carved off the end of every slice, so

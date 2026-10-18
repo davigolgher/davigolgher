@@ -11,10 +11,11 @@
  * rendering even if the animation never runs.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from "react-native-svg";
 import type { MonthTotal } from "@/lib/reports";
 import { useMoney } from "@/lib/useMoney";
+import { EASE_OUT, useReducedMotion } from "~/lib/motion";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -80,21 +81,30 @@ export function LineChart({ months }: { months: MonthTotal[] }) {
   const draw = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
+  const reduced = useReducedMotion();
+
+  // Drawn once, like the donut; under Reduce Motion the line is simply there.
   useEffect(() => {
     if (!points.length) return;
-    draw.setValue(0);
+    draw.setValue(reduced ? 1 : 0);
     fade.setValue(0);
     Animated.parallel([
       Animated.timing(draw, {
         toValue: 1,
-        duration: 650,
-        easing: Easing.out(Easing.cubic),
+        duration: reduced ? 0 : 480,
+        easing: EASE_OUT,
         // strokeDashoffset isn't a transform or opacity, so it can't go native.
         useNativeDriver: false,
       }),
-      Animated.timing(fade, { toValue: 1, duration: 420, delay: 220, useNativeDriver: true }),
+      Animated.timing(fade, {
+        toValue: 1,
+        duration: 260,
+        delay: reduced ? 0 : 160,
+        easing: EASE_OUT,
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [draw, fade, points.length, length]);
+  }, [draw, fade, points.length, length, reduced]);
 
   const peak = points.length ? points.reduce((a, p) => (p.total > a.total ? p : a), points[0]) : null;
 

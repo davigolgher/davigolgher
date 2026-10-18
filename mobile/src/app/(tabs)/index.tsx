@@ -9,14 +9,12 @@ import { Money } from "@/lib/money";
 import { availableThisMonth, incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
 import { Button, Eyebrow, FadeIn, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
-import { useFocusTick } from "~/lib/useFocusTick";
 import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
 import { SyncNotice } from "~/components/SyncNotice";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const tick = useFocusTick();
   const { data, now } = useStore();
   const money = useMoney();
 
@@ -65,7 +63,7 @@ export default function Home() {
       <SyncNotice />
 
       {/* Budget hero — big number, status pill, spend progress. */}
-      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60} trigger={tick}>
+      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
         <View className="flex-row items-center justify-between gap-3">
           <Eyebrow>{hasBudget ? "Left to spend" : "Spent this month"}</Eyebrow>
           <Pill>{status}</Pill>
@@ -87,7 +85,7 @@ export default function Home() {
         ) : null}
       </FadeIn>
 
-      <FadeIn className="mt-4 flex-row gap-4" delay={120} trigger={tick}>
+      <FadeIn className="mt-4 flex-row gap-4" delay={120}>
         <StatCard label="Income" value={money.format(income)} sub="Received" />
         <StatCard
           label="Savings"
@@ -96,11 +94,11 @@ export default function Home() {
         />
       </FadeIn>
 
-      <FadeIn className="mt-4" delay={180} trigger={tick}>
+      <FadeIn className="mt-4" delay={180}>
         <StreakCard />
       </FadeIn>
 
-      <FadeIn className="mt-6" delay={240} trigger={tick}>
+      <FadeIn className="mt-6" delay={240}>
         <Eyebrow>Recent</Eyebrow>
         {recent.length > 0 ? (
           <View className="mt-1">

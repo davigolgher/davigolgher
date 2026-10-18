@@ -100,7 +100,7 @@ export function StreakCard() {
   const s = useMemo(() => streakSummary(data.activeDays, now), [data.activeDays, now]);
   const week = useMemo(() => weekCells(data.activeDays, now), [data.activeDays, now]);
 
-  // Home's cards fade in on focus; wait for that before the beat starts.
+  // Home's cards fade in when it first opens; wait for that before the beat starts.
   const c = useStreakCelebration(todayKey, s.doneToday, s.current, s.milestoneToday, 520);
   const moving = c.run !== null && !c.reduced;
 

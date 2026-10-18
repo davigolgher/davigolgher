@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Animated, Easing, Pressable, ScrollView, View } from "react-native";
+import { EASE_OUT, useReducedMotion } from "~/lib/motion";
 
 export interface ChartPage {
   key: string;
@@ -61,7 +62,7 @@ function Tab({ title, active, onPress }: { title: string; active: boolean; onPre
   );
 }
 
-export function ChartPager({ pages, trigger = 0 }: { pages: ChartPage[]; trigger?: number }) {
+export function ChartPager({ pages }: { pages: ChartPage[] }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const scroller = useRef<ScrollView>(null);
@@ -81,9 +82,10 @@ export function ChartPager({ pages, trigger = 0 }: { pages: ChartPage[]; trigger
    */
   const target = useRef<number | null>(null);
 
+  const reduced = useReducedMotion();
   const appear = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(appear, { toValue: 1, duration: 320, delay: 60, useNativeDriver: true }).start();
+    Animated.timing(appear, { toValue: 1, duration: 260, delay: 60, easing: EASE_OUT, useNativeDriver: true }).start();
   }, [appear]);
 
   const go = (i: number) => {
@@ -104,7 +106,7 @@ export function ChartPager({ pages, trigger = 0 }: { pages: ChartPage[]; trigger
         <Animated.View
           style={{
             opacity: appear,
-            transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+            transform: reduced ? [] : [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
           }}
         >
           <ScrollView
@@ -134,10 +136,7 @@ export function ChartPager({ pages, trigger = 0 }: { pages: ChartPage[]; trigger
             }}
           >
             {pages.map((p) => (
-              // The trigger is part of the key on purpose: remounting the chart
-              // is what makes its draw-in animation play again on a return
-              // visit. They're a handful of points each, so it's cheap.
-              <View key={`${p.key}-${trigger}`} style={{ width }}>
+              <View key={p.key} style={{ width }}>
                 {p.content}
               </View>
             ))}
