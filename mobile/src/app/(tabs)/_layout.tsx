@@ -14,8 +14,13 @@ const LABEL = { fontSize: 11, fontWeight: "600" } as const;
  * The app's own line icons (components/icons.tsx), drawn at 20pt as template
  * images so the tab bar tints them. SF Symbols can't be sized from here and
  * came out bigger and heavier than the rest of the app; these are the same
- * marks the app has always used, a little smaller, with a stroke of 2 on the
- * 24-unit grid (the app's default is 1.6) so they hold their own at that size.
+ * marks the app has always used, a little smaller.
+ *
+ * The stroke is 2.4 on the 24-unit grid (the app's default is 1.6): exactly
+ * 2pt at 20pt, so it lands on whole pixels at @1x, @2x and @3x and stays
+ * crisp. Heavier than elsewhere on purpose — the bar is a translucent
+ * material, and marks over a moving, blurred background need more weight to
+ * stay legible, the same reason iOS draws its own tab glyphs bolder.
  */
 const ICON = {
   home: require("../../../assets/images/tabs/home.png"),
