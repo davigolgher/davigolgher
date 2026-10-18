@@ -8,58 +8,14 @@
  * page directly, and the swipe is the shortcut rather than the only way in.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, Easing, Pressable, ScrollView, View } from "react-native";
+import { Animated, ScrollView, View } from "react-native";
+import { Segmented } from "./ui";
 import { EASE_OUT, useReducedMotion } from "~/lib/motion";
 
 export interface ChartPage {
   key: string;
   title: string;
   content: ReactNode;
-}
-
-/* Design tokens, as rgba so they interpolate against each other cleanly. */
-const TAB = {
-  bgOff: "rgba(245,245,246,1)", // ink-800
-  bgOn: "rgba(10,10,10,1)", // chalk
-  borderOff: "rgba(0,0,0,0.16)", // line-strong
-  borderOn: "rgba(10,10,10,1)",
-  textOff: "rgba(142,142,147,1)", // chalk-mute
-  textOn: "rgba(255,255,255,1)", // ink-950
-};
-
-/**
- * One tab, cross-fading between states.
- *
- * Fill, border and label move together, so the label is never dark on a dark
- * pill mid-transition. Colours can't run on the native driver — it's two views
- * and one 180ms fade, which costs nothing.
- */
-function Tab({ title, active, onPress }: { title: string; active: boolean; onPress: () => void }) {
-  const t = useRef(new Animated.Value(active ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(t, {
-      toValue: active ? 1 : 0,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [active, t]);
-
-  const mix = (off: string, on: string) => t.interpolate({ inputRange: [0, 1], outputRange: [off, on] });
-
-  return (
-    <Pressable onPress={onPress} className="flex-1 active:opacity-80" accessibilityRole="tab">
-      <Animated.View
-        className="items-center rounded-pill border py-2"
-        style={{ backgroundColor: mix(TAB.bgOff, TAB.bgOn), borderColor: mix(TAB.borderOff, TAB.borderOn) }}
-      >
-        <Animated.Text style={{ fontSize: 13, fontWeight: "600", color: mix(TAB.textOff, TAB.textOn) }}>
-          {title}
-        </Animated.Text>
-      </Animated.View>
-    </Pressable>
-  );
 }
 
 export function ChartPager({ pages }: { pages: ChartPage[] }) {
@@ -96,11 +52,13 @@ export function ChartPager({ pages }: { pages: ChartPage[] }) {
 
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      <View className="mb-4 flex-row gap-2">
-        {pages.map((p, i) => (
-          <Tab key={p.key} title={p.title} active={i === index} onPress={() => go(i)} />
-        ))}
-      </View>
+      <Segmented
+        role="tab"
+        options={pages.map((p) => ({ value: p.key, label: p.title }))}
+        value={pages[index]?.key ?? pages[0].key}
+        onChange={(key) => go(pages.findIndex((p) => p.key === key))}
+        className="mb-4"
+      />
 
       {width > 0 ? (
         <Animated.View

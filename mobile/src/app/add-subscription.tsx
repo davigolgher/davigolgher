@@ -11,7 +11,7 @@ import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
-import { Button, Eyebrow, FitNumber, Input, PressableScale } from "~/components/ui";
+import { Button, Eyebrow, FitNumber, Input, PressableScale, Segmented } from "~/components/ui";
 import { hapticSelection, hapticSuccess } from "~/lib/haptics";
 import { CategoryPicker } from "~/components/CategoryPicker";
 import { PrivacyShield } from "~/components/PrivacyShield";
@@ -115,24 +115,12 @@ export default function AddSubscription() {
 
         <View className="mt-8">
           <Eyebrow>Billing period</Eyebrow>
-          <View className="mt-2 flex-row gap-2">
-            {FREQUENCIES.map((f) => {
-              const on = f === frequency;
-              return (
-                <Pressable
-                  key={f}
-                  onPress={() => setFrequency(f)}
-                  className={`flex-1 items-center rounded-pill border py-2.5 active:opacity-80 ${
-                    on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-                  }`}
-                >
-                  <Text className={`text-[14px] font-semibold ${on ? "text-ink-950" : "text-chalk"}`}>
-                    {FREQUENCY_LABEL[f]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Segmented
+            options={FREQUENCIES.map((f) => ({ value: f, label: FREQUENCY_LABEL[f] }))}
+            value={frequency}
+            onChange={setFrequency}
+            className="mt-2"
+          />
         </View>
 
         {!editing ? (

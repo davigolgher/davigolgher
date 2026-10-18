@@ -13,7 +13,8 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
-import { EASE_OUT, usePressFeedback, useReducedMotion } from "~/lib/motion";
+import { hapticSelection } from "~/lib/haptics";
+import { EASE_IN_OUT, EASE_OUT, usePressFeedback, useReducedMotion } from "~/lib/motion";
 
 /* ── Motion ──────────────────────────────────────────────────────────────── */
 
@@ -212,6 +213,108 @@ export function Button({
       {leadingIcon}
       <Text className={`${s.text} font-semibold ${v.text}`}>{children}</Text>
     </PressableScale>
+  );
+}
+
+/* ── Segmented control ───────────────────────────────────────────────────── */
+
+/* iOS's own segmented control, kept monochrome: a grey track and a white thumb
+   that slides to the chosen segment. The shadow is the one UIKit draws under
+   its thumb. */
+const SEG_PAD = 2;
+const SEG_TRACK = "#EEEEEF";
+const SEG_THUMB_SHADOW = "0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.04)";
+
+/**
+ * A choice between two to four peers — expense or income, a billing period,
+ * which chart.
+ *
+ * The thumb moves with ease-in-out (it travels across the screen rather than
+ * arriving or leaving) in 220ms. Its position is set straight from the
+ * measured width before the thumb first shows, so it never flashes in on the
+ * wrong segment. Reduce Motion: it moves without sliding.
+ */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  role = "button",
+  className = "",
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  /** "tab" when the segments switch what's shown below them. */
+  role?: "button" | "tab";
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
+  const [segment, setSegment] = useState(0);
+  const x = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!segment) return;
+    Animated.timing(x, {
+      toValue: index * segment,
+      duration: reduced ? 0 : 220,
+      easing: EASE_IN_OUT,
+      useNativeDriver: true,
+    }).start();
+  }, [x, index, segment, reduced]);
+
+  return (
+    <View
+      className={`h-10 flex-row rounded-pill ${className}`}
+      style={{ backgroundColor: SEG_TRACK, padding: SEG_PAD }}
+      onLayout={(e) => {
+        const w = (e.nativeEvent.layout.width - SEG_PAD * 2) / options.length;
+        // Placed before the re-render that reveals it, not animated there.
+        x.setValue(index * w);
+        setSegment(w);
+      }}
+    >
+      {segment ? (
+        <Animated.View
+          className="absolute rounded-pill bg-ink-850"
+          style={{
+            pointerEvents: "none",
+            top: SEG_PAD,
+            bottom: SEG_PAD,
+            left: SEG_PAD,
+            width: segment,
+            boxShadow: SEG_THUMB_SHADOW,
+            transform: [{ translateX: x }],
+          }}
+        />
+      ) : null}
+      {options.map((o, i) => {
+        const on = i === index;
+        return (
+          <Pressable
+            key={o.value}
+            onPress={() => {
+              if (on) return;
+              hapticSelection();
+              onChange(o.value);
+            }}
+            accessibilityRole={role}
+            accessibilityState={{ selected: on }}
+            className="flex-1 items-center justify-center active:opacity-60"
+          >
+            <Text
+              numberOfLines={1}
+              className={`text-[14px] ${on ? "font-semibold text-chalk" : "font-medium text-chalk-soft"}`}
+            >
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 

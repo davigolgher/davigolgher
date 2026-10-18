@@ -13,10 +13,15 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
-import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
+import { Button, Eyebrow, FitNumber, Input, Segmented } from "~/components/ui";
 import { CategoryPicker } from "~/components/CategoryPicker";
 import { PrivacyShield } from "~/components/PrivacyShield";
 import { hapticSuccess } from "~/lib/haptics";
+
+const DIRECTIONS = [
+  { value: "expense", label: "Expense" },
+  { value: "income", label: "Income" },
+] as const;
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets();
@@ -88,25 +93,7 @@ export default function AddExpense() {
           <View className="w-14" />
         </View>
 
-        {/* expense / income */}
-        <View className="mt-6 flex-row gap-2">
-          {(["expense", "income"] as const).map((d) => {
-            const on = direction === d;
-            return (
-              <Pressable
-                key={d}
-                onPress={() => setDirection(d)}
-                className={`flex-1 items-center rounded-pill border py-2.5 active:opacity-80 ${
-                  on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-                }`}
-              >
-                <Text className={`text-[14px] font-semibold ${on ? "text-ink-950" : "text-chalk"}`}>
-                  {d === "expense" ? "Expense" : "Income"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Segmented options={DIRECTIONS} value={direction} onChange={setDirection} className="mt-6" />
 
         {/* amount */}
         <View className="mt-10 items-center">
