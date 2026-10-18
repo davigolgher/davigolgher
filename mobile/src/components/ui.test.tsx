@@ -14,6 +14,8 @@ vi.mock("react-native", () => {
     Animated: { View: Pass, Value: class {}, timing: () => ({ start: () => {} }) },
     AccessibilityInfo: { isReduceMotionEnabled: async () => false, addEventListener: () => ({ remove() {} }) },
     Easing: { bezier: () => () => 0, out: () => () => 0, cubic: () => 0 },
+    Platform: { OS: "ios" },
+    StyleSheet: { hairlineWidth: 0.5 },
     Pressable: ({ children, onPress }: { children?: unknown; onPress?: () => void }) => (
       <button onClick={onPress}>{children as never}</button>
     ),
@@ -26,6 +28,7 @@ vi.mock("react-native", () => {
   };
 });
 
+vi.mock("./icons", () => ({ ChevronRightIcon: () => null }));
 vi.mock("~/lib/haptics", () => ({
   hapticSelection: () => {
     seen.haptics += 1;

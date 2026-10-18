@@ -6,7 +6,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
 import { availableThisMonth, incomeThisMonth, savingsThisMonth, totalThisMonth } from "@/lib/calc";
-import { Button, Eyebrow, FadeIn, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
+import { Button, Card, Eyebrow, FadeIn, FitNumber, Pill, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
@@ -64,26 +64,28 @@ export default function Home() {
       <SyncNotice />
 
       {/* Budget hero — big number, status pill, spend progress. */}
-      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
-        <View className="flex-row items-center justify-between gap-3">
-          <Eyebrow>{hasBudget ? "Left to spend" : "Spent this month"}</Eyebrow>
-          <Pill>{status}</Pill>
-        </View>
-        <FitNumber className="mt-5 text-[44px] font-bold leading-none tracking-tight text-chalk">
-          {money.format(hasBudget ? available : spent)}
-        </FitNumber>
-        <Text className="mt-2 text-[13px] text-chalk-mute">
-          {!hasBudget
-            ? "Set a monthly budget in Settings"
-            : income > 0
-              ? `${money.format(budget)} budget + ${money.format(income)} income − ${money.format(spent)} spent`
-              : `${money.format(spent)} spent of ${money.format(budget)}`}
-        </Text>
-        {hasBudget ? (
-          <View className="mt-4 h-1.5 w-full overflow-hidden rounded-pill bg-ink-750">
-            <View className="h-full rounded-pill bg-chalk" style={{ width: `${Math.max(3, pct)}%` }} />
+      <FadeIn className="mt-6" delay={60}>
+        <Card>
+          <View className="flex-row items-center justify-between gap-3">
+            <Eyebrow>{hasBudget ? "Left to spend" : "Spent this month"}</Eyebrow>
+            <Pill>{status}</Pill>
           </View>
-        ) : null}
+          <FitNumber className="mt-5 text-[44px] font-bold leading-none tracking-tight text-chalk">
+            {money.format(hasBudget ? available : spent)}
+          </FitNumber>
+          <Text className="mt-2 text-[13px] text-chalk-mute">
+            {!hasBudget
+              ? "Set a monthly budget in Settings"
+              : income > 0
+                ? `${money.format(budget)} budget + ${money.format(income)} income − ${money.format(spent)} spent`
+                : `${money.format(spent)} spent of ${money.format(budget)}`}
+          </Text>
+          {hasBudget ? (
+            <View className="mt-4 h-1.5 w-full overflow-hidden rounded-pill bg-ink-750">
+              <View className="h-full rounded-pill bg-chalk" style={{ width: `${Math.max(3, pct)}%` }} />
+            </View>
+          ) : null}
+        </Card>
       </FadeIn>
 
       <FadeIn className="mt-4 flex-row gap-4" delay={120}>

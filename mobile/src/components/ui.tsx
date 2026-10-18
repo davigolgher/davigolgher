@@ -2,19 +2,41 @@
  * Native UI primitives, matching the web app's look through the shared design
  * tokens in tailwind.config.js.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Children, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
+  Platform,
   Pressable,
   Text,
+  StyleSheet,
   TextInput,
   View,
   type PressableProps,
   type TextInputProps,
   type ViewStyle,
 } from "react-native";
+import { ChevronRightIcon } from "./icons";
 import { hapticSelection } from "~/lib/haptics";
 import { EASE_IN_OUT, EASE_OUT, usePressFeedback, useReducedMotion } from "~/lib/motion";
+
+/* ── Surfaces ──────────────────────────────────────────────────────────── */
+
+/**
+ * iOS draws rounded rectangles as continuous curves — the corner eases into
+ * the straight edge instead of meeting it at the end of a circular arc. Every
+ * rounded surface gets it; it's the difference people feel without naming.
+ */
+export const CONTINUOUS: ViewStyle = Platform.OS === "ios" ? { borderCurve: "continuous" } : {};
+
+/**
+ * A card lifted off the page by a soft, semi-transparent shadow instead of a
+ * solid outline: a faint 1px ring for the edge, then two layers of depth. On
+ * white it reads as a surface rather than a box drawn around content.
+ */
+export const CARD_SURFACE: ViewStyle = {
+  ...CONTINUOUS,
+  boxShadow: "0 0 0 1px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05)",
+};
 
 /* ── Motion ──────────────────────────────────────────────────────────────── */
 
@@ -113,7 +135,7 @@ export function PressableScale({
         onPressOut?.(e);
       }}
     >
-      <Animated.View className={className} style={[style, press.style]}>
+      <Animated.View className={className} style={[CONTINUOUS, style, press.style]}>
         {children}
       </Animated.View>
     </Pressable>
@@ -123,7 +145,75 @@ export function PressableScale({
 /* ── Card ────────────────────────────────────────────────────────────────── */
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <View className={`rounded-card border border-line bg-ink-850 p-5 ${className}`}>{children}</View>;
+  return (
+    <View className={`rounded-card bg-ink-850 p-5 ${className}`} style={CARD_SURFACE}>
+      {children}
+    </View>
+  );
+}
+
+/* ── Grouped list ────────────────────────────────────────────────────────── */
+
+/**
+ * Rows in one rounded block, the way iOS Settings groups them: a grey fill,
+ * hairline separators between rows that start where the text does, and no
+ * line above the first or below the last. Pass rows as direct children (not
+ * wrapped in a fragment) so each one gets its separator.
+ */
+export function Group({ children }: { children: ReactNode }) {
+  const rows = Children.toArray(children);
+  return (
+    <View className="overflow-hidden rounded-card-sm bg-ink-800" style={CONTINUOUS}>
+      {rows.map((row, i) => (
+        <View key={i}>
+          {i > 0 ? <View className="ml-4" style={{ height: StyleSheet.hairlineWidth, backgroundColor: SEPARATOR }} /> : null}
+          {row}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const SEPARATOR = "rgba(0,0,0,0.18)";
+
+/**
+ * One row of a `Group`: 17pt title like iOS's own lists, an optional line
+ * under it, and a chevron when it opens something. Highlights grey while
+ * held, as table cells do. `trailing` replaces the chevron (a switch, a check).
+ */
+export function GroupRow({
+  title,
+  sub,
+  onPress,
+  trailing,
+  accessibilityHint,
+}: {
+  title: string;
+  sub?: string;
+  onPress?: () => void;
+  trailing?: ReactNode;
+  accessibilityHint?: string;
+}) {
+  const body = (
+    <>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[17px] text-chalk">{title}</Text>
+        {sub ? <Text className="mt-0.5 text-[13px] leading-[18px] text-chalk-mute">{sub}</Text> : null}
+      </View>
+      {trailing ?? (onPress ? <ChevronRightIcon size={18} color="#8A8A8F" /> : null)}
+    </>
+  );
+  if (!onPress) return <View className="min-h-[48px] flex-row items-center gap-3 px-4 py-3">{body}</View>;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityHint={accessibilityHint}
+      className="min-h-[48px] flex-row items-center gap-3 px-4 py-3 active:bg-ink-700"
+    >
+      {body}
+    </Pressable>
+  );
 }
 
 /* ── Text bits ───────────────────────────────────────────────────────────── */
@@ -353,7 +443,7 @@ export function Input({
   return (
     <View
       className={`h-[52px] flex-row items-center gap-2 rounded-field border bg-ink-850 px-4 ${className}`}
-      style={{ borderColor: focused ? BORDER.focus : BORDER.idle }}
+      style={{ ...CONTINUOUS, borderColor: focused ? BORDER.focus : BORDER.idle }}
     >
       {leading}
       <TextInput
@@ -390,7 +480,17 @@ export function ScreenHeader({
     <View className="flex-row items-end justify-between gap-3">
       <View className="min-w-0 flex-1">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <Text className="mt-1 text-[26px] font-bold tracking-tight text-chalk">{title}</Text>
+        {/* iOS's large title: 34pt bold. A long one shrinks to fit beside the
+            action rather than wrapping under it. */}
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          accessibilityRole="header"
+          className="mt-1 text-[34px] font-bold tracking-tight text-chalk"
+        >
+          {title}
+        </Text>
       </View>
       {action}
     </View>
@@ -401,7 +501,7 @@ export function ScreenHeader({
 
 export function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <View className="flex-1 rounded-card border border-line bg-ink-800 p-4">
+    <View className="flex-1 rounded-card bg-ink-800 p-4" style={CONTINUOUS}>
       <Eyebrow>{label}</Eyebrow>
       <FitNumber className="mt-1.5 text-[22px] font-semibold tracking-tight text-chalk">{value}</FitNumber>
       {sub ? <Text className="mt-0.5 text-[12px] text-chalk-mute">{sub}</Text> : null}

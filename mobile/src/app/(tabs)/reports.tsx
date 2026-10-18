@@ -6,7 +6,7 @@ import { useMoney } from "@/lib/useMoney";
 import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "@/lib/calc";
 import { categoryBreakdown, monthlyTotals } from "@/lib/reports";
 import { FREQUENCY_LABEL } from "@/lib/recurrence";
-import { Eyebrow, FadeIn, ScreenHeader } from "~/components/ui";
+import { Card, Eyebrow, FadeIn, ScreenHeader } from "~/components/ui";
 import { Donut } from "~/components/Donut";
 import { LineChart } from "~/components/LineChart";
 import { ChartPager } from "~/components/ChartPager";
@@ -53,19 +53,21 @@ export default function Reports() {
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
 
-      <FadeIn className="mt-6 rounded-card border border-line bg-ink-850 p-5" delay={60}>
-        {hasData ? (
-          <ChartPager
-            pages={[
-              { key: "categories", title: "By category", content: <Donut slices={categories} /> },
-              { key: "months", title: "By month", content: <LineChart months={months} /> },
-            ]}
-          />
-        ) : (
-          <Text className="py-6 text-center text-[15px] leading-relaxed text-chalk-mute">
-            Log a few expenses and the charts show up here.
-          </Text>
-        )}
+      <FadeIn className="mt-6" delay={60}>
+        <Card>
+          {hasData ? (
+            <ChartPager
+              pages={[
+                { key: "categories", title: "By category", content: <Donut slices={categories} /> },
+                { key: "months", title: "By month", content: <LineChart months={months} /> },
+              ]}
+            />
+          ) : (
+            <Text className="py-6 text-center text-[15px] leading-relaxed text-chalk-mute">
+              Log a few expenses and the charts show up here.
+            </Text>
+          )}
+        </Card>
       </FadeIn>
 
       <FadeIn className="mt-8" delay={120}>

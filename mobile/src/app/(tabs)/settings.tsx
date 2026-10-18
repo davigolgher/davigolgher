@@ -17,8 +17,18 @@ import { APP } from "@/config/app";
 import { useFlowFlags } from "~/lib/flow";
 import { forgetReminderPrefs, sendTestReminder } from "~/lib/notifications";
 import { useRenewalReminders } from "~/features/reminders";
-import { Button, Eyebrow, Input, PressableScale, ScreenHeader } from "~/components/ui";
-import { CheckIcon, ChevronRightIcon } from "~/components/icons";
+import {
+  Button,
+  CONTINUOUS,
+  Card,
+  Eyebrow,
+  Group,
+  GroupRow,
+  Input,
+  PressableScale,
+  ScreenHeader,
+} from "~/components/ui";
+import { CheckIcon } from "~/components/icons";
 import { hapticHold, hapticSelection, hapticSuccess } from "~/lib/haptics";
 import { useTabScreenPadding } from "~/lib/screen";
 
@@ -39,19 +49,9 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function Row({ title, sub, onPress }: { title: string; sub?: string; onPress?: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-3 border-b border-line-soft py-3.5 active:opacity-60"
-    >
-      <View className="min-w-0 flex-1">
-        <Text className="text-[15px] text-chalk">{title}</Text>
-        {sub ? <Text className="mt-0.5 text-[13px] text-chalk-mute">{sub}</Text> : null}
-      </View>
-      {onPress ? <ChevronRightIcon size={18} color="#8A8A8F" /> : null}
-    </Pressable>
-  );
+/** The grey line under a group that says what it does, like an iOS footer. */
+function Footer({ children }: { children: React.ReactNode }) {
+  return <Text className="mt-2 px-4 text-[12px] leading-relaxed text-chalk-mute">{children}</Text>;
 }
 
 export default function Settings() {
@@ -198,7 +198,7 @@ export default function Settings() {
     >
       <ScreenHeader eyebrow="Account" title="Settings" />
 
-      <View className="mt-6 rounded-card border border-line bg-ink-850 p-5">
+      <View className="mt-6 rounded-card-sm bg-ink-800 p-4" style={CONTINUOUS}>
         <Eyebrow>Signed in as</Eyebrow>
         <Text className="mt-1 text-[16px] font-medium text-chalk">{auth.email ?? "—"}</Text>
         <Text className="mt-3 text-[13px] leading-relaxed text-chalk-mute">
@@ -236,33 +236,37 @@ export default function Settings() {
       </Section>
 
       <Section label="Currency">
-        <Row
-          title={data.preferences.currency}
-          sub={CURRENCIES.find((c) => c.code === data.preferences.currency)?.label}
-          onPress={() => setCurrencyOpen((v) => !v)}
-        />
-        {currencyOpen
-          ? CURRENCIES.map((c) => {
-              const on = c.code === data.preferences.currency;
-              return (
-                <Pressable
-                  key={c.code}
-                  onPress={() => {
-                    if (!on) hapticSelection();
-                    setCurrency(c.code);
-                    setCurrencyOpen(false);
-                  }}
-                  className="flex-row items-center gap-3 border-b border-line-soft py-3 active:opacity-60"
-                >
-                  <Text className="w-10 text-[15px] font-semibold text-chalk">{c.symbol}</Text>
-                  <Text className="min-w-0 flex-1 text-[15px] text-chalk">
-                    {c.label} <Text className="text-chalk-mute">({c.code})</Text>
-                  </Text>
-                  {on ? <CheckIcon size={18} strokeWidth={2.2} /> : null}
-                </Pressable>
-              );
-            })
-          : null}
+        <Group>
+          <GroupRow
+            title={data.preferences.currency}
+            sub={CURRENCIES.find((c) => c.code === data.preferences.currency)?.label}
+            onPress={() => setCurrencyOpen((v) => !v)}
+          />
+          {currencyOpen
+            ? CURRENCIES.map((c) => {
+                const on = c.code === data.preferences.currency;
+                return (
+                  <Pressable
+                    key={c.code}
+                    onPress={() => {
+                      if (!on) hapticSelection();
+                      setCurrency(c.code);
+                      setCurrencyOpen(false);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    className="min-h-[48px] flex-row items-center gap-3 px-4 py-3 active:bg-ink-700"
+                  >
+                    <Text className="w-10 text-[17px] font-semibold text-chalk">{c.symbol}</Text>
+                    <Text className="min-w-0 flex-1 text-[17px] text-chalk">
+                      {c.label} <Text className="text-chalk-mute">({c.code})</Text>
+                    </Text>
+                    {on ? <CheckIcon size={18} strokeWidth={2.2} /> : null}
+                  </Pressable>
+                );
+              })
+            : null}
+        </Group>
       </Section>
 
       <Section label="Categories">
@@ -309,69 +313,74 @@ export default function Settings() {
       </Section>
 
       <Section label="Reminders">
-        <View className="flex-row items-center gap-3 border-b border-line-soft py-3.5">
-          <View className="min-w-0 flex-1">
-            <Text className="text-[15px] text-chalk">Warn me before a charge</Text>
-            <Text className="mt-0.5 text-[13px] text-chalk-mute">{reminderStatus()}</Text>
-          </View>
-          <Switch
-            value={Boolean(reminders.prefs?.enabled)}
-            onValueChange={toggleReminders}
-            trackColor={SWITCH_TRACK}
-            thumbColor="#FFFFFF"
-            ios_backgroundColor={SWITCH_TRACK.false}
-          />
-        </View>
-
-        {reminders.prefs?.enabled ? (
-          <>
-            <Text className="mt-3 text-[12px] text-chalk-mute">How much warning</Text>
-            <View className="mt-2 flex-row flex-wrap gap-2">
-              {LEAD_DAY_CHOICES.map((d) => {
-                const on = d === reminders.prefs?.leadDays;
-                return (
-                  <PressableScale
-                    key={d}
-                    onPress={() => {
-                      if (!on) hapticSelection();
-                      reminders.setLeadDays(d);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                    className={`rounded-pill border px-3.5 py-2 ${
-                      on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-                    }`}
-                  >
-                    <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>
-                      {LEAD_LABEL[d]}
-                    </Text>
-                  </PressableScale>
-                );
-              })}
-            </View>
-            <View className="mt-2 flex-row items-center gap-3 border-b border-line-soft py-3.5">
-              <View className="min-w-0 flex-1">
-                <Text className="text-[15px] text-chalk">Show amounts</Text>
-                <Text className="mt-0.5 text-[13px] text-chalk-mute">
-                  Off: the name only. Notifications can be read on the Lock Screen.
-                </Text>
-              </View>
+        <Group>
+          <GroupRow
+            title="Warn me before a charge"
+            sub={reminderStatus()}
+            trailing={
               <Switch
-                value={Boolean(reminders.prefs?.showAmounts)}
-                onValueChange={reminders.setShowAmounts}
+                value={Boolean(reminders.prefs?.enabled)}
+                onValueChange={toggleReminders}
                 trackColor={SWITCH_TRACK}
                 thumbColor="#FFFFFF"
                 ios_backgroundColor={SWITCH_TRACK.false}
               />
-            </View>
-            <Row title="Send a test reminder" sub="Arrives in about five seconds" onPress={testReminder} />
-          </>
-        ) : null}
+            }
+          />
 
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
+          {/* Rows straight in the group, not in a fragment, so each gets its separator. */}
+          {reminders.prefs?.enabled ? (
+            <View className="px-4 py-3">
+              <Text className="text-[17px] text-chalk">How much warning</Text>
+              <View className="mt-2.5 flex-row flex-wrap gap-2">
+                {LEAD_DAY_CHOICES.map((d) => {
+                  const on = d === reminders.prefs?.leadDays;
+                  return (
+                    <PressableScale
+                      key={d}
+                      onPress={() => {
+                        if (!on) hapticSelection();
+                        reminders.setLeadDays(d);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      className={`rounded-pill border px-3.5 py-2 ${
+                        on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
+                      }`}
+                    >
+                      <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>
+                        {LEAD_LABEL[d]}
+                      </Text>
+                    </PressableScale>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+          {reminders.prefs?.enabled ? (
+            <GroupRow
+              title="Show amounts"
+              sub="Off: the name only. Notifications can be read on the Lock Screen."
+              trailing={
+                <Switch
+                  value={Boolean(reminders.prefs?.showAmounts)}
+                  onValueChange={reminders.setShowAmounts}
+                  trackColor={SWITCH_TRACK}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={SWITCH_TRACK.false}
+                />
+              }
+            />
+          ) : null}
+          {reminders.prefs?.enabled ? (
+            <GroupRow title="Send a test reminder" sub="Arrives in about five seconds" onPress={testReminder} />
+          ) : null}
+        </Group>
+
+        <Footer>
           A notification before each subscription renews, including {APP.name} itself. Scheduled on this phone — no
           alerts are sent from a server, and turning the switch off cancels them.
-        </Text>
+        </Footer>
       </Section>
 
       <Section label="Password">
@@ -411,34 +420,40 @@ export default function Settings() {
       </Section>
 
       <Section label="Legal & privacy">
-        {LEGAL_ORDER.map((id) => (
-          <Row key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
-        ))}
+        <Group>
+          {LEGAL_ORDER.map((id) => (
+            <GroupRow key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
+          ))}
+        </Group>
       </Section>
 
       <Section label="Subscription">
-        <Row
-          title="Manage subscription"
-          sub="Opens the App Store, where you can change plan or cancel"
-          onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {})}
-        />
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
+        <Group>
+          <GroupRow
+            title="Manage subscription"
+            sub="Opens the App Store, where you can change plan or cancel"
+            onPress={() => Linking.openURL("https://apps.apple.com/account/subscriptions").catch(() => {})}
+          />
+        </Group>
+        <Footer>
           Purchases go through your Apple ID, so cancelling happens there — the same few taps as subscribing. Access
           continues until the end of the period you already paid for.
-        </Text>
+        </Footer>
       </Section>
 
       <Section label="Help">
-        <Row title="Show the intro again" sub="Replays the walkthrough and the tour" onPress={replayIntro} />
-        <Row
-          title="Contact support"
-          sub={APP.supportEmail}
-          onPress={() => Linking.openURL(`mailto:${APP.supportEmail}`).catch(() => {})}
-        />
-        <Text className="mt-2 text-[12px] leading-relaxed text-chalk-mute">
+        <Group>
+          <GroupRow title="Show the intro again" sub="Replays the walkthrough and the tour" onPress={replayIntro} />
+          <GroupRow
+            title="Contact support"
+            sub={APP.supportEmail}
+            onPress={() => Linking.openURL(`mailto:${APP.supportEmail}`).catch(() => {})}
+          />
+        </Group>
+        <Footer>
           Your data is stored with Supabase, our database provider, and scoped to your account. The Privacy Policy above
           has the details.
-        </Text>
+        </Footer>
       </Section>
 
       <Section label="Account">
@@ -447,7 +462,7 @@ export default function Settings() {
             Sign out
           </Button>
           {deleteOpen ? (
-            <View className="rounded-card border border-line bg-ink-850 p-5">
+            <Card>
               <Text className="text-[15px] font-semibold text-chalk">Delete your account?</Text>
               <Text className="mt-2 text-[13px] leading-relaxed text-chalk-mute">
                 This erases your expenses, subscriptions, budgets and categories, and closes the account itself. It
@@ -476,7 +491,7 @@ export default function Settings() {
                   Cancel
                 </Button>
               </View>
-            </View>
+            </Card>
           ) : (
             <Pressable onPress={() => setDeleteOpen(true)} className="items-center py-3 active:opacity-60">
               <Text className="text-[14px] font-semibold text-chalk-soft">Delete account</Text>

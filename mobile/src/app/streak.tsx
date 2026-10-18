@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { capitalizeFirst } from "@/lib/format";
 import { MILESTONES, fromDayKey, monthCells, previousMilestone, streakSummary } from "@/lib/streak";
-import { Button, Eyebrow, StatCard } from "~/components/ui";
+import { Button, CARD_SURFACE, Eyebrow, StatCard } from "~/components/ui";
 import { ChevronRightIcon } from "~/components/icons";
 import { StreakStatus, markStateFor } from "~/components/StreakCard";
 import { streakCopy } from "~/features/streak/copy";
@@ -124,7 +124,7 @@ export default function StreakDetail() {
         </View>
 
         {/* Next milestone */}
-        <View className="mt-4 rounded-card border border-line bg-ink-850 p-5">
+        <View className="mt-4 rounded-card bg-ink-850 p-5" style={CARD_SURFACE}>
           <Eyebrow>{t.next}</Eyebrow>
           <Text className="mt-1.5 text-[20px] font-bold tracking-tight text-chalk">{capitalizeFirst(goal)}</Text>
           <View className="mt-4 h-2 overflow-hidden rounded-pill bg-ink-700">
