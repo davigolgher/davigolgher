@@ -14,7 +14,8 @@ const LABEL = { fontSize: 11, fontWeight: "600" } as const;
  * The app's own line icons (components/icons.tsx), drawn at 20pt as template
  * images so the tab bar tints them. SF Symbols can't be sized from here and
  * came out bigger and heavier than the rest of the app; these are the same
- * marks the app has always used, a little smaller.
+ * marks the app has always used, a little smaller, with a stroke of 2 on the
+ * 24-unit grid (the app's default is 1.6) so they hold their own at that size.
  */
 const ICON = {
   home: require("../../../assets/images/tabs/home.png"),
