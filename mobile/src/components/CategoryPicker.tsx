@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { useStore } from "@/data/store";
 import { Button, Input, PressableScale } from "./ui";
+import { hapticSelection } from "~/lib/haptics";
 
 export function CategoryPicker({ value, onChange }: { value: string; onChange: (label: string) => void }) {
   const { data, addCategory } = useStore();
@@ -18,6 +19,7 @@ export function CategoryPicker({ value, onChange }: { value: string; onChange: (
     addCategory(label);
     // addCategory sanitizes and ignores duplicates; select by label either way
     // so the new chip is the one chosen.
+    hapticSelection();
     onChange(label);
     setDraft("");
     setAdding(false);
@@ -31,7 +33,10 @@ export function CategoryPicker({ value, onChange }: { value: string; onChange: (
           return (
             <PressableScale
               key={c.id}
-              onPress={() => onChange(c.label)}
+              onPress={() => {
+                if (!on) hapticSelection();
+                onChange(c.label);
+              }}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               className={`rounded-pill border px-3.5 py-2 ${on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"}`}

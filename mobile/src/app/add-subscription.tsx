@@ -12,6 +12,7 @@ import { currencyByCode } from "@/data/currencies";
 import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Eyebrow, FitNumber, Input, PressableScale } from "~/components/ui";
+import { hapticSelection, hapticSuccess } from "~/lib/haptics";
 import { CategoryPicker } from "~/components/CategoryPicker";
 import { PrivacyShield } from "~/components/PrivacyShield";
 
@@ -71,6 +72,7 @@ export default function AddSubscription() {
         reminders: remind,
       });
     }
+    hapticSuccess();
     router.back();
   };
 
@@ -142,7 +144,10 @@ export default function AddSubscription() {
                 return (
                   <PressableScale
                     key={w.label}
-                    onPress={() => setInDays(w.days)}
+                    onPress={() => {
+                      if (w.days !== inDays) hapticSelection();
+                      setInDays(w.days);
+                    }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                     className={`rounded-pill border px-3.5 py-2 ${

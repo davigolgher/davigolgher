@@ -9,6 +9,7 @@ import { daysUntilCharge, FREQUENCY_LABEL } from "@/lib/recurrence";
 import { formatDaysUntil } from "@/lib/format";
 import { Button, Eyebrow, FadeIn, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
+import { hapticHold } from "~/lib/haptics";
 
 export default function Subs() {
   const insets = useSafeAreaInsets();
@@ -64,7 +65,10 @@ export default function Subs() {
               <Pressable
                 key={s.id}
                 onPress={() => router.push(`/add-subscription?id=${s.id}`)}
-                onLongPress={() => confirmCancel(s.id, s.name)}
+                onLongPress={() => {
+                  hapticHold();
+                  confirmCancel(s.id, s.name);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`${s.name}, ${money.format(s.amount)}, ${FREQUENCY_LABEL[s.frequency]}, ${formatDaysUntil(daysUntilCharge(s, now))}`}
                 accessibilityHint="Opens it to edit."

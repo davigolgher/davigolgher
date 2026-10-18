@@ -20,6 +20,7 @@ import { forgetReminderPrefs, sendTestReminder } from "~/lib/notifications";
 import { useRenewalReminders } from "~/features/reminders";
 import { Button, Eyebrow, Input, PressableScale, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
+import { hapticHold, hapticSelection, hapticSuccess } from "~/lib/haptics";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
 
@@ -218,7 +219,13 @@ export default function Settings() {
               <Text className="text-[16px] text-chalk-mute">{currencyByCode(data.preferences.currency).symbol}</Text>
             }
           />
-          <Button variant="primary" onPress={saveBudget}>
+          <Button
+            variant="primary"
+            onPress={() => {
+              saveBudget();
+              hapticSuccess();
+            }}
+          >
             Save
           </Button>
         </View>
@@ -240,6 +247,7 @@ export default function Settings() {
                 <Pressable
                   key={c.code}
                   onPress={() => {
+                    if (!on) hapticSelection();
                     setCurrency(c.code);
                     setCurrencyOpen(false);
                   }}
@@ -261,7 +269,10 @@ export default function Settings() {
           {data.categories.map((c) => (
             <PressableScale
               key={c.id}
-              onLongPress={() => confirmRemoveCategory(c.id, c.label)}
+              onLongPress={() => {
+                hapticHold();
+                confirmRemoveCategory(c.id, c.label);
+              }}
               accessibilityRole="button"
               accessibilityLabel={`${c.label} category`}
               // Press-and-hold can't be found with VoiceOver; offer it as an action.
@@ -320,7 +331,10 @@ export default function Settings() {
                 return (
                   <PressableScale
                     key={d}
-                    onPress={() => reminders.setLeadDays(d)}
+                    onPress={() => {
+                      if (!on) hapticSelection();
+                      reminders.setLeadDays(d);
+                    }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                     className={`rounded-pill border px-3.5 py-2 ${

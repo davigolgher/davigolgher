@@ -14,6 +14,7 @@ import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, sanitizeAmountText } from "~/lib/amount";
 import { Button, FadeIn, FitNumber, Input, PressableScale } from "~/components/ui";
+import { hapticSelection } from "~/lib/haptics";
 import { BarChartIcon, WalletIcon } from "~/components/icons";
 
 type Step = "what" | "why" | "budget";
@@ -129,7 +130,10 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
               {PRESETS.map((v) => (
                 <PressableScale
                   key={v}
-                  onPress={() => setAmountText(String(v))}
+                  onPress={() => {
+                    hapticSelection();
+                    setAmountText(String(v));
+                  }}
                   accessibilityRole="button"
                   className="rounded-pill border border-line-strong bg-ink-850 px-4 py-2"
                 >

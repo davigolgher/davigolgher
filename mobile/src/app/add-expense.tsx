@@ -16,6 +16,7 @@ import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/
 import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
 import { CategoryPicker } from "~/components/CategoryPicker";
 import { PrivacyShield } from "~/components/PrivacyShield";
+import { hapticSuccess } from "~/lib/haptics";
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets();
@@ -61,6 +62,7 @@ export default function AddExpense() {
         direction,
       });
     }
+    hapticSuccess();
     router.back();
   };
 

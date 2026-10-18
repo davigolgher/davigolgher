@@ -19,6 +19,7 @@ import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
 import { monthsFreeOnYearly, yearlySavingsPercent } from "~/lib/purchasesFormat";
 import { Button, FadeIn, PressableScale } from "~/components/ui";
+import { hapticSelection } from "~/lib/haptics";
 import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
@@ -144,7 +145,10 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
               return (
                 <PressableScale
                   key={id}
-                  onPress={() => setSelected(id)}
+                  onPress={() => {
+                    if (!on) hapticSelection();
+                    setSelected(id);
+                  }}
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
                   scaleTo={0.98}
@@ -213,7 +217,10 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
           ) : null}
           {freeMonths && selected === "monthly" ? (
             <PressableScale
-              onPress={() => setSelected("yearly")}
+              onPress={() => {
+                hapticSelection();
+                setSelected("yearly");
+              }}
               accessibilityRole="button"
               accessibilityLabel={`Switch to Yearly: ${freeMonths} months free compared with paying monthly`}
               scaleTo={0.98}

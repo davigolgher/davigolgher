@@ -10,6 +10,7 @@ import type { Transaction } from "@/data/types";
 import { formatRelativeDay } from "@/lib/format";
 import { useMoney } from "@/lib/useMoney";
 import { useStore } from "@/data/store";
+import { hapticHold } from "~/lib/haptics";
 
 export function ExpenseRow({ transaction: t }: { transaction: Transaction }) {
   const money = useMoney();
@@ -28,7 +29,10 @@ export function ExpenseRow({ transaction: t }: { transaction: Transaction }) {
   return (
     <Pressable
       onPress={() => router.push(`/add-expense?id=${t.id}`)}
-      onLongPress={confirmDelete}
+      onLongPress={() => {
+        hapticHold();
+        confirmDelete();
+      }}
       accessibilityRole="button"
       accessibilityLabel={`${t.description}, ${income ? "income" : "expense"} ${money.format(t.amount)}, ${meta}`}
       accessibilityHint="Opens it to edit."
