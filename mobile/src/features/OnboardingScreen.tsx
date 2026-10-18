@@ -13,7 +13,7 @@ import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, sanitizeAmountText } from "~/lib/amount";
-import { Button, FadeIn, FitNumber, Input } from "~/components/ui";
+import { Button, FadeIn, FitNumber, Input, PressableScale } from "~/components/ui";
 import { BarChartIcon, WalletIcon } from "~/components/icons";
 
 type Step = "what" | "why" | "budget";
@@ -127,16 +127,17 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
             <View className="mt-4 flex-row flex-wrap justify-center gap-2">
               {PRESETS.map((v) => (
-                <Pressable
+                <PressableScale
                   key={v}
                   onPress={() => setAmountText(String(v))}
-                  className="rounded-pill border border-line-strong bg-ink-850 px-4 py-2 active:opacity-80"
+                  accessibilityRole="button"
+                  className="rounded-pill border border-line-strong bg-ink-850 px-4 py-2"
                 >
                   <Text className="text-[13px] font-medium text-chalk">
                     {symbol}
                     {v.toLocaleString(money.locale)}
                   </Text>
-                </Pressable>
+                </PressableScale>
               ))}
             </View>
           </View>

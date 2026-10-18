@@ -21,9 +21,10 @@
  * simply there, and the message fades in. The haptic stays — it isn't motion.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing } from "react-native";
+import { Animated, Easing } from "react-native";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useReducedMotion } from "~/lib/motion";
 
 const queued = new Set<string>();
 
@@ -35,22 +36,6 @@ export function queueCelebration(dayKey: string): void {
 /** Take it if it's still waiting. Only one view ever gets it. */
 function takeCelebration(dayKey: string): boolean {
   return queued.delete(dayKey);
-}
-
-export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((v) => alive && setReduced(v))
-      .catch(() => {});
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduced);
-    return () => {
-      alive = false;
-      sub.remove();
-    };
-  }, []);
-  return reduced;
 }
 
 export interface Celebration {

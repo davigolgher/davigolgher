@@ -18,7 +18,7 @@ import type { LegalDocId } from "@/features/legal/content";
 import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
 import { monthsFreeOnYearly, yearlySavingsPercent } from "~/lib/purchasesFormat";
-import { Button, FadeIn } from "~/components/ui";
+import { Button, FadeIn, PressableScale } from "~/components/ui";
 import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
@@ -142,10 +142,13 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
               const offer = plans?.find((p) => p.id === id);
               const on = id === selected;
               return (
-                <Pressable
+                <PressableScale
                   key={id}
                   onPress={() => setSelected(id)}
-                  className={`flex-row items-center justify-between gap-3 rounded-card border p-4 active:opacity-80 ${
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  scaleTo={0.98}
+                  className={`flex-row items-center justify-between gap-3 rounded-card border p-4 ${
                     on ? "border-chalk bg-ink-800" : "border-line-strong bg-ink-850"
                   }`}
                 >
@@ -191,7 +194,7 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
                   >
                     {on ? <CheckIcon size={13} color="#FFFFFF" strokeWidth={2.4} /> : null}
                   </View>
-                </Pressable>
+                </PressableScale>
               );
             })}
           </View>
@@ -209,11 +212,13 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
             </View>
           ) : null}
           {freeMonths && selected === "monthly" ? (
-            <Pressable
+            <PressableScale
               onPress={() => setSelected("yearly")}
               accessibilityRole="button"
               accessibilityLabel={`Switch to Yearly: ${freeMonths} months free compared with paying monthly`}
-              className="mt-3 flex-row items-center gap-3 rounded-card bg-chalk px-4 py-3.5 active:opacity-90"
+              scaleTo={0.98}
+              containerClassName="mt-3"
+              className="flex-row items-center gap-3 rounded-card bg-chalk px-4 py-3.5"
             >
               <View className="min-w-0 flex-1">
                 <Text className="text-[15px] font-bold text-ink-950">Get {freeMonths} months free</Text>
@@ -222,7 +227,7 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
               <View className="rounded-pill bg-ink-950 px-3.5 py-2">
                 <Text className="text-[13px] font-semibold text-chalk">Switch</Text>
               </View>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </FadeIn>
 

@@ -11,7 +11,7 @@ import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
-import { Button, Eyebrow, FitNumber, Input } from "~/components/ui";
+import { Button, Eyebrow, FitNumber, Input, PressableScale } from "~/components/ui";
 import { CategoryPicker } from "~/components/CategoryPicker";
 import { PrivacyShield } from "~/components/PrivacyShield";
 
@@ -140,15 +140,17 @@ export default function AddSubscription() {
               {WHEN.map((w) => {
                 const on = w.days === inDays;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={w.label}
                     onPress={() => setInDays(w.days)}
-                    className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    className={`rounded-pill border px-3.5 py-2 ${
                       on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
                     }`}
                   >
                     <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{w.label}</Text>
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </View>

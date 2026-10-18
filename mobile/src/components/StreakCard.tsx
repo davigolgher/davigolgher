@@ -10,11 +10,11 @@
  * A day counts when it's reviewed; see lib/streak for the rule.
  */
 import { useMemo } from "react";
-import { Animated, Pressable, Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useStore } from "@/data/store";
 import { fromDayKey, streakSummary, weekCells, type StreakSummary } from "@/lib/streak";
-import { Button } from "./ui";
+import { Button, PressableScale } from "./ui";
 import { CheckIcon, ChevronRightIcon } from "./icons";
 import { streakCopy, type StreakCopy } from "~/features/streak/copy";
 import { useTodayKey } from "~/features/streak/useTodayKey";
@@ -105,11 +105,12 @@ export function StreakCard() {
   const moving = c.run !== null && !c.reduced;
 
   return (
-    <Pressable
+    <PressableScale
       onPress={() => router.push("/streak")}
       accessibilityRole="button"
       accessibilityLabel={t.a11yCard(s.current, s.doneToday)}
-      className="rounded-card border border-line bg-ink-850 p-5 active:opacity-90"
+      scaleTo={0.98}
+      className="rounded-card border border-line bg-ink-850 p-5"
     >
       <View className="flex-row items-center gap-4">
         <StreakMark size={48} state={markStateFor(s)} milestone={s.milestoneToday !== null} anim={moving ? c : null} />
@@ -162,6 +163,6 @@ export function StreakCard() {
           <StreakStatus s={s} t={t} onReview={() => router.push("/review")} />
         </Animated.View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

@@ -18,7 +18,7 @@ import { APP } from "@/config/app";
 import { useFlowFlags } from "~/lib/flow";
 import { forgetReminderPrefs, sendTestReminder } from "~/lib/notifications";
 import { useRenewalReminders } from "~/features/reminders";
-import { Button, Eyebrow, Input, ScreenHeader } from "~/components/ui";
+import { Button, Eyebrow, Input, PressableScale, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
@@ -259,7 +259,7 @@ export default function Settings() {
       <Section label="Categories">
         <View className="flex-row flex-wrap gap-2">
           {data.categories.map((c) => (
-            <Pressable
+            <PressableScale
               key={c.id}
               onLongPress={() => confirmRemoveCategory(c.id, c.label)}
               accessibilityRole="button"
@@ -269,10 +269,10 @@ export default function Settings() {
               onAccessibilityAction={(e) => {
                 if (e.nativeEvent.actionName === "remove") confirmRemoveCategory(c.id, c.label);
               }}
-              className="rounded-pill border border-line-strong bg-ink-800 px-3.5 py-2 active:opacity-70"
+              className="rounded-pill border border-line-strong bg-ink-800 px-3.5 py-2"
             >
               <Text className="text-[13px] text-chalk">{c.label}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
         <Text className="mt-2 text-[12px] text-chalk-mute">Press and hold a category to remove it.</Text>
@@ -318,17 +318,19 @@ export default function Settings() {
               {LEAD_DAY_CHOICES.map((d) => {
                 const on = d === reminders.prefs?.leadDays;
                 return (
-                  <Pressable
+                  <PressableScale
                     key={d}
                     onPress={() => reminders.setLeadDays(d)}
-                    className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    className={`rounded-pill border px-3.5 py-2 ${
                       on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
                     }`}
                   >
                     <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>
                       {LEAD_LABEL[d]}
                     </Text>
-                  </Pressable>
+                  </PressableScale>
                 );
               })}
             </View>

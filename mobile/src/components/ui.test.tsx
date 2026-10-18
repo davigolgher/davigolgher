@@ -11,7 +11,8 @@ vi.mock("react-native", () => {
   const Pass = ({ children }: { children?: unknown }) => children ?? null;
   return {
     Animated: { View: Pass, Value: class {}, timing: () => ({ start: () => {} }) },
-    Easing: { out: () => () => 0, cubic: () => 0 },
+    AccessibilityInfo: { isReduceMotionEnabled: async () => false, addEventListener: () => ({ remove() {} }) },
+    Easing: { bezier: () => () => 0, out: () => () => 0, cubic: () => 0 },
     Pressable: Pass,
     Text: Pass,
     View: Pass,

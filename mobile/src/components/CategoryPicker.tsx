@@ -3,9 +3,9 @@
  * where it's needed instead of only in Settings.
  */
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useStore } from "@/data/store";
-import { Button, Input } from "./ui";
+import { Button, Input, PressableScale } from "./ui";
 
 export function CategoryPicker({ value, onChange }: { value: string; onChange: (label: string) => void }) {
   const { data, addCategory } = useStore();
@@ -29,25 +29,26 @@ export function CategoryPicker({ value, onChange }: { value: string; onChange: (
         {data.categories.map((c) => {
           const on = c.label === value;
           return (
-            <Pressable
+            <PressableScale
               key={c.id}
               onPress={() => onChange(c.label)}
-              className={`rounded-pill border px-3.5 py-2 active:opacity-80 ${
-                on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"
-              }`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              className={`rounded-pill border px-3.5 py-2 ${on ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"}`}
             >
               <Text className={`text-[13px] font-medium ${on ? "text-ink-950" : "text-chalk"}`}>{c.label}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
 
         {!adding ? (
-          <Pressable
+          <PressableScale
             onPress={() => setAdding(true)}
-            className="rounded-pill border border-dashed border-line-strong px-3.5 py-2 active:opacity-70"
+            accessibilityRole="button"
+            className="rounded-pill border border-dashed border-line-strong px-3.5 py-2"
           >
             <Text className="text-[13px] font-medium text-chalk-mute">+ New</Text>
-          </Pressable>
+          </PressableScale>
         ) : null}
       </View>
 

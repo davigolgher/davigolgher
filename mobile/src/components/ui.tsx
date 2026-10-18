@@ -3,25 +3,35 @@
  * tokens in tailwind.config.js.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, Easing, Pressable, Text, TextInput, View, type TextInputProps } from "react-native";
+import {
+  Animated,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  type PressableProps,
+  type TextInputProps,
+  type ViewStyle,
+} from "react-native";
+import { EASE_OUT, usePressFeedback, useReducedMotion } from "~/lib/motion";
 
 /* ── Motion ──────────────────────────────────────────────────────────────── */
 
 /**
  * Content that arrives instead of appearing: a short fade with a small rise.
  *
- * `delay` staggers siblings so a screen resolves top to bottom. `trigger`
- * replays the animation whenever its value changes — tab screens stay mounted,
- * so without it the entrance only ever happens once, on the first visit. Pass
- * `useFocusTick()`.
+ * `delay` staggers siblings so a screen resolves top to bottom. Keep the gaps
+ * short (30–80ms): longer and the screen feels slow to load. Nothing waits on
+ * it, so taps work while it plays. `trigger` replays it when its value changes.
  *
  * Runs on the native driver, so it stays smooth while the rest of the screen is
- * still laying out. Keep the timings short — this should be felt, not watched.
+ * still laying out. 260ms with a strong ease-out: felt, not watched. With
+ * Reduce Motion it fades without moving.
  */
 export function FadeIn({
   children,
   delay = 0,
-  distance = 10,
+  distance = 8,
   trigger,
   className,
 }: {
@@ -32,14 +42,15 @@ export function FadeIn({
   className?: string;
 }) {
   const t = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     t.setValue(0);
     const animation = Animated.timing(t, {
       toValue: 1,
-      duration: 340,
+      duration: 260,
       delay,
-      easing: Easing.out(Easing.cubic),
+      easing: EASE_OUT,
       useNativeDriver: true,
     });
     animation.start();
@@ -52,11 +63,58 @@ export function FadeIn({
       className={className}
       style={{
         opacity: t,
-        transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
+        transform: reduced ? [] : [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }],
       }}
     >
       {children}
     </Animated.View>
+  );
+}
+
+/* ── Pressable that gives under the finger ───────────────────────────────── */
+
+/**
+ * A Pressable whose surface scales down while it's held (see
+ * `usePressFeedback`).
+ *
+ * `className` styles the surface that moves — fill, border, radius, padding.
+ * `containerClassName` is for the touch area's place in the layout (`flex-1`,
+ * `self-start`), which mustn't scale or its neighbours would shift.
+ */
+export function PressableScale({
+  children,
+  className = "",
+  containerClassName = "",
+  scaleTo,
+  style,
+  onPressIn,
+  onPressOut,
+  ...props
+}: Omit<PressableProps, "children" | "style"> & {
+  children: ReactNode;
+  className?: string;
+  containerClassName?: string;
+  scaleTo?: number;
+  style?: ViewStyle;
+}) {
+  const press = usePressFeedback(scaleTo);
+  return (
+    <Pressable
+      {...props}
+      className={containerClassName}
+      onPressIn={(e) => {
+        press.onPressIn();
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        press.onPressOut();
+        onPressOut?.(e);
+      }}
+    >
+      <Animated.View className={className} style={[style, press.style]}>
+        {children}
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -136,22 +194,23 @@ export function Button({
   const v = VARIANTS[variant];
   const s = SIZES[size];
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      containerClassName={fullWidth ? "w-full" : "self-start"}
       className={[
-        "flex-row items-center justify-center active:opacity-80",
+        "flex-row items-center justify-center",
         pill ? "rounded-pill" : "rounded-button",
         s.box,
         v.box,
-        fullWidth ? "w-full" : "self-start",
         disabled ? "opacity-40" : "",
       ].join(" ")}
     >
       {leadingIcon}
       <Text className={`${s.text} font-semibold ${v.text}`}>{children}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
