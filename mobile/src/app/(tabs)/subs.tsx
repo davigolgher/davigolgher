@@ -78,19 +78,19 @@ export default function Subs() {
                 onAccessibilityAction={(e) => {
                   if (e.nativeEvent.actionName === "cancel") confirmCancel(s.id, s.name);
                 }}
-                // The same cell as a transaction row: 17pt, highlighted edge to edge.
+                // The same cell as a transaction row, highlighted edge to edge.
                 className="-mx-6 px-6 active:bg-ink-800"
               >
-                <View className="flex-row items-center gap-3 border-b border-line-soft py-3">
+                <View className="flex-row items-center gap-3 border-b border-line-soft py-3.5">
                   <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="text-[17px] text-chalk">
+                    <Text numberOfLines={1} className="text-[15px] font-medium text-chalk">
                       {s.name}
                     </Text>
-                    <Text className="mt-0.5 text-[14px] text-chalk-mute">
+                    <Text className="mt-0.5 text-[13px] text-chalk-mute">
                       {FREQUENCY_LABEL[s.frequency]} · {formatDaysUntil(daysUntilCharge(s, now))}
                     </Text>
                   </View>
-                  <Text className="shrink-0 text-[17px] font-semibold text-chalk">{money.format(s.amount)}</Text>
+                  <Text className="shrink-0 text-[15px] font-semibold text-chalk">{money.format(s.amount)}</Text>
                 </View>
               </Pressable>
             ))}

@@ -54,6 +54,7 @@ export function ChartPager({ pages }: { pages: ChartPage[] }) {
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Segmented
         role="tab"
+        small
         options={pages.map((p) => ({ value: p.key, label: p.title }))}
         value={pages[index]?.key ?? pages[0].key}
         onChange={(key) => go(pages.findIndex((p) => p.key === key))}

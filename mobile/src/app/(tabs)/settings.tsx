@@ -255,10 +255,10 @@ export default function Settings() {
                     }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
-                    className="min-h-[48px] flex-row items-center gap-3 px-4 py-3 active:bg-ink-700"
+                    className="flex-row items-center gap-3 px-4 py-3 active:bg-ink-700"
                   >
-                    <Text className="w-10 text-[17px] font-semibold text-chalk">{c.symbol}</Text>
-                    <Text className="min-w-0 flex-1 text-[17px] text-chalk">
+                    <Text className="w-10 text-[15px] font-semibold text-chalk">{c.symbol}</Text>
+                    <Text className="min-w-0 flex-1 text-[15px] text-chalk">
                       {c.label} <Text className="text-chalk-mute">({c.code})</Text>
                     </Text>
                     {on ? <CheckIcon size={18} strokeWidth={2.2} /> : null}
@@ -331,8 +331,8 @@ export default function Settings() {
           {/* Rows straight in the group, not in a fragment, so each gets its separator. */}
           {reminders.prefs?.enabled ? (
             <View className="px-4 py-3">
-              <Text className="text-[17px] text-chalk">How much warning</Text>
-              <View className="mt-2.5 flex-row flex-wrap gap-2">
+              <Text className="text-[12px] text-chalk-mute">How much warning</Text>
+              <View className="mt-2 flex-row flex-wrap gap-2">
                 {LEAD_DAY_CHOICES.map((d) => {
                   const on = d === reminders.prefs?.leadDays;
                   return (

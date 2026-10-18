@@ -177,9 +177,9 @@ export function Group({ children }: { children: ReactNode }) {
 const SEPARATOR = "rgba(0,0,0,0.18)";
 
 /**
- * One row of a `Group`: 17pt title like iOS's own lists, an optional line
- * under it, and a chevron when it opens something. Highlights grey while
- * held, as table cells do. `trailing` replaces the chevron (a switch, a check).
+ * One row of a `Group`: a title, an optional line under it, and a chevron
+ * when it opens something. Highlights grey while held, as table cells do.
+ * `trailing` replaces the chevron (a switch, a check).
  */
 export function GroupRow({
   title,
@@ -197,19 +197,19 @@ export function GroupRow({
   const body = (
     <>
       <View className="min-w-0 flex-1">
-        <Text className="text-[17px] text-chalk">{title}</Text>
-        {sub ? <Text className="mt-0.5 text-[13px] leading-[18px] text-chalk-mute">{sub}</Text> : null}
+        <Text className="text-[15px] text-chalk">{title}</Text>
+        {sub ? <Text className="mt-0.5 text-[13px] text-chalk-mute">{sub}</Text> : null}
       </View>
       {trailing ?? (onPress ? <ChevronRightIcon size={18} color="#8A8A8F" /> : null)}
     </>
   );
-  if (!onPress) return <View className="min-h-[48px] flex-row items-center gap-3 px-4 py-3">{body}</View>;
+  if (!onPress) return <View className="flex-row items-center gap-3 px-4 py-3.5">{body}</View>;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityHint={accessibilityHint}
-      className="min-h-[48px] flex-row items-center gap-3 px-4 py-3 active:bg-ink-700"
+      className="flex-row items-center gap-3 px-4 py-3.5 active:bg-ink-700"
     >
       {body}
     </Pressable>
@@ -329,6 +329,7 @@ export function Segmented<T extends string>({
   value,
   onChange,
   role = "button",
+  small,
   className = "",
 }: {
   options: readonly { value: T; label: string }[];
@@ -336,6 +337,8 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
   /** "tab" when the segments switch what's shown below them. */
   role?: "button" | "tab";
+  /** 13pt labels instead of 14pt, for the chart tabs. */
+  small?: boolean;
   className?: string;
 }) {
   const reduced = useReducedMotion();
@@ -397,7 +400,7 @@ export function Segmented<T extends string>({
           >
             <Text
               numberOfLines={1}
-              className={`text-[14px] ${on ? "font-semibold text-chalk" : "font-medium text-chalk-soft"}`}
+              className={`${small ? "text-[13px]" : "text-[14px]"} font-semibold ${on ? "text-chalk" : "text-chalk-soft"}`}
             >
               {o.label}
             </Text>
@@ -480,17 +483,7 @@ export function ScreenHeader({
     <View className="flex-row items-end justify-between gap-3">
       <View className="min-w-0 flex-1">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        {/* iOS's large title: 34pt bold. A long one shrinks to fit beside the
-            action rather than wrapping under it. */}
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-          accessibilityRole="header"
-          className="mt-1 text-[34px] font-bold tracking-tight text-chalk"
-        >
-          {title}
-        </Text>
+        <Text className="mt-1 text-[26px] font-bold tracking-tight text-chalk">{title}</Text>
       </View>
       {action}
     </View>
