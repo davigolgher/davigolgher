@@ -5,7 +5,6 @@
 import { useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
@@ -21,6 +20,7 @@ import { useRenewalReminders } from "~/features/reminders";
 import { Button, Eyebrow, Input, PressableScale, ScreenHeader } from "~/components/ui";
 import { CheckIcon, ChevronRightIcon } from "~/components/icons";
 import { hapticHold, hapticSelection, hapticSuccess } from "~/lib/haptics";
+import { useTabScreenPadding } from "~/lib/screen";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
 
@@ -55,7 +55,7 @@ function Row({ title, sub, onPress }: { title: string; sub?: string; onPress?: (
 }
 
 export default function Settings() {
-  const insets = useSafeAreaInsets();
+  const padding = useTabScreenPadding(48);
   const auth = useAuth();
   const { data, setMonthlyBudget, setCurrency, addCategory, removeCategory, deleteAccount } = useStore();
   const money = useMoney();
@@ -192,7 +192,8 @@ export default function Settings() {
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 48, paddingHorizontal: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={padding}
       keyboardShouldPersistTaps="handled"
     >
       <ScreenHeader eyebrow="Account" title="Settings" />

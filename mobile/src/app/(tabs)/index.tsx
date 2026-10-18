@@ -2,7 +2,6 @@
 import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { Money } from "@/lib/money";
@@ -12,9 +11,10 @@ import { PlusIcon } from "~/components/icons";
 import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
 import { SyncNotice } from "~/components/SyncNotice";
+import { useTabScreenPadding } from "~/lib/screen";
 
 export default function Home() {
-  const insets = useSafeAreaInsets();
+  const padding = useTabScreenPadding();
   const { data, now } = useStore();
   const money = useMoney();
 
@@ -42,7 +42,8 @@ export default function Home() {
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, paddingHorizontal: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={padding}
     >
       <ScreenHeader
         eyebrow="Overview"

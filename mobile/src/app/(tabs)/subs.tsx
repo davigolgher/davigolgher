@@ -1,7 +1,6 @@
 /** Subscriptions — what recurs, what it costs, and what's charged next. */
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { subscriptionsAnnualTotal, subscriptionsMonthlyTotal, upcomingCharges } from "@/lib/calc";
@@ -10,9 +9,10 @@ import { formatDaysUntil } from "@/lib/format";
 import { Button, Eyebrow, FadeIn, ScreenHeader, StatCard } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { hapticHold } from "~/lib/haptics";
+import { useTabScreenPadding } from "~/lib/screen";
 
 export default function Subs() {
-  const insets = useSafeAreaInsets();
+  const padding = useTabScreenPadding();
   const { data, now, deleteSubscription } = useStore();
   const money = useMoney();
 
@@ -34,7 +34,8 @@ export default function Subs() {
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, paddingHorizontal: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={padding}
     >
       <ScreenHeader
         eyebrow="Recurring"

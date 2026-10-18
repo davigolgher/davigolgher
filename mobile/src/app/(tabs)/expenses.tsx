@@ -2,16 +2,16 @@
 import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { totalThisMonth } from "@/lib/calc";
 import { Button, FadeIn, ScreenHeader } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { ExpenseRow } from "~/components/rows";
+import { useTabScreenPadding } from "~/lib/screen";
 
 export default function Expenses() {
-  const insets = useSafeAreaInsets();
+  const padding = useTabScreenPadding();
   const { data, now } = useStore();
   const money = useMoney();
 
@@ -23,7 +23,8 @@ export default function Expenses() {
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, paddingHorizontal: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={padding}
     >
       <ScreenHeader
         eyebrow={`${money.format(totalThisMonth(data.transactions, now))} spent this month`}

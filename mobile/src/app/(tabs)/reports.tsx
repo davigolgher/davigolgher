@@ -1,7 +1,6 @@
 /** Reports — category donut and monthly line side by side, plus subscription costs. */
 import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { useMoney } from "@/lib/useMoney";
 import { activeSubscriptions, subscriptionsMonthlyTotal, totalThisMonth } from "@/lib/calc";
@@ -11,6 +10,7 @@ import { Eyebrow, FadeIn, ScreenHeader } from "~/components/ui";
 import { Donut } from "~/components/Donut";
 import { LineChart } from "~/components/LineChart";
 import { ChartPager } from "~/components/ChartPager";
+import { useTabScreenPadding } from "~/lib/screen";
 
 function BarRow({ label, value, barPct }: { label: string; value: string; barPct: number }) {
   return (
@@ -29,7 +29,7 @@ function BarRow({ label, value, barPct }: { label: string; value: string; barPct
 }
 
 export default function Reports() {
-  const insets = useSafeAreaInsets();
+  const padding = useTabScreenPadding();
   const { data, now } = useStore();
   const money = useMoney();
 
@@ -48,7 +48,8 @@ export default function Reports() {
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, paddingHorizontal: 24 }}
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={padding}
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
 

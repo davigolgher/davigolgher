@@ -1,15 +1,13 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { Tabs } from "expo-router";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useStore } from "@/data/store";
-import { BarChartIcon, GearIcon, HomeIcon, ReceiptIcon, RepeatIcon } from "~/components/icons";
 import { RemindersProvider } from "~/features/reminders";
 
-// From the shared design tokens: chalk for the active tab, chalk-mute for the
-// rest (their labels are text, so they need the 4.5:1 that mute has), hairline
-// `line` border on top of a white bar.
+// The selected tab in chalk. Everything else about the bar — its material,
+// the unselected colour, the label font — is iOS's own, so it matches the
+// system on every version: Liquid Glass on iOS 26, the blurred bar before it.
 const ACTIVE = "#0A0A0A";
-const INACTIVE = "#6E6E73";
 
 export default function TabsLayout() {
   const { sync, refresh, retrySync } = useStore();
@@ -30,37 +28,33 @@ export default function TabsLayout() {
     // Above every tab, so a subscription edited on any screen reschedules its
     // reminder on the way back, and Settings drives the same single instance.
     <RemindersProvider>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: ACTIVE,
-          tabBarInactiveTintColor: INACTIVE,
-          tabBarStyle: { backgroundColor: "#FFFFFF", borderTopColor: "rgba(0,0,0,0.10)" },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-          sceneStyle: { backgroundColor: "#FFFFFF" },
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{ title: "Home", tabBarIcon: ({ color }) => <HomeIcon size={22} color={color} /> }}
-        />
-        <Tabs.Screen
-          name="expenses"
-          options={{ title: "Expenses", tabBarIcon: ({ color }) => <ReceiptIcon size={22} color={color} /> }}
-        />
-        <Tabs.Screen
-          name="subs"
-          options={{ title: "Subs", tabBarIcon: ({ color }) => <RepeatIcon size={22} color={color} /> }}
-        />
-        <Tabs.Screen
-          name="reports"
-          options={{ title: "Reports", tabBarIcon: ({ color }) => <BarChartIcon size={22} color={color} /> }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{ title: "Settings", tabBarIcon: ({ color }) => <GearIcon size={22} color={color} /> }}
-        />
-      </Tabs>
+      {/* The system tab bar (UITabBarController), not one drawn in JavaScript:
+          it gets the platform's material, tap-again-to-scroll-to-top and the
+          iOS 26 glass for free, and looks like every other app on the phone. SF Symbols for the icons, filled when selected, the way
+          Apple's apps do it. Each screen's first ScrollView has its insets
+          adjusted for the status bar and the tab bar (see lib/screen). */}
+      <NativeTabs tintColor={ACTIVE}>
+        <NativeTabs.Trigger name="index" contentStyle={{ backgroundColor: "#FFFFFF" }}>
+          <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} md="home" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="expenses" contentStyle={{ backgroundColor: "#FFFFFF" }}>
+          <NativeTabs.Trigger.Label>Expenses</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "receipt", selected: "receipt.fill" }} md="receipt_long" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="subs" contentStyle={{ backgroundColor: "#FFFFFF" }}>
+          <NativeTabs.Trigger.Label>Subs</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf="repeat" md="autorenew" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="reports" contentStyle={{ backgroundColor: "#FFFFFF" }}>
+          <NativeTabs.Trigger.Label>Reports</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} md="bar_chart" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="settings" contentStyle={{ backgroundColor: "#FFFFFF" }}>
+          <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "gearshape", selected: "gearshape.fill" }} md="settings" />
+        </NativeTabs.Trigger>
+      </NativeTabs>
     </RemindersProvider>
   );
 }
