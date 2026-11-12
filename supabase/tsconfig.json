@@ -1,0 +1,28 @@
+{
+  // Type-checks the Edge Functions and the database tests. They aren't part of
+  // the web or native projects: the functions run on Deno (hence the `npm:`
+  // import, mapped here to the installed package), and the tests run in Node
+  // under Vitest.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node", "vitest/globals"],
+    "baseUrl": "..",
+    "paths": {
+      "npm:@supabase/supabase-js@2": ["./node_modules/@supabase/supabase-js"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["functions", "tests"]
+}
