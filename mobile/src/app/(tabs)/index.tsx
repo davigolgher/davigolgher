@@ -12,6 +12,8 @@ import { StreakCard } from "~/components/StreakCard";
 import { ExpenseRow } from "~/components/rows";
 import { SyncNotice } from "~/components/SyncNotice";
 import { useTabScreenPadding } from "~/lib/screen";
+import { FAMILY_ENABLED } from "~/features/family/flag";
+import { FamilyHomeCard } from "~/features/family/HomeCard";
 
 export default function Home() {
   const padding = useTabScreenPadding();
@@ -62,6 +64,9 @@ export default function Home() {
       />
 
       <SyncNotice />
+
+      {/* Flow Family builds: who this person shares with, or the people they follow. */}
+      {FAMILY_ENABLED ? <FamilyHomeCard /> : null}
 
       {/* Budget hero — big number, status pill, spend progress. */}
       <FadeIn className="mt-6" delay={60}>

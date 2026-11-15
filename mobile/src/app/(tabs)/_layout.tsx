@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { AppState } from "react-native";
+import { Redirect } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useStore } from "@/data/store";
 import { RemindersProvider } from "~/features/reminders";
+import { useFamily } from "~/features/family/FamilyProvider";
 
 // The selected tab in chalk; the bar's material and the unselected colour are
 // iOS's own, so it matches the system on every version: Liquid Glass on iOS 26,
@@ -44,6 +46,11 @@ export default function TabsLayout() {
     });
     return () => sub.remove();
   }, [sync.loadFailed, sync.pending, refresh, retrySync]);
+
+  // Flow Family builds: an account using only Flow Family has no tabs to see.
+  // (Always false without the feature flag.)
+  const { familyOnly } = useFamily();
+  if (familyOnly) return <Redirect href="/family" />;
 
   return (
     // Above every tab, so a subscription edited on any screen reschedules its

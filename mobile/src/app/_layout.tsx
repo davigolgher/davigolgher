@@ -24,6 +24,8 @@ import { REVENUECAT_IOS_KEY } from "~/lib/purchases";
 import { useEntitlement } from "~/features/useEntitlement";
 import { useFlowFlags } from "~/lib/flow";
 import { clearReminders } from "~/lib/notifications";
+import { FAMILY_ENABLED } from "~/features/family/flag";
+import { FamilyProvider } from "~/features/family/FamilyProvider";
 
 // The streak's days used to be one log for the whole phone. They're stored with
 // each account now (see the `activity_days` table); the old log can't be told
@@ -127,7 +129,12 @@ function Gate() {
     return <OnboardingScreen onDone={() => mark({ onboardingDone: true })} />;
   }
 
-  if (auth.configured && !entitlement.entitled && !unlocked) {
+  // Flow Family builds only: someone who chose, on the paywall, to use just
+  // Flow Family without subscribing. They get the Family screens and nothing
+  // else; the rest of Flow stays behind the paywall (see family/account).
+  const familyOnly = FAMILY_ENABLED && Boolean(flags?.familyOnly) && !entitlement.entitled && !unlocked;
+
+  if (auth.configured && !entitlement.entitled && !unlocked && !familyOnly) {
     return (
       <PaywallScreen
         canSkip={entitlement.canSkip}
@@ -135,11 +142,12 @@ function Gate() {
           setUnlocked(true);
           entitlement.refresh();
         }}
+        onFamilyOnly={FAMILY_ENABLED ? () => mark({ familyOnly: true }) : undefined}
       />
     );
   }
 
-  return (
+  const app = (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }}>
         <Stack.Screen name="(tabs)" />
@@ -148,13 +156,17 @@ function Gate() {
         <Stack.Screen name="legal" options={{ presentation: "modal" }} />
         <Stack.Screen name="review" options={{ presentation: "modal" }} />
         <Stack.Screen name="streak" options={{ presentation: "modal" }} />
+        {FAMILY_ENABLED ? <Stack.Screen name="family" /> : null}
       </Stack>
 
-      {/* Always mounted, shown by `visible` — see TutorialOverlay. */}
+      {/* Always mounted, shown by `visible` — see TutorialOverlay. The tour
+          is of the tabs, which a Family-only account doesn't have. */}
       <TutorialOverlay
-        visible={Boolean(flags && !flags.tutorialDone)}
+        visible={Boolean(flags && !flags.tutorialDone) && !familyOnly}
         onDone={() => mark({ tutorialDone: true })}
       />
     </>
   );
+
+  return FAMILY_ENABLED ? <FamilyProvider familyOnly={familyOnly}>{app}</FamilyProvider> : app;
 }

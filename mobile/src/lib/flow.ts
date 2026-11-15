@@ -26,6 +26,11 @@ AsyncStorage.removeItem("flow.flags.v1").catch(() => {});
 export interface Flags {
   onboardingDone: boolean;
   tutorialDone: boolean;
+  /**
+   * Flow Family only (builds with the feature flag): this account chose to use
+   * just Flow Family without subscribing, from the paywall. Never set otherwise.
+   */
+  familyOnly?: boolean;
 }
 
 const DEFAULTS: Flags = { onboardingDone: false, tutorialDone: false };

@@ -105,6 +105,7 @@ export type AlertKind = "large_purchase" | "sensitive_category" | "budget_exceed
 export interface AlertEvent {
   id: string;
   family_id: string;
+  guardian_id: string;
   dependent_id: string;
   kind: AlertKind;
   detail: Record<string, unknown>;
@@ -319,10 +320,12 @@ export const familyApi = {
       p_threshold: args.threshold ?? null,
       p_categories: args.categories ?? null,
     }),
-  alerts: async (limit = 100): Promise<AlertEvent[]> => {
+  /** Alerts this guardian received (a dependent can also read the ones about them; those are left out here). */
+  alerts: async (guardianId: string, limit = 100): Promise<AlertEvent[]> => {
     const { data, error } = await client()
       .from("family_alert_events")
-      .select("id,family_id,dependent_id,kind,detail,created_at,read_at,transaction_id")
+      .select("id,family_id,guardian_id,dependent_id,kind,detail,created_at,read_at,transaction_id")
+      .eq("guardian_id", guardianId)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) throw fromPostgrest(error);
@@ -353,6 +356,21 @@ export const familyApi = {
       .limit(limit);
     if (error) throw fromPostgrest(error);
     return (data ?? []) as AuditEntry[];
+  },
+
+  /** Transparency: the alert rules and budgets guardians set about this person. */
+  aboutMe: async (userId: string) => {
+    const c = client();
+    const [rules, budgets] = await Promise.all([
+      c.from("family_alert_rules").select("kind,enabled,threshold,categories,guardian_id").eq("dependent_id", userId),
+      c.from("family_budgets").select("category,limit,guardian_id").eq("dependent_id", userId),
+    ]);
+    if (rules.error) throw fromPostgrest(rules.error);
+    if (budgets.error) throw fromPostgrest(budgets.error);
+    return {
+      rules: (rules.data ?? []) as { kind: AlertKind; enabled: boolean; threshold: number | null; categories: FamilyCategory[] | null; guardian_id: string }[],
+      budgets: (budgets.data ?? []) as { category: FamilyCategory | "total"; limit: number; guardian_id: string }[],
+    };
   },
 
   exportMyData: () => rpc<Record<string, unknown>>("family_export_my_data"),

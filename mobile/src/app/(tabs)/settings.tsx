@@ -31,6 +31,9 @@ import {
 import { CheckIcon } from "~/components/icons";
 import { hapticHold, hapticSelection, hapticSuccess } from "~/lib/haptics";
 import { useTabScreenPadding } from "~/lib/screen";
+import { FAMILY_ENABLED } from "~/features/family/flag";
+import { unregisterPush } from "~/features/family/push";
+import { clearAllCaches } from "~/features/family/cache";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
 
@@ -130,7 +133,16 @@ export default function Settings() {
   const confirmSignOut = () => {
     Alert.alert("Sign out?", "Your data stays in your account.", [
       { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => void signOut() },
+      {
+        text: "Sign out",
+        style: "destructive",
+        // Flow Family builds: take this phone off the guardian's alert list
+        // first — the server only accepts that from the signed-in account.
+        onPress: async () => {
+          if (FAMILY_ENABLED) await unregisterPush();
+          await signOut();
+        },
+      },
     ]);
   };
 
@@ -161,6 +173,7 @@ export default function Settings() {
     deleteHeld.current = true;
     setDeleting(true);
     try {
+      if (FAMILY_ENABLED) await unregisterPush();
       await deleteAccount(deletePassword);
     } catch (e) {
       deleteHeld.current = false;
@@ -178,6 +191,7 @@ export default function Settings() {
     // server). What's kept on this phone for the account — the first-run
     // flags, the reminder settings — goes here rather than being left behind.
     await resetFlowFlags();
+    if (FAMILY_ENABLED) await clearAllCaches();
     if (auth.userId) await forgetReminderPrefs(auth.userId);
     await signOut();
   };
@@ -418,6 +432,18 @@ export default function Settings() {
           Your current password, then a new one of at least {MIN_PASSWORD_LENGTH} characters.
         </Text>
       </Section>
+
+      {FAMILY_ENABLED ? (
+        <Section label="Family">
+          <Group>
+            <GroupRow
+              title="Flow Family"
+              sub="Follow the spending of someone you look after, or see what you share"
+              onPress={() => router.push("/family")}
+            />
+          </Group>
+        </Section>
+      ) : null}
 
       <Section label="Legal & privacy">
         <Group>

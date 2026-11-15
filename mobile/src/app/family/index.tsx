@@ -21,7 +21,7 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 export default function FamilyHome() {
   useFamilyLive();
   const { state, loading, error, savedAt, refresh, isGuardian, isDependent, familyOnly } = useFamily();
-  const alerts = useFamilyQuery(isGuardian ? "alerts" : null, () => familyApi.alerts(50), { live: true });
+  const alerts = useFamilyQuery(isGuardian && state ? "alerts" : null, () => familyApi.alerts(state!.user_id, 50), { live: true });
   const unread = (alerts.data ?? []).filter((a) => !a.read_at).length;
 
   const header = (

@@ -19,6 +19,7 @@ import { signOut } from "@/lib/backend/auth";
 import { purchases, type Plan, type PlanId } from "~/lib/purchases";
 import { monthsFreeOnYearly, yearlySavingsPercent } from "~/lib/purchasesFormat";
 import { Button, FadeIn, PressableScale } from "~/components/ui";
+import { unregisterPush } from "~/features/family/push";
 import { hapticSelection } from "~/lib/haptics";
 import { BarChartIcon, CheckIcon, RepeatIcon, WalletIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
@@ -48,7 +49,16 @@ const PLANS: { id: PlanId; label: string }[] = [
   { id: "monthly", label: "Monthly" },
 ];
 
-export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void; canSkip: boolean }) {
+export function PaywallScreen({
+  onUnlocked,
+  canSkip,
+  onFamilyOnly,
+}: {
+  onUnlocked: () => void;
+  canSkip: boolean;
+  /** Flow Family builds only: use just Flow Family, free, without subscribing. */
+  onFamilyOnly?: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [selected, setSelected] = useState<PlanId>("yearly");
@@ -306,6 +316,21 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
         </FadeIn>
 
         <FadeIn className="mt-8 items-center gap-3" delay={260}>
+          {/* Flow Family builds: its free plan doesn't need a subscription. */}
+          {onFamilyOnly ? (
+            <Pressable
+              onPress={onFamilyOnly}
+              accessibilityRole="button"
+              accessibilityHint="Opens Flow Family without subscribing"
+              className="items-center rounded-card-sm bg-ink-800 px-4 py-3 active:opacity-60"
+            >
+              <Text className="text-subhead font-semibold text-chalk">Here for Flow Family?</Text>
+              <Text className="mt-0.5 text-center text-footnote text-chalk-mute">
+                Joining with an invitation, or following one person? Continue free.
+              </Text>
+            </Pressable>
+          ) : null}
+
           {/* Development only — `canSkip` is false in any build that ships. */}
           {canSkip ? (
             <Pressable onPress={onUnlocked} className="py-1 active:opacity-60">
@@ -313,7 +338,14 @@ export function PaywallScreen({ onUnlocked, canSkip }: { onUnlocked: () => void;
             </Pressable>
           ) : null}
 
-          <Pressable onPress={() => void signOut()} hitSlop={10} className="px-3 py-2.5 active:opacity-60">
+          <Pressable
+            onPress={async () => {
+              if (onFamilyOnly) await unregisterPush();
+              await signOut();
+            }}
+            hitSlop={10}
+            className="px-3 py-2.5 active:opacity-60"
+          >
             <Text className="text-[13px] text-chalk-mute">Sign out</Text>
           </Pressable>
         </FadeIn>
