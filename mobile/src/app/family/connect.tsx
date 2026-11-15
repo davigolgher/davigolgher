@@ -1,10 +1,11 @@
 /**
- * The dependent's banks: connect one through Open Finance, choose which
- * accounts to share, reconnect one whose consent ended, or disconnect.
+ * The dependent's banks, in any country a provider covers: connect one
+ * through open banking, choose which accounts to share, reconnect one whose
+ * consent ended, or disconnect.
  *
  * Accounts arrive unshared. Sharing one reads its last 90 days; stopping
  * deletes what was read from it. Disconnecting ends the connection at the
- * aggregator, which ends the Open Finance consent with the bank.
+ * provider, which ends the consent given at the bank.
  */
 import { useState } from "react";
 import { Alert, Text, View } from "react-native";
@@ -28,8 +29,10 @@ export default function Connect() {
   const [note, setNote] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyAccount, setBusyAccount] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const bank = useBankConnect((result) => {
     void q.reload();
+    setAdding(false);
     if (result) {
       hapticSuccess();
       setNote(`Connected — ${result.accounts} account${result.accounts === 1 ? "" : "s"} found. Choose below what to share.`);
@@ -45,7 +48,7 @@ export default function Connect() {
       setActionError(null);
       try {
         await familyApi.setAccountShared(accountId, on);
-        if (on) await familyApi.syncConnection(conn.external_item_id).catch(() => null);
+        if (on) await familyApi.syncConnection({ connectionId: conn.id }).catch(() => null);
         await q.reload();
       } catch (e) {
         setActionError((e as Error).message);
@@ -63,7 +66,7 @@ export default function Connect() {
   const disconnect = (conn: MyConnection) =>
     Alert.alert(
       `Disconnect ${conn.institution_name || "this bank"}?`,
-      "This ends the Open Finance connection with the bank and deletes everything Flow read through it.",
+      "This ends the open banking connection with the bank and deletes everything Flow read through it.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -84,7 +87,7 @@ export default function Connect() {
 
   const refreshAll = async () => {
     for (const c of q.data ?? []) {
-      if (c.status !== "expired" && !c.orphaned_at) await familyApi.syncConnection(c.external_item_id).catch(() => null);
+      if (c.status !== "expired" && !c.orphaned_at) await familyApi.syncConnection({ connectionId: c.id }).catch(() => null);
     }
     await q.reload();
   };
@@ -108,14 +111,14 @@ export default function Connect() {
       ) : null}
 
       {conns.length === 0 ? (
-        <Section>{isSharing ? <BankConnectIntro busy={bank.busy} onStart={() => void bank.start()} /> : <Empty title="No banks connected" />}</Section>
+        <Section>{isSharing ? <BankConnectIntro busy={bank.busy} onStart={(country) => void bank.start({ country })} /> : <Empty title="No banks connected" />}</Section>
       ) : null}
 
       {conns.map((c) => {
         const tone = c.status === "active" ? "ok" : c.status === "updating" ? "info" : "alert";
         const endsOn = c.orphaned_at ? new Date(new Date(c.orphaned_at).getTime() + ORPHAN_DAYS * 86_400_000) : null;
         return (
-          <Section key={c.id} label={c.institution_name || "Bank"}>
+          <Section key={c.id} label={`${c.institution_name || "Bank"}${c.country_code ? ` · ${c.country_code}` : ""}`}>
             <View className="flex-row items-center gap-2">
               <Badge tone={tone}>{CONNECTION_LABEL[c.status]}</Badge>
               {c.last_synced_at ? <Text className="text-caption text-chalk-mute">Updated {dateFmt.format(new Date(c.last_synced_at))}</Text> : null}
@@ -141,14 +144,18 @@ export default function Connect() {
                   />
                 ))}
                 {c.status === "needs_attention" || c.status === "expired" || c.status === "error" ? (
-                  <GroupRow title="Reconnect" sub="Sign in to the bank again through Open Finance" onPress={() => void bank.start(c.external_item_id)} />
+                  <GroupRow
+                    title="Reconnect"
+                    sub="Sign in to the bank again through open banking"
+                    onPress={() => void bank.start({ connectionId: c.id, provider: c.provider, itemId: c.external_item_id })}
+                  />
                 ) : null}
                 <GroupRow title="Disconnect this bank" onPress={() => disconnect(c)} />
               </Group>
             </View>
             {c.consent_expires_at ? (
               <Text className="mt-2 px-4 text-caption text-chalk-mute">
-                Open Finance consent with the bank valid until {dateFmt.format(new Date(c.consent_expires_at))}.
+                Your consent at the bank is valid until {dateFmt.format(new Date(c.consent_expires_at))}.
               </Text>
             ) : null}
           </Section>
@@ -156,11 +163,17 @@ export default function Connect() {
       })}
 
       {conns.length > 0 && isSharing ? (
-        <View className="mt-8">
-          <Button variant="secondary" fullWidth disabled={bank.busy} onPress={() => void bank.start()}>
-            Connect another bank
-          </Button>
-        </View>
+        adding ? (
+          <Section label="Another bank">
+            <BankConnectIntro busy={bank.busy} onStart={(country) => void bank.start({ country })} />
+          </Section>
+        ) : (
+          <View className="mt-8">
+            <Button variant="secondary" fullWidth disabled={bank.busy} onPress={() => setAdding(true)}>
+              Connect another bank
+            </Button>
+          </View>
+        )
       ) : null}
     </FamilyScroll>
   );

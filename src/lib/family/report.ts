@@ -91,7 +91,7 @@ export function reportHtml(input: ReportInput): string {
 
   <footer>
     Generated on ${escapeHtml(new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(now))} by ${escapeHtml(input.generatedBy)}
-    from accounts ${escapeHtml(input.dependentName)} chose to share through Open Finance. Transfers between their own accounts
+    from accounts ${escapeHtml(input.dependentName)} chose to share through open banking. Transfers between their own accounts
     and card bill payments are listed as "Internal" and not counted. Contains personal financial information — keep it private.
   </footer>
 </body></html>`;

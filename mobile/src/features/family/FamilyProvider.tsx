@@ -103,6 +103,25 @@ export function FamilyProvider({ children, familyOnly }: { children: ReactNode; 
 
   const member = Boolean(state?.guardian_of || state?.dependent_of.length);
 
+  // A dependent's months (budgets, the dashboard) end at their own midnight:
+  // the server learns their time zone from the phone, once per session.
+  const sentZone = useRef<string | null>(null);
+  const dependent = Boolean(state?.dependent_of.length);
+  useEffect(() => {
+    if (!userId || !dependent || sentZone.current === userId) return;
+    let zone: string | undefined;
+    try {
+      zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      zone = undefined;
+    }
+    if (!zone) return;
+    sentZone.current = userId;
+    void familyApi.setTimeZone(zone).catch(() => {
+      sentZone.current = null;
+    });
+  }, [userId, dependent]);
+
   // The live channel, for members only.
   useEffect(() => {
     if (!userId || !member) return;

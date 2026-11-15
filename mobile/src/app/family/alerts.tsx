@@ -11,6 +11,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { familyApi, type AlertKind, type Overview } from "@/lib/backend/family";
 import { BUDGET_CATEGORIES, DEFAULT_SENSITIVE, type FamilyCategory } from "@/lib/family/categories";
 import { ALERT_RULE_HINT, ALERT_RULE_LABEL, describeAlert } from "@/lib/family/copy";
+import { currencySymbol } from "@/lib/family/summary";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
 import { Button, Group, GroupRow, Input, PressableScale } from "~/components/ui";
 import { registerForAlerts } from "~/features/family/push";
@@ -82,6 +83,9 @@ function Rules({ familyId, dependentId, name, paid }: { familyId: string; depend
   const [push, setPush] = useState<string | null>(null);
   const rules = overview.data?.rules ?? [];
   const rule = (k: AlertKind) => rules.find((r) => r.kind === k);
+  // The amount is in a currency: the rule's, else the one most of the shared accounts use.
+  const accountCurrencies = [...new Set((overview.data?.accounts ?? []).map((a) => a.currency))];
+  const currency = rule("large_purchase")?.currency ?? accountCurrencies[0] ?? "BRL";
 
   useEffect(() => {
     const t = rule("large_purchase")?.threshold;
@@ -89,7 +93,7 @@ function Rules({ familyId, dependentId, name, paid }: { familyId: string; depend
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overview.data]);
 
-  const set = async (kind: AlertKind, enabled: boolean, extra: { threshold?: number | null; categories?: FamilyCategory[] | null } = {}) => {
+  const set = async (kind: AlertKind, enabled: boolean, extra: { threshold?: number | null; categories?: FamilyCategory[] | null; currency?: string } = {}) => {
     setError(null);
     try {
       await familyApi.setRule({ familyId, dependentId, kind, enabled, ...extra });
@@ -133,7 +137,7 @@ function Rules({ familyId, dependentId, name, paid }: { familyId: string; depend
               value={Boolean(r?.enabled) && !locked}
               disabled={locked || (k === "large_purchase" && !r?.enabled && cents <= 0)}
               onChange={(on) =>
-                void set(k, on, k === "large_purchase" ? { threshold: cents > 0 ? cents : null } : k === "sensitive_category" ? { categories: sensitive } : {})
+                void set(k, on, k === "large_purchase" ? { threshold: cents > 0 ? cents : null, currency } : k === "sensitive_category" ? { categories: sensitive } : {})
               }
             />
           );
@@ -141,7 +145,9 @@ function Rules({ familyId, dependentId, name, paid }: { familyId: string; depend
       </Group>
 
       <View className="mt-4">
-        <Text className="text-caption text-chalk-mute">Alert for a single purchase from</Text>
+        <Text className="text-caption text-chalk-mute">
+          Alert for a single purchase from{accountCurrencies.length > 1 ? ` (in ${currency}; purchases in other currencies don't count)` : ""}
+        </Text>
         <View className="mt-2 flex-row items-center gap-2">
           <Input
             value={threshold}
@@ -150,9 +156,9 @@ function Rules({ familyId, dependentId, name, paid }: { familyId: string; depend
             placeholder="e.g. 200"
             className="flex-1"
             accessibilityLabel="Large purchase amount"
-            leading={<Text className="text-callout text-chalk-mute">R$</Text>}
+            leading={<Text className="text-callout text-chalk-mute">{currencySymbol(currency)}</Text>}
           />
-          <Button variant="primary" disabled={cents <= 0} onPress={() => void set("large_purchase", true, { threshold: cents })}>
+          <Button variant="primary" disabled={cents <= 0} onPress={() => void set("large_purchase", true, { threshold: cents, currency })}>
             Save
           </Button>
         </View>

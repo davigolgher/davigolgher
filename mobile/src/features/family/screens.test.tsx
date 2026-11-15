@@ -22,6 +22,9 @@ vi.mock("react-native-svg", () => {
   return { default: Pass, Svg: Pass, G: Pass, Path: () => null, Circle: () => null, Rect: () => null };
 });
 vi.mock("react-native-pluggy-connect", () => ({ PluggyConnect: () => <div>Pluggy Connect</div> }));
+vi.mock("expo-localization", () => ({ getLocales: () => [{ regionCode: "US" }] }));
+const browser = vi.hoisted(() => ({ openAuthSessionAsync: vi.fn(async () => ({ type: "success", url: "flow://family/bank-return?provider=plaid" })) }));
+vi.mock("expo-web-browser", () => browser);
 
 const nav = vi.hoisted(() => ({
   params: {} as Record<string, string>,
@@ -60,6 +63,10 @@ const api = vi.hoisted(() => ({
   transactions: vi.fn(async () => [] as BankEntry[]),
   overview: vi.fn(),
   subscribe: vi.fn(() => () => {}),
+  setTimeZone: vi.fn(async (_tz: string) => undefined),
+  bankCoverage: vi.fn(async () => ({ providers: { pluggy: true, plaid: true, saltedge: true } })),
+  connectToken: vi.fn(async (_target: unknown): Promise<unknown> => ({})),
+  syncConnection: vi.fn(async (_target: unknown) => ({ status: "active", accounts: 2, inserted: 0, connections: 1 })),
 }));
 vi.mock("@/lib/backend/family", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/backend/family")>();
@@ -89,6 +96,7 @@ const FamilyHome = (await import("~/app/family/index")).default;
 const Consent = (await import("~/app/family/consent")).default;
 const Sharing = (await import("~/app/family/sharing")).default;
 const Dashboard = (await import("~/app/family/dependent/[id]")).default;
+const Connect = (await import("~/app/family/connect")).default;
 
 const DEP = "22222222-2222-4222-8222-222222222222";
 const GUARDIAN = "33333333-3333-4333-8333-333333333333";
@@ -333,11 +341,33 @@ describe("the guardian's dashboard", () => {
   });
 });
 
+describe("connecting a bank abroad", () => {
+  it("asks where the bank is, opens the provider's page in the secure browser, then reads what was connected", async () => {
+    api.myState.mockResolvedValue(dependentState);
+    api.connectToken.mockResolvedValue({ provider: "plaid", url: "https://hosted.plaid.test/link/abc", session: "11111111-2222-4333-8444-555555555555", returnUrl: "flow://family/bank-return" });
+    wrap(<Connect />);
+
+    expect(await screen.findByRole("heading", { name: "Where is your bank?" })).toBeInTheDocument();
+    // The phone's country first, with the provider named.
+    const rows = await screen.findAllByText(/^Through /);
+    expect(rows[0].parentElement?.textContent).toBe("United StatesThrough Plaid");
+    fireEvent.click(screen.getByRole("button", { name: "Connect a bank in United States" }));
+
+    await waitFor(() => expect(api.syncConnection).toHaveBeenCalledWith({ session: "11111111-2222-4333-8444-555555555555" }));
+    expect(api.connectToken).toHaveBeenCalledWith({ country: "US" });
+    expect(browser.openAuthSessionAsync).toHaveBeenCalledWith("https://hosted.plaid.test/link/abc", "flow://family/bank-return");
+    expect(await screen.findByText(/Connected — 2 accounts found/)).toBeInTheDocument();
+  });
+});
+
 describe("Home card", () => {
   it("always tells a dependent who they share with", async () => {
     api.myState.mockResolvedValue(dependentState);
     wrap(<FamilyHomeCard />);
     expect(await screen.findByText("Shared with Maria")).toBeInTheDocument();
+    // A dependent's phone tells the server its time zone, once.
+    await waitFor(() => expect(api.setTimeZone).toHaveBeenCalledTimes(1));
+    expect(api.setTimeZone.mock.calls[0][0]).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
     fireEvent.click(screen.getByRole("button", { name: /shared with Maria/ }));
     expect(nav.push).toHaveBeenCalledWith("/family/sharing");
   });

@@ -109,6 +109,25 @@ export function formatMoney(cents: Cents, currency: string, opts: { signDisplay?
   }
 }
 
+/** The currency's symbol as Flow shows it ("R$", "$", "€", "£"), or its code. */
+export function currencySymbol(currency: string): string {
+  try {
+    const known = currencyByCode(currency);
+    const locale = known.code === currency ? known.locale : "en-US";
+    const part = new Intl.NumberFormat(locale, { style: "currency", currency }).formatToParts(0).find((p) => p.type === "currency");
+    return part?.value ?? currency;
+  } catch {
+    return currency;
+  }
+}
+
+/** Every currency among the entries, the most common first. */
+export function currenciesOf(entries: BankEntry[]): string[] {
+  const count = new Map<string, number>();
+  for (const e of entries) count.set(e.currency, (count.get(e.currency) ?? 0) + 1);
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c]) => c);
+}
+
 /** The most common currency among the entries (a dependent's banks are almost always one currency). */
 export function mainCurrency(entries: BankEntry[], fallback = "BRL"): string {
   const count = new Map<string, number>();

@@ -142,7 +142,7 @@ function Welcome() {
       </Text>
       <Lead>
         Follow the spending of someone you look after — a child, a teenager, an older parent — from the bank accounts they
-        choose to share through Open Finance.
+        choose to share through open banking — in Brazil, the US, Canada, the UK, Europe and many more countries.
       </Lead>
 
       <View className="mt-6 gap-4">

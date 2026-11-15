@@ -93,11 +93,24 @@ export interface BankEntry {
 
 export type ConnectionStatus = "updating" | "active" | "needs_attention" | "expired" | "error";
 
+/** How the app opens a connection: Pluggy's widget in the app, or a provider page in the system browser. */
+export type BankLinkStart =
+  | { provider: "pluggy"; connectToken: string; includeSandbox: boolean }
+  | { provider: "plaid" | "saltedge"; url: string; session: string; returnUrl: string };
+
 export interface Overview {
   accounts: { id: string; name: string; kind: string; last4: string | null; currency: string; institution: string; locked: boolean }[];
-  connections: { id: string; institution: string; status: ConnectionStatus; consent_expires_at: string | null; last_synced_at: string | null }[];
-  budgets: { category: FamilyCategory | "total"; limit: number }[];
-  rules: { kind: AlertKind; enabled: boolean; threshold: number | null; categories: FamilyCategory[] | null }[];
+  connections: {
+    id: string;
+    institution: string;
+    status: ConnectionStatus;
+    provider?: "pluggy" | "plaid" | "saltedge";
+    country?: string | null;
+    consent_expires_at: string | null;
+    last_synced_at: string | null;
+  }[];
+  budgets: { category: FamilyCategory | "total"; limit: number; currency?: string }[];
+  rules: { kind: AlertKind; enabled: boolean; threshold: number | null; categories: FamilyCategory[] | null; currency?: string | null }[];
 }
 
 export type AlertKind = "large_purchase" | "sensitive_category" | "budget_exceeded" | "connection_expired";
@@ -117,6 +130,8 @@ export interface AlertEvent {
 export interface MyConnection {
   id: string;
   external_item_id: string;
+  provider: "pluggy" | "plaid" | "saltedge";
+  country_code: string | null;
   institution_name: string;
   status: ConnectionStatus;
   status_detail: string | null;
@@ -176,6 +191,9 @@ const MESSAGES: Record<string, string> = {
   connection_not_found: "That bank connection wasn't found.",
   connection_not_yours: "That bank connection wasn't found.",
   sync_failed: "Couldn't update from the bank right now. Your data is safe; try again in a moment.",
+  provider_unavailable: "Bank connections in this country aren't available yet.",
+  invalid_currency: "Choose a currency.",
+  invalid_time_zone: "Your phone's time zone wasn't recognised.",
   unavailable: "This isn't available right now. Try again in a moment.",
   network: "You're offline. Showing what was saved on this phone.",
 };
@@ -309,9 +327,17 @@ export const familyApi = {
       p_offset: offset,
     }),
   overview: (dependentId: string) => rpc<Overview>("family_dependent_overview", { p_dependent: dependentId }),
-  setBudget: (familyId: string, dependentId: string, category: FamilyCategory | "total", limit: number | null) =>
-    rpc<void>("family_budget_set", { p_family: familyId, p_dependent: dependentId, p_category: category, p_limit: limit }),
-  setRule: (args: { familyId: string; dependentId: string; kind: AlertKind; enabled: boolean; threshold?: number | null; categories?: FamilyCategory[] | null }) =>
+  setBudget: (familyId: string, dependentId: string, category: FamilyCategory | "total", limit: number | null, currency?: string) =>
+    rpc<void>("family_budget_set", { p_family: familyId, p_dependent: dependentId, p_category: category, p_limit: limit, p_currency: currency ?? null }),
+  setRule: (args: {
+    familyId: string;
+    dependentId: string;
+    kind: AlertKind;
+    enabled: boolean;
+    threshold?: number | null;
+    categories?: FamilyCategory[] | null;
+    currency?: string | null;
+  }) =>
     rpc<void>("family_alert_rule_set", {
       p_family: args.familyId,
       p_dependent: args.dependentId,
@@ -319,6 +345,7 @@ export const familyApi = {
       p_enabled: args.enabled,
       p_threshold: args.threshold ?? null,
       p_categories: args.categories ?? null,
+      p_currency: args.currency ?? null,
     }),
   /** Alerts this guardian received (a dependent can also read the ones about them; those are left out here). */
   alerts: async (guardianId: string, limit = 100): Promise<AlertEvent[]> => {
@@ -339,7 +366,7 @@ export const familyApi = {
     const { data, error } = await client()
       .from("bank_connections")
       .select(
-        "id,external_item_id,institution_name,status,status_detail,consent_expires_at,last_synced_at,orphaned_at,created_at,accounts:bank_accounts(id,kind,name,last4,currency,shared,shared_at)",
+        "id,external_item_id,provider,country_code,institution_name,status,status_detail,consent_expires_at,last_synced_at,orphaned_at,created_at,accounts:bank_accounts(id,kind,name,last4,currency,shared,shared_at)",
       )
       .order("created_at");
     if (error) throw fromPostgrest(error);
@@ -362,23 +389,38 @@ export const familyApi = {
   aboutMe: async (userId: string) => {
     const c = client();
     const [rules, budgets] = await Promise.all([
-      c.from("family_alert_rules").select("kind,enabled,threshold,categories,guardian_id").eq("dependent_id", userId),
-      c.from("family_budgets").select("category,limit,guardian_id").eq("dependent_id", userId),
+      c.from("family_alert_rules").select("kind,enabled,threshold,categories,currency,guardian_id").eq("dependent_id", userId),
+      c.from("family_budgets").select("category,limit,currency,guardian_id").eq("dependent_id", userId),
     ]);
     if (rules.error) throw fromPostgrest(rules.error);
     if (budgets.error) throw fromPostgrest(budgets.error);
     return {
-      rules: (rules.data ?? []) as { kind: AlertKind; enabled: boolean; threshold: number | null; categories: FamilyCategory[] | null; guardian_id: string }[],
-      budgets: (budgets.data ?? []) as { category: FamilyCategory | "total"; limit: number; guardian_id: string }[],
+      rules: (rules.data ?? []) as {
+        kind: AlertKind;
+        enabled: boolean;
+        threshold: number | null;
+        categories: FamilyCategory[] | null;
+        currency: string | null;
+        guardian_id: string;
+      }[],
+      budgets: (budgets.data ?? []) as { category: FamilyCategory | "total"; limit: number; currency: string; guardian_id: string }[],
     };
   },
+
+  /** So a dependent's months end at their own midnight (0016). */
+  setTimeZone: (tz: string) => rpc<void>("family_set_time_zone", { p_tz: tz }),
 
   exportMyData: () => rpc<Record<string, unknown>>("family_export_my_data"),
 
   /* ── Bank, through the Edge Functions ────────────────────────────────── */
 
-  connectToken: (itemId?: string) => invoke<{ connectToken: string; includeSandbox: boolean }>("bank-connect-token", itemId ? { itemId } : {}),
-  syncConnection: (itemId: string) => invoke<{ status: ConnectionStatus; accounts: number; inserted: number }>("bank-connection-sync", { itemId }),
+  /** Which providers this server has switched on. */
+  bankCoverage: () => invoke<{ providers: Record<"pluggy" | "plaid" | "saltedge", boolean> }>("bank-connect-token", { probe: true }),
+  /** Open a connection: a new one in a country, or a stored one to fix it. */
+  connectToken: (target: { country: string } | { connectionId: string }) => invoke<BankLinkStart>("bank-connect-token", target),
+  /** Read: a Pluggy item, a finished browser window, or a stored connection. */
+  syncConnection: (target: { itemId: string } | { session: string } | { connectionId: string }) =>
+    invoke<{ status: ConnectionStatus | null; accounts: number; inserted: number; connections?: number }>("bank-connection-sync", target),
   disconnect: (connectionId: string) => invoke<{ removed: boolean; providerPending: boolean }>("bank-connection-delete", { connectionId }),
 
   /* ── Push ────────────────────────────────────────────────────────────── */

@@ -32,6 +32,7 @@ export default function FamilyLayout() {
       <Stack.Screen name="alerts" options={{ title: "Alerts" }} />
       <Stack.Screen name="manage" options={{ title: "Manage family" }} />
       <Stack.Screen name="account" options={{ title: "Account" }} />
+      <Stack.Screen name="bank-return" options={{ headerShown: false }} />
     </Stack>
   );
 }

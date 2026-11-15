@@ -1,46 +1,42 @@
 /**
- * Connecting a bank through Open Finance, with Pluggy Connect: Pluggy's own
- * page, shown full screen in a WebView. The person picks their bank and
- * authorises sharing there (or in their bank's app, for Open Finance
- * connectors). Their bank login never passes through Flow: the widget talks
- * to Pluggy and the bank directly, and Flow only receives the id of the new
- * connection, which the server then checks with Pluggy.
+ * Connecting a bank, wherever it is.
  *
- * The token that opens the widget comes from the bank-connect-token function,
- * which checks the person may connect (they share with a family, within the
- * plan). The aggregator's keys never reach the phone.
+ * The person says which country their bank is in; the server picks the
+ * provider that covers it and opens the connection:
+ *   · Brazil (Pluggy): Pluggy Connect, shown full screen in a WebView.
+ *   · Elsewhere (Plaid, Salt Edge): the provider's own page in the system's
+ *     secure browser (ASWebAuthenticationSession on iOS, Custom Tabs on
+ *     Android). Banks' Open Banking logins redirect to the bank's own app or
+ *     site, which a WebView can't do reliably; the system browser can, and
+ *     brings the person back to Flow when they finish.
+ * Bank logins never pass through Flow. When the window closes the server
+ * checks that the connection was made in a window this person opened, then
+ * reads it.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Text, View } from "react-native";
+import * as Localization from "expo-localization";
+import * as WebBrowser from "expo-web-browser";
 import { PluggyConnect } from "react-native-pluggy-connect";
 import { familyApi, FamilyError } from "@/lib/backend/family";
-import { Button } from "~/components/ui";
+import { countryOptions, orderForRegion, PROVIDER_NAME, type CountryOption, type ProviderId } from "@/lib/family/countries";
+import { Button, Group, GroupRow } from "~/components/ui";
+import { CheckIcon } from "~/components/icons";
+import { iconSize } from "~/theme/tokens";
 import { Loading, Notice } from "./ui";
 
-type Phase = { step: "idle" } | { step: "token" } | { step: "widget"; token: string; sandbox: boolean } | { step: "syncing" };
+type Phase = { step: "idle" } | { step: "opening" } | { step: "widget"; token: string; sandbox: boolean; updateItem?: string } | { step: "syncing" };
+
+export type ConnectTarget = { country: string } | { connectionId: string; provider: ProviderId; itemId: string };
 
 export function useBankConnect(onDone: (result: { inserted: number; accounts: number } | null) => void) {
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
   const [error, setError] = useState<string | null>(null);
-  const [updateItem, setUpdateItem] = useState<string | undefined>(undefined);
 
-  const start = async (itemId?: string) => {
-    setError(null);
-    setUpdateItem(itemId);
-    setPhase({ step: "token" });
-    try {
-      const { connectToken, includeSandbox } = await familyApi.connectToken(itemId);
-      setPhase({ step: "widget", token: connectToken, sandbox: includeSandbox });
-    } catch (e) {
-      setPhase({ step: "idle" });
-      setError((e as Error).message);
-    }
-  };
-
-  const finish = async (itemId: string) => {
+  const finish = async (target: { itemId: string } | { session: string } | { connectionId: string }) => {
     setPhase({ step: "syncing" });
     try {
-      const res = await familyApi.syncConnection(itemId);
+      const res = await familyApi.syncConnection(target);
       setPhase({ step: "idle" });
       onDone({ inserted: res.inserted, accounts: res.accounts });
     } catch (e) {
@@ -50,20 +46,45 @@ export function useBankConnect(onDone: (result: { inserted: number; accounts: nu
     }
   };
 
+  const start = async (target: ConnectTarget) => {
+    setError(null);
+    setPhase({ step: "opening" });
+    try {
+      const opened = await familyApi.connectToken("country" in target ? { country: target.country } : { connectionId: target.connectionId });
+      if (opened.provider === "pluggy") {
+        setPhase({ step: "widget", token: opened.connectToken, sandbox: opened.includeSandbox, updateItem: "itemId" in target ? target.itemId : undefined });
+        return;
+      }
+      // The provider's page, in the system's secure browser.
+      await WebBrowser.openAuthSessionAsync(opened.url, opened.returnUrl);
+      // Done, cancelled or closed: the server knows whether anything was
+      // connected in that window, so ask it either way.
+      await finish({ session: opened.session });
+    } catch (e) {
+      setPhase({ step: "idle" });
+      setError((e as Error).message);
+    }
+  };
+
   const modal = (
-    <Modal visible={phase.step === "widget" || phase.step === "syncing"} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPhase({ step: "idle" })}>
+    <Modal
+      visible={phase.step === "widget" || phase.step === "syncing"}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setPhase({ step: "idle" })}
+    >
       {phase.step === "widget" ? (
         <PluggyConnect
           connectToken={phase.token}
           includeSandbox={phase.sandbox}
-          updateItem={updateItem}
+          updateItem={phase.updateItem}
           language="en"
           theme="light"
-          onSuccess={({ item }) => void finish(item.id)}
+          onSuccess={({ item }) => void finish({ itemId: item.id })}
           onError={({ message, data }) => {
             // A connection that exists but needs attention is still stored, so
             // the person sees its state; anything else is an error to show.
-            if (data?.item?.id) void finish(data.item.id);
+            if (data?.item?.id) void finish({ itemId: data.item.id });
             else {
               setPhase({ step: "idle" });
               setError(message || "The connection didn't finish. Try again.");
@@ -82,20 +103,79 @@ export function useBankConnect(onDone: (result: { inserted: number; accounts: nu
   return { start, busy: phase.step !== "idle", error, clearError: () => setError(null), modal };
 }
 
-/** What the person is told before the widget opens. */
-export function BankConnectIntro({ onStart, busy }: { onStart: () => void; busy: boolean }) {
+/** The countries this server can connect banks in, the phone's own first. */
+export function useCountryOptions() {
+  const [options, setOptions] = useState<CountryOption[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    familyApi
+      .bankCoverage()
+      .then(({ providers }) => {
+        if (!alive) return;
+        let region: string | null = null;
+        try {
+          region = Localization.getLocales()[0]?.regionCode ?? null;
+        } catch {
+          /* no locale information: alphabetical */
+        }
+        setOptions(orderForRegion(countryOptions(providers), region));
+      })
+      .catch((e) => alive && setError((e as Error).message));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return { options, error };
+}
+
+/** What the person is told, and asked, before anything opens. */
+export function BankConnectIntro({ onStart, busy }: { onStart: (country: string) => void; busy: boolean }) {
+  const { options, error } = useCountryOptions();
+  const [country, setCountry] = useState<CountryOption | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const chosen = country ?? options?.[0] ?? null;
+  const shown = showAll ? (options ?? []) : (options ?? []).slice(0, 5);
+
   return (
     <View>
       <Text className="text-body text-chalk-soft">
-        You'll choose your bank and approve sharing through Open Finance Brasil, in a window run by Pluggy, our
-        Open Finance partner. Flow never sees your bank password.
+        You'll choose your bank and approve sharing on a secure page run by a regulated open banking provider. Flow never sees your bank
+        password.
       </Text>
+
+      <Text className="mt-6 text-subhead font-semibold text-chalk" accessibilityRole="header">
+        Where is your bank?
+      </Text>
+      {error ? <Notice tone="alert">{error}</Notice> : null}
+      {!options && !error ? <Loading label="Checking which countries are available…" /> : null}
+      {options && options.length === 0 ? (
+        <Notice tone="warn">Bank connections aren't available yet. Try again later.</Notice>
+      ) : null}
+      {options && options.length > 0 ? (
+        <View className="mt-2">
+          <Group>
+            {shown.map((o) => (
+              <GroupRow
+                key={o.code}
+                title={o.name}
+                sub={`Through ${PROVIDER_NAME[o.provider]}`}
+                onPress={() => setCountry(o)}
+                accessibilityHint={chosen?.code === o.code ? "Selected" : "Chooses this country"}
+                trailing={chosen?.code === o.code ? <CheckIcon size={iconSize.md} strokeWidth={2.2} /> : <View />}
+              />
+            ))}
+            {!showAll && options.length > shown.length ? <GroupRow title={`Show all ${options.length} options`} onPress={() => setShowAll(true)} /> : null}
+          </Group>
+        </View>
+      ) : null}
+
       <Notice title="Nothing is shared yet">
         After connecting, you pick which accounts to share. Until you do, your guardian sees nothing from this bank.
       </Notice>
       <View className="mt-5">
-        <Button variant="primary" size="lg" fullWidth disabled={busy} onPress={onStart}>
-          {busy ? "Opening…" : "Connect a bank"}
+        <Button variant="primary" size="lg" fullWidth disabled={busy || !chosen} onPress={() => chosen && onStart(chosen.code)}>
+          {busy ? "Opening…" : chosen ? `Connect a bank in ${chosen.name === "Another country" ? "another country" : chosen.name}` : "Connect a bank"}
         </Button>
       </View>
     </View>

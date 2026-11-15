@@ -177,7 +177,7 @@ export const FAMILY: Section[] = [
   {
     heading: "What Flow Family is",
     body: [
-      `Flow Family lets a guardian follow, read-only, the spending of someone they look after (a child, a teenager, an adult child, an older relative, or a person under curatela) from the bank accounts and cards that person chooses to share through Open Finance Brasil. It cannot move money, block purchases, issue cards or change anything at a bank.`,
+      `Flow Family lets a guardian follow, read-only, the spending of someone they look after (a child, a teenager, an adult child, an older relative, or a person under curatela) from the bank accounts and cards that person chooses to share through open banking — Open Finance Brasil in Brazil, and the open banking networks of other countries. It cannot move money, block purchases, issue cards or change anything at a bank.`,
       `${OPERATOR} is the controller of the personal data processed in Flow Family, as in the main Privacy Policy. Contact: ${CONTACT}.`,
     ],
   },
@@ -194,7 +194,8 @@ export const FAMILY: Section[] = [
     bullets: [
       "About the family: its name, the names members give themselves, each member's role and type (adult, under 18, under curatela) and, for a person under 18, their date of birth — kept only so sharing ends on their 18th birthday.",
       "Consent records: the version of the terms agreed to, the date and time, the chosen period, who consented (the person or their representative), and the network (IP) address and app identifier the agreement came from — kept as proof of consent.",
-      "From the banks the dependent connects, through Pluggy: the institution, each account's type, name and last four digits, and — only for the accounts the dependent shares — each transaction's date, amount, description, merchant, category and status. Balances, credit limits and full account numbers are not stored.",
+      "From the banks the dependent connects, through the open banking provider for their country: the institution and its country, each account's type, name, currency and last four digits, and — only for the accounts the dependent shares — each transaction's date, amount, currency, description, merchant, category and status. Balances, credit limits and full account numbers are not stored.",
+      "The phone's time zone, so monthly budgets end at the dependent's own midnight.",
       "What the guardian sets up: monthly limits, alert rules, and the alerts produced.",
       "An access history: when the guardian opened the dependent's data, and the actions each member took (inviting, consenting, sharing an account, stopping).",
       "For guardians who allow notifications: the phone's push token, to deliver alerts.",
@@ -207,12 +208,20 @@ export const FAMILY: Section[] = [
       "To show the guardian the shared spending, produce alerts and reports, and let the dependent see and control the sharing: the dependent's consent (LGPD art. 7, I), and for a person under 18, the specific consent of a parent or legal guardian given in their best interest (art. 14, §1).",
       "To keep proof of consent and the access history: compliance with the LGPD's accountability duties (art. 7, II and art. 8, §2), and our legitimate interest in demonstrating that each access was authorised (art. 7, IX).",
       "Bank data is used for nothing else: not for advertising, not for credit decisions, not sold, not used to train AI, and not used to track anyone.",
+      "Where the GDPR (European Union, European Economic Area) or the UK GDPR applies, the same purposes rest on consent (art. 6(1)(a)); for a child below the age of digital consent in their country, on consent given by the holder of parental responsibility (art. 8). Other countries' data protection laws apply where they protect you more.",
+    ],
+  },
+  {
+    heading: "Where your data goes",
+    body: [
+      "Our database is in the United States (see the main Privacy Policy). Bank data travels from the bank to the provider for its country and from there to us, encrypted in transit. Transfers out of Brazil rely on LGPD art. 33, IX; out of the EU/EEA and the UK, on the providers' and our processors' standard contractual clauses. You can ask us for a copy of these safeguards.",
     ],
   },
   {
     heading: "Who processes it for us",
     bullets: [
-      "Pluggy (pluggy.ai) — a company authorised to connect to banks through Open Finance Brasil. It connects to the bank with the dependent's authorisation and passes us the data of the connection; it acts on our behalf.",
+      "The open banking provider for the bank's country, each authorised or registered where it operates, which connects to the bank with the dependent's authorisation and passes us the data of the connection, acting on our behalf: Pluggy (pluggy.ai) in Brazil; Plaid (plaid.com) in the United States, Canada, the United Kingdom and the European Economic Area; Salt Edge (saltedge.com) in other countries.",
+      "For Plaid, the access key it issues for each connection is stored encrypted, on our servers only.",
       "Supabase — our database and authentication provider, as in the main Privacy Policy (United States; LGPD art. 33, IX).",
       "Expo, Apple and Google — deliver push notifications to the guardian's phone. A notification says only that there is an alert and about whom; amounts, merchants and categories are never in it.",
     ],
@@ -222,8 +231,8 @@ export const FAMILY: Section[] = [
     bullets: [
       "Shared transactions: up to 13 months. Alerts: 12 months. Access history: 24 months. Unused invitations: 30 days after they expire.",
       "When a dependent stops sharing with every family, nothing new is read from their banks; 30 days later the bank connections are ended and what was read is deleted, unless they share again.",
-      "Stopping sharing an account deletes what was read from it. Disconnecting a bank ends the connection at Pluggy (and the Open Finance consent with the bank) and deletes everything read through it.",
-      "Deleting your account deletes all of the above that is yours, ends your bank connections at Pluggy, and removes you from every family.",
+      "Stopping sharing an account deletes what was read from it. Disconnecting a bank ends the connection at its provider (and the consent given at the bank) and deletes everything read through it.",
+      "Deleting your account deletes all of the above that is yours, ends your bank connections at their providers, and removes you from every family.",
     ],
   },
   {
@@ -298,7 +307,7 @@ export const NUTRITION: NutritionGroup[] = [
       "Usage Data — days you completed your daily review, for your streak",
       "Purchases — your subscription plan and its status",
       "Diagnostics — server request logs (IP address, time), kept briefly for security and troubleshooting",
-      "Flow Family, where available and only if you use it — Name (what you call yourself in a family), Financial Info (transactions of the bank accounts a dependent chooses to share), Identifiers (the push token for a guardian's alerts) and Other Data (a dependent's date of birth if under 18, and the network address recorded with a consent)",
+      "Flow Family, where available and only if you use it — Name (what you call yourself in a family), Financial Info (transactions of the bank accounts a dependent chooses to share), Identifiers (the push token for a guardian's alerts) and Other Data (a dependent's date of birth if under 18, the network address recorded with a consent, and the phone's time zone)",
     ],
   },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["None"] },

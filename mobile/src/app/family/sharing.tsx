@@ -109,14 +109,14 @@ export default function Sharing() {
                     <GroupRow
                       key={`${r.guardian_id}-${r.kind}`}
                       title={ALERT_RULE_LABEL[r.kind]}
-                      sub={`${names.get(r.guardian_id) ?? "Guardian"}${r.kind === "large_purchase" && r.threshold ? ` · from ${formatMoney(r.threshold, "BRL")}` : ""}${r.categories?.length ? ` · ${r.categories.join(", ")}` : ""}`}
+                      sub={`${names.get(r.guardian_id) ?? "Guardian"}${r.kind === "large_purchase" && r.threshold ? ` · from ${formatMoney(r.threshold, r.currency ?? "BRL")}` : ""}${r.categories?.length ? ` · ${r.categories.join(", ")}` : ""}`}
                     />
                   ))}
                 {(about.data?.budgets ?? []).map((b) => (
                   <GroupRow
                     key={`${b.guardian_id}-${b.category}`}
                     title={`Monthly limit: ${b.category === "total" ? "all spending" : b.category}`}
-                    sub={`${formatMoney(b.limit, "BRL")} · ${names.get(b.guardian_id) ?? "Guardian"} · to follow, not a block`}
+                    sub={`${formatMoney(b.limit, b.currency ?? "BRL")} · ${names.get(b.guardian_id) ?? "Guardian"} · to follow, not a block`}
                   />
                 ))}
               </Group>

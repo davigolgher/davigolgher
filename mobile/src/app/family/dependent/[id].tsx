@@ -11,13 +11,13 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { familyApi, type BankEntry } from "@/lib/backend/family";
 import { CONNECTION_LABEL } from "@/lib/family/copy";
 import { isInternal, type FamilyCategory } from "@/lib/family/categories";
-import { budgetLines, byDay, formatMoney, loadWindow, mainCurrency, summarize } from "@/lib/family/summary";
+import { budgetLines, byDay, currenciesOf, formatMoney, loadWindow, summarize } from "@/lib/family/summary";
 import { reportHtml } from "@/lib/family/report";
 import { Button, Group, GroupRow, Segmented } from "~/components/ui";
 import { shareReportPdf } from "~/features/family/files";
 import { useFamily, useFamilyLive } from "~/features/family/FamilyProvider";
 import { useFamilyQuery } from "~/features/family/useFamilyQuery";
-import { Badge, Bar, Empty, Failed, FamilyScroll, Loading, Notice, SavedNotice, Section, Tile } from "~/features/family/ui";
+import { Badge, Bar, Choices, Empty, Failed, FamilyScroll, Loading, Notice, SavedNotice, Section, Tile } from "~/features/family/ui";
 
 const PAGE = 500;
 const MAX_PAGES = 4;
@@ -53,10 +53,18 @@ export default function DependentDashboard() {
     const d = new Date();
     return period === "this" ? d : new Date(d.getFullYear(), d.getMonth() - 1, 15);
   }, [period]);
-  const entries = useMemo(() => feed.data ?? [], [feed.data]);
-  const currency = mainCurrency(entries);
+  const all = useMemo(() => feed.data ?? [], [feed.data]);
+  // Banks in several countries mean several currencies; totals are only ever
+  // added up within one, chosen here (the most used first).
+  const currencies = useMemo(() => currenciesOf(all), [all]);
+  const [currencyPick, setCurrencyPick] = useState<string | null>(null);
+  const currency = currencyPick && currencies.includes(currencyPick) ? currencyPick : (currencies[0] ?? "BRL");
+  const entries = useMemo(() => all.filter((e) => e.currency === currency), [all, currency]);
   const s = useMemo(() => summarize(entries, now), [entries, now]);
-  const budgets = useMemo(() => budgetLines(overview.data?.budgets ?? [], entries, now), [overview.data, entries, now]);
+  const budgets = useMemo(
+    () => budgetLines((overview.data?.budgets ?? []).filter((b) => (b.currency ?? "BRL") === currency), entries, now),
+    [overview.data, entries, now, currency],
+  );
   const monthEntries = useMemo(() => {
     const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
@@ -107,7 +115,7 @@ export default function DependentDashboard() {
         dependentName: dependent.display_name,
         familyName: g.family.name,
         entries,
-        budgets: o?.budgets ?? [],
+        budgets: (o?.budgets ?? []).filter((b) => (b.currency ?? "BRL") === currency),
         currency,
         now,
         generatedBy: g.display_name,
@@ -138,6 +146,21 @@ export default function DependentDashboard() {
           }}
           role="tab"
         />
+
+        {currencies.length > 1 ? (
+          <View className="mt-4">
+            <Choices
+              label="Currency"
+              value={currency}
+              onChange={(c) => {
+                setCurrencyPick(c);
+                setFilter(null);
+              }}
+              options={currencies.map((c) => ({ value: c, label: c }))}
+            />
+            <Text className="mt-2 text-caption text-chalk-mute">Accounts in different currencies are shown one currency at a time.</Text>
+          </View>
+        ) : null}
 
         {broken.map((c) => (
           <Notice key={c.id} tone="alert" title={`${c.institution}: ${CONNECTION_LABEL[c.status]}`}>

@@ -5,7 +5,8 @@
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import type { BankEntry } from "@/lib/backend/family";
-import { budgetLines, byDay, counted, formatMoney, loadWindow, mainCurrency, summarize } from "./summary";
+import { budgetLines, byDay, counted, currenciesOf, currencySymbol, formatMoney, loadWindow, mainCurrency, summarize } from "./summary";
+import { ANOTHER_COUNTRY, countryOptions, orderForRegion } from "./countries";
 import { escapeHtml, reportHtml } from "./report";
 import { colors as reportColors } from "./reportTheme";
 import { describeActivity, describeAlert } from "./copy";
@@ -149,5 +150,30 @@ describe("words", () => {
     expect(describeActivity("viewed_transactions", "Maria", false)).toBe("Maria viewed your spending");
     expect(describeActivity("viewed_transactions", "Maria", true)).toBe("You viewed their spending");
     expect(describeActivity("something_new", null, false)).toBe("Someone: something new");
+  });
+});
+
+describe("countries and currencies", () => {
+  it("offers the countries the switched-on providers cover, the phone's first", () => {
+    const all = countryOptions({ pluggy: true, plaid: true, saltedge: true });
+    expect(all.find((o) => o.code === "BR")?.provider).toBe("pluggy");
+    expect(all.find((o) => o.code === "US")?.provider).toBe("plaid");
+    expect(all.at(-1)?.code).toBe(ANOTHER_COUNTRY);
+    expect(orderForRegion(all, "de")[0].code).toBe("DE");
+    // A country not on the list: "Another country" leads.
+    expect(orderForRegion(all, "JP")[0].code).toBe(ANOTHER_COUNTRY);
+
+    const saltEdgeOnly = countryOptions({ pluggy: false, plaid: false, saltedge: true });
+    expect(saltEdgeOnly.every((o) => o.provider === "saltedge")).toBe(true);
+    expect(countryOptions({ pluggy: true, plaid: false, saltedge: false }).map((o) => o.code)).toEqual(["BR"]);
+    expect(countryOptions({ pluggy: false, plaid: false, saltedge: false })).toEqual([]);
+  });
+
+  it("names currencies the way Flow shows them, and lists the ones in use", () => {
+    expect(currencySymbol("BRL")).toBe("R$");
+    expect(currencySymbol("USD")).toBe("$");
+    expect(currencySymbol("EUR")).toBe("€");
+    expect(currencySymbol("GBP")).toBe("£");
+    expect(currenciesOf([e({ currency: "USD" }), e({ currency: "EUR" }), e({ currency: "USD" })])).toEqual(["USD", "EUR"]);
   });
 });

@@ -31,7 +31,7 @@ export const CONNECTION_HINT: Record<ConnectionStatus, string> = {
   active: "Purchases arrive within minutes of the bank reporting them.",
   updating: "The bank is sending the latest entries.",
   needs_attention: "The bank needs you to sign in again. Reconnect to keep sharing.",
-  expired: "The Open Finance consent with the bank ended. Reconnect to keep sharing.",
+  expired: "The consent you gave at the bank ended. Reconnect to keep sharing.",
   error: "The bank isn't answering. It usually recovers on its own; reconnect if it doesn't.",
 };
 
