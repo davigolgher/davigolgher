@@ -21,7 +21,11 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 export default function FamilyHome() {
   useFamilyLive();
   const { state, loading, error, savedAt, refresh, isGuardian, isDependent, familyOnly } = useFamily();
-  const alerts = useFamilyQuery(isGuardian && state ? "alerts" : null, () => familyApi.alerts(state!.user_id, 50), { live: true });
+  // Read before the closure: the React Compiler evaluates `state.user_id`
+  // during render to memoise the fetcher, so `state!.user_id` inside it threw
+  // while the family was still loading.
+  const guardianId = isGuardian ? (state?.user_id ?? null) : null;
+  const alerts = useFamilyQuery(guardianId ? "alerts" : null, () => familyApi.alerts(guardianId ?? "", 50), { live: true });
   const unread = (alerts.data ?? []).filter((a) => !a.read_at).length;
 
   const header = (

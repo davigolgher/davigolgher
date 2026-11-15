@@ -29,7 +29,11 @@ export default function Alerts() {
   const { dependent } = useLocalSearchParams<{ dependent?: string }>();
   const { state } = useFamily();
   const g = state?.guardian_of;
-  const inbox = useFamilyQuery(state && g ? "alerts" : null, () => familyApi.alerts(state!.user_id, 100), { live: true });
+  // Read before the closure: the React Compiler evaluates `state.user_id`
+  // during render to memoise the fetcher, so `state!.user_id` inside it threw
+  // while the family was still loading.
+  const guardianId = g ? (state?.user_id ?? null) : null;
+  const inbox = useFamilyQuery(guardianId ? "alerts" : null, () => familyApi.alerts(guardianId ?? "", 100), { live: true });
   const names = new Map((g?.dependents ?? []).map((d) => [d.user_id, d.display_name]));
   const shown = (inbox.data ?? []).filter((a) => !dependent || a.dependent_id === dependent);
 
