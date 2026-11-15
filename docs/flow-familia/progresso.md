@@ -240,3 +240,23 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
 - Confirmar a API da Salt Edge.
 - Aplicar a 0016.
 - Representante GDPR antes de distribuir na UE/Reino Unido.
+
+## Acréscimo — Expo SDK 58 (15/11/2026)
+
+**Por quê:** o Expo Go da App Store só abre projetos da versão mais nova do SDK (58). No SDK 57 não havia como ver o app num iPhone pelo Expo Go.
+
+**O que mudou**
+- `expo` 57 → 58 e os módulos nativos nas versões do SDK 58 (`npx expo install --fix`; `npm run check:native` confere).
+  - Principais: React Native 0.88, React 19.3, Reanimated 4.7, Worklets 0.13, Gesture Handler 3, WebView 14.
+  - Nenhuma dependência nova.
+- Dois ajustes de tipos pedidos pelo React Native 0.88, sem mudar comportamento:
+  - `ChartPager` usa `ScrollViewInstance`;
+  - `PrivacyShield` aceita o `AppState.currentState` como ele é tipado agora.
+
+**Verificado**
+- Tipos do app e do projeto, e `npm run build` do site.
+- 387 testes.
+- `expo export` para iOS e Android com a Família ligada, e para iOS sem ela.
+- `expo-doctor`: 18 de 20 checagens; as outras 2 dependem da API da Expo, inacessível daqui.
+
+**Falta ver no aparelho:** Pluggy (WebView 14), RevenueCat e as animações. O teste no Expo Go é a confirmação.

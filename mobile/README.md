@@ -1,6 +1,6 @@
 # Flow — native app (Expo / React Native)
 
-Real native app, not a WebView wrapper. Expo SDK 57, React Native 0.86, Expo
+Real native app, not a WebView wrapper. Expo SDK 58, React Native 0.88, Expo
 Router, NativeWind.
 
 ## Run it on your iPhone

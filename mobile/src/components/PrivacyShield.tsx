@@ -11,7 +11,7 @@
  * Nothing is unmounted, so a half-typed expense is still there on return.
  */
 import { useEffect, useState } from "react";
-import { AppState, StyleSheet, View, type AppStateStatus } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import { LogoMark } from "./Logo";
 
 /**
@@ -19,7 +19,7 @@ import { LogoMark } from "./Logo";
  * event on some launches): no event may follow it, and a cover nothing
  * lifts would leave the app blank.
  */
-export const coversApp = (state: AppStateStatus) => state === "inactive" || state === "background";
+export const coversApp = (state: string | null | undefined) => state === "inactive" || state === "background";
 
 export function PrivacyShield() {
   const [covered, setCovered] = useState(() => coversApp(AppState.currentState));

@@ -8,7 +8,7 @@
  * page directly, and the swipe is the shortcut rather than the only way in.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, ScrollView, View } from "react-native";
+import { Animated, ScrollView, View, type ScrollViewInstance } from "react-native";
 import { Segmented } from "./ui";
 import { EASE_OUT, useReducedMotion } from "~/lib/motion";
 
@@ -21,7 +21,7 @@ export interface ChartPage {
 export function ChartPager({ pages }: { pages: ChartPage[] }) {
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<ScrollViewInstance>(null);
 
   /**
    * Where a tap is taking us, until we arrive.

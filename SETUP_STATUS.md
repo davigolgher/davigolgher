@@ -10,7 +10,7 @@ App Review opens both from the store listing.
 
 | Path | What it is |
 | --- | --- |
-| `mobile/` | The app — Expo SDK 57, React Native, Expo Router, NativeWind |
+| `mobile/` | The app — Expo SDK 58, React Native, Expo Router, NativeWind |
 | `src/` | Shared logic (money, calc, reports, streak, store, auth, legal text) **and** the public legal/support pages |
 | `supabase/` | Schema, RLS migrations, Edge Functions |
 
