@@ -633,7 +633,7 @@ describe("delete-account with Flow Family", () => {
     const tomb = await db.admin<Record<string, unknown>>("select * from public.bank_item_tombstones where external_item_id = $1", [c.itemId]);
     expect(tomb).toHaveLength(1);
     // The queue holds the aggregator's id and nothing that points to the person.
-    expect(Object.keys(tomb[0]).sort()).toEqual(["attempts", "created_at", "external_item_id", "last_error", "provider"]);
+    expect(Object.keys(tomb[0]).sort()).toEqual(["attempts", "created_at", "credential", "environment", "external_item_id", "last_error", "provider"]);
   });
 
   it("a guardian deleting their account ends the family; the dependent keeps their own data", async () => {

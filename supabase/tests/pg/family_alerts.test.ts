@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type TestDb } from "./harness";
-import { entry, ingest, paid, sharing, sharingWithBank, unpaid, user } from "./fixtures";
+import { entry, ingest, paid, sharing, sharingWithBank, unpaid, user, V } from "./fixtures";
 
 let db: TestDb;
 
@@ -177,7 +177,7 @@ describe("when sharing stops", () => {
     const s = await sharingWithBank(db);
     await rule(s.guardian, s.familyId, s.dependent, "large_purchase", true, { p_threshold: 100 });
     await ingest(db, s.checking, [entry({ amount: 5000 })]);
-    const res = await db.as(s.dependent).rpc("family_consent_renew", { p_family: s.familyId, p_term_version: "2026-11", p_months: 12, p_confirm_adult: true });
+    const res = await db.as(s.dependent).rpc("family_consent_renew", { p_family: s.familyId, p_term_version: V, p_months: 12, p_confirm_adult: true });
     expect(res.error).toBeNull();
     expect(await alerts(s.guardian)).toHaveLength(1);
   });

@@ -17,7 +17,7 @@
  */
 import { APP } from "@/config/app";
 
-export const CONSENT_TERM_VERSION = "2026-11";
+export const CONSENT_TERM_VERSION = "2026-11.2";
 
 export interface TermSection {
   heading: string;
@@ -59,7 +59,7 @@ export const CONSENT_TERM: TermSection[] = [
   {
     heading: "Who sees it",
     body: [
-      `Only {guardian}, signed in to their own account. We process the data to provide the feature, with Supabase (database) and Pluggy (the regulated Open Finance connection to your bank) acting on our behalf. It is not sold, not used for advertising, and not used to track you.`,
+      `Only {guardian}, signed in to their own account. We process the data to provide the feature, with Supabase (database) and the regulated open banking provider that connects your bank acting on our behalf: Pluggy in Brazil, Plaid in North America and Europe, or Salt Edge in other countries. It is not sold, not used for advertising, and not used to track you.`,
     ],
   },
   {
@@ -101,7 +101,7 @@ export const CONSENT_TERM: TermSection[] = [
   {
     heading: "Legal basis",
     body: [
-      "Consent (LGPD, art. 7, I). For children and adolescents, specific consent given by a parent or legal guardian, in their best interest (art. 14).",
+      "Consent (LGPD, art. 7, I). For children and adolescents, specific consent given by a parent or legal guardian, in their best interest (art. 14). Where other laws apply, such as the GDPR in Europe (art. 6(1)(a) and 8), consent is the basis there too.",
     ],
   },
 ];

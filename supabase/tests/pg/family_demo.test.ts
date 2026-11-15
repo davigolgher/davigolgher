@@ -5,7 +5,8 @@
  * duplicated on a second run.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { seedDemoFamily } from "../../scripts/demoFamily";
+import { seedDemoFamily, TERM_VERSION } from "../../scripts/demoFamily";
+import { CONSENT_TERM_VERSION } from "@/lib/family/consentTerm";
 import { createDb, type TestDb } from "./harness";
 import { user } from "./fixtures";
 
@@ -18,6 +19,10 @@ afterAll(async () => {
 });
 
 describe("demo family", () => {
+  it("consents under the current terms", () => {
+    expect(TERM_VERSION).toBe(CONSENT_TERM_VERSION);
+  });
+
   it("gives a reviewer a family with something on every screen, and is safe to run twice", async () => {
     const ids = { guardian: await user(db, "review-guardian"), dependent: await user(db, "review-dependent") };
     const clients = { admin: db.service(), as: (id: string) => db.as(id) };

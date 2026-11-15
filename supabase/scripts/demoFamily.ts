@@ -30,7 +30,8 @@ export interface DemoIds {
   dependent: string;
 }
 
-const TERM_VERSION = "2026-11";
+/** Kept equal to CONSENT_TERM_VERSION in src/lib/family/consentTerm.ts (a test checks). */
+export const TERM_VERSION = "2026-11.2";
 
 async function call<T>(client: Client, fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await client.rpc(fn, args);
