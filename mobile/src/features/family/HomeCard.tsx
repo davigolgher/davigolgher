@@ -22,11 +22,14 @@ export function FamilyHomeCard() {
     .filter((d) => d.consent?.status === "active")
     .flatMap((d) => d.guardians.map((g) => g.display_name));
 
+  const cards: React.ReactNode[] = [];
+
   if (isSharing) {
     const names = [...new Set(sharingWith)];
     const who = names.length <= 2 ? names.join(" and ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more`;
-    return (
+    cards.push(
       <PressableScale
+        key="sharing"
         onPress={() => router.push("/family/sharing")}
         accessibilityRole="button"
         accessibilityLabel={`Your spending is shared with ${who}. Review or stop sharing.`}
@@ -39,14 +42,15 @@ export function FamilyHomeCard() {
           <Text className="mt-0.5 text-footnote text-chalk-mute">See what they can see, or stop sharing</Text>
         </View>
         <ChevronRightIcon size={iconSize.md} color={colors.chalk.faint} />
-      </PressableScale>
+      </PressableScale>,
     );
   }
 
   if (isGuardian && state.guardian_of) {
     const n = state.guardian_of.dependents.length;
-    return (
+    cards.push(
       <PressableScale
+        key="guardian"
         onPress={() => router.push("/family")}
         accessibilityRole="button"
         containerClassName="mt-4"
@@ -61,9 +65,9 @@ export function FamilyHomeCard() {
           </Text>
         </View>
         <ChevronRightIcon size={iconSize.md} color={colors.chalk.faint} />
-      </PressableScale>
+      </PressableScale>,
     );
   }
 
-  return null;
+  return cards.length ? <>{cards}</> : null;
 }

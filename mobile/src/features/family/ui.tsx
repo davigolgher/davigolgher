@@ -211,7 +211,11 @@ export function Check({ checked, onChange, children }: { checked: boolean; onCha
         className={`mt-0.5 h-6 w-6 items-center justify-center rounded-md border ${checked ? "border-chalk bg-chalk" : "border-line-strong bg-ink-850"}`}
         style={CONTINUOUS}
       >
-        {checked ? <Text className="text-caption font-bold text-ink-950">✓</Text> : null}
+        {checked ? (
+          <Text className="text-caption font-bold text-ink-950" importantForAccessibility="no" accessibilityElementsHidden>
+            ✓
+          </Text>
+        ) : null}
       </View>
       <Text className="flex-1 text-footnote text-chalk">{children}</Text>
     </Pressable>

@@ -21,4 +21,15 @@ config.watchFolders = [sharedRoot];
 // TypeScript that imports only its siblings — none of them pulls in a package.
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];
 
+// A build without Flow Family (EXPO_PUBLIC_FLOW_FAMILY unset) leaves its
+// screens out of the bundle entirely, rather than shipping them unreachable:
+// App Review asks for no dormant features (Guideline 2.3.1). The routes are
+// guarded at runtime too (app/family/_layout redirects to Home).
+if (process.env.EXPO_PUBLIC_FLOW_FAMILY !== "1") {
+  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const familyRoutes = new RegExp(`^${escape(path.join(projectRoot, "src", "app", "family"))}[\\/].*`);
+  const existing = config.resolver.blockList;
+  config.resolver.blockList = [...(Array.isArray(existing) ? existing : existing ? [existing] : []), familyRoutes];
+}
+
 module.exports = withNativeWind(config, { input: "./src/global.css" });

@@ -188,3 +188,17 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
 - Contas e consoles: Pluggy (aplicação sandbox e depois produção), `eas init` (projectId do push), APNs/FCM, rótulos de privacidade, Data safety, declaração financeira.
 - Produção: reativar o projeto Supabase, aplicar 0009–0015, publicar as funções, configurar os segredos, criar o webhook na Pluggy, agendar a manutenção, criar as contas de demonstração.
 - Builds iOS e Android de produção (não é possível gerar neste ambiente).
+
+## Fase 8 — revisão final
+
+**Feito**
+- Reteste de segurança, regressão com a flag ligada e desligada, testes, UX (estados, fonte grande, leitor de tela), conformidade e bundles de produção iOS/Android: `relatorio-final.md`.
+- Builds sem a flag deixam as telas da Família fora do bundle (`metro.config.js`), além do redirecionamento em tempo de execução: nenhum recurso dormente (Apple 2.3.1).
+- Ajustes de revisão: o "✓" da caixa de seleção escondido do leitor de tela; quem é responsável e dependente vê os dois cartões na Home.
+
+**Como testar**
+- `npm test && npm run lint && (cd mobile && npx tsc --noEmit && npm run check:native)`.
+- `cd mobile && EXPO_PUBLIC_FLOW_FAMILY=1 npx expo export --clear --platform ios` (e `android`; e sem a flag).
+
+**Pendências**
+- As da seção 5 do relatório final — todas dependem de decisões, contas ou consoles, nenhuma de código.
