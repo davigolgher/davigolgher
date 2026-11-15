@@ -46,7 +46,13 @@ export interface Env {
   url: string;
   anon: string;
   service: string;
+  /** Flow Family only. Without them, bank connections are queued to be ended later. */
+  pluggyClientId?: string;
+  pluggyClientSecret?: string;
+  pluggyBaseUrl?: string;
 }
+
+type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 // deno-lint-ignore no-explicit-any
 type MakeClient = (url: string, key: string, options?: any) => any;
@@ -59,12 +65,72 @@ function readEnv(): Env {
     url: env?.get("SUPABASE_URL") ?? "",
     anon: env?.get("SUPABASE_ANON_KEY") ?? "",
     service: env?.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    pluggyClientId: env?.get("PLUGGY_CLIENT_ID") ?? "",
+    pluggyClientSecret: env?.get("PLUGGY_CLIENT_SECRET") ?? "",
+    pluggyBaseUrl: env?.get("PLUGGY_API_URL") ?? "",
   };
 }
 
 const NO_SESSION = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false };
 
-export async function handle(req: Request, env: Env = readEnv(), make: MakeClient = createClient): Promise<Response> {
+/**
+ * Flow Family: end the person's bank connections at Pluggy, the Open Finance
+ * aggregator, before the rows that name them cascade away with the account.
+ * Ending one there also ends the consent with the bank.
+ *
+ * Written out here rather than imported from _shared, so this file still
+ * deploys on its own. One that can't be ended now is queued in
+ * bank_item_tombstones (which holds no reference to the person) and retried
+ * by the webhook; the deletion goes ahead regardless, because a third party
+ * being down must not keep anyone's account alive. Without Flow Family's
+ * tables there is nothing to do.
+ */
+async function endBankConnections(admin: ReturnType<MakeClient>, userId: string, env: Env, fetcher: Fetch): Promise<void> {
+  let ids: string[] = [];
+  try {
+    const { data, error } = await admin.from("bank_connections").select("external_item_id").eq("user_id", userId);
+    if (error || !Array.isArray(data)) return;
+    ids = data.map((r: { external_item_id: string }) => r.external_item_id);
+  } catch {
+    return;
+  }
+  if (!ids.length) return;
+
+  const base = (env.pluggyBaseUrl || "https://api.pluggy.ai").replace(/\/+$/, "");
+  let apiKey: string | null = null;
+  for (const id of ids) {
+    try {
+      if (!env.pluggyClientId || !env.pluggyClientSecret) throw new Error("Pluggy is not configured");
+      if (!apiKey) {
+        const auth = await fetcher(`${base}/auth`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ clientId: env.pluggyClientId, clientSecret: env.pluggyClientSecret, nonExpiring: false }),
+        });
+        const body = (await auth.json().catch(() => ({}))) as { apiKey?: string };
+        if (!auth.ok || !body.apiKey) throw new Error(`Pluggy auth answered ${auth.status}`);
+        apiKey = body.apiKey;
+      }
+      const res = await fetcher(`${base}/items/${encodeURIComponent(id)}`, { method: "DELETE", headers: { "X-API-KEY": apiKey } });
+      // Already gone is what we wanted.
+      if (!res.ok && res.status !== 404) throw new Error(`Pluggy answered ${res.status}`);
+    } catch (e) {
+      const message = String((e as Error)?.message ?? e).slice(0, 300);
+      console.error("delete-account: bank connection queued for removal:", message);
+      await admin
+        .from("bank_item_tombstones")
+        .upsert({ provider: "pluggy", external_item_id: id, last_error: message }, { onConflict: "provider,external_item_id" })
+        .then(undefined, () => {});
+    }
+  }
+}
+
+export async function handle(
+  req: Request,
+  env: Env = readEnv(),
+  make: MakeClient = createClient,
+  fetcher: Fetch = (input, init) => fetch(input, init),
+): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   // Deleting is never a side effect of a GET, a HEAD or a link.
   if (req.method !== "POST") return json({ code: "method_not_allowed", error: "Use POST." }, 405);
@@ -115,6 +181,9 @@ export async function handle(req: Request, env: Env = readEnv(), make: MakeClien
 
     const userId = user.id;
     const admin = make(env.url, env.service, { auth: NO_SESSION });
+
+    step = "bank";
+    await endBankConnections(admin, userId, env, fetcher);
 
     // Rows first. Most cascade from auth.users anyway, so a table that refuses
     // is worth logging but not worth stopping for — the account still has to
