@@ -237,8 +237,17 @@ export async function syncConnection(
     p_accounts: (await pluggy.listAccounts(itemId)).map(accountRow),
   });
 
-  const { data: stored } = await admin.from("bank_connections").select("last_synced_at").eq("id", conn.connection_id).maybeSingle();
+  const { data: stored } = await admin
+    .from("bank_connections")
+    .select("last_synced_at,orphaned_at")
+    .eq("id", conn.connection_id)
+    .maybeSingle();
   const last = stored?.last_synced_at ? Date.parse(stored.last_synced_at) : NaN;
+  // Nobody is sharing this connection anymore (0015): its state is kept
+  // current, but no entries are read or stored.
+  if (stored?.orphaned_at) {
+    return { connectionId: conn.connection_id, status, previousStatus: conn.previous_status ?? null, accounts: accounts.length, inserted: 0 };
+  }
 
   let inserted = 0;
   for (const account of accounts.filter((a) => a.shared)) {

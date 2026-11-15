@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type TestDb } from "./harness";
-import { connectBank, entry, family, feed, ingest, join, paid, share, sharing, sharingWithBank, unpaid, user } from "./fixtures";
+import { connectBank, entry, family, feed, ingest, join, paid, share, sharing, sharingWithBank, unpaid, user, V } from "./fixtures";
 
 let db: TestDb;
 
@@ -363,11 +363,19 @@ describe("live signals", () => {
 
   it("when sharing stops the guardian gets that one signal, and none after it", async () => {
     const s = await sharingWithBank(db);
+    // The dependent also shares with a second family, so their entries are
+    // still stored (0015 stops storing them once nobody is shared with).
+    const other = await family(db);
+    const inv = await db.as(other.guardian).rpc<{ code: string }>("family_invite_create", { p_family: other.familyId, p_kind: "adult", p_label: "Ana" });
+    const acc = await db
+      .as(s.dependent)
+      .rpc<{ ok: boolean }>("family_invite_accept", { p_code: inv.data!.code, p_display_name: "Ana", p_term_version: V, p_confirm_adult: true });
+    expect(acc.data?.ok).toBe(true);
+
     await db.as(s.dependent).rpc("family_consent_revoke", { p_family: s.familyId });
     const afterRevoke = await signals(s.guardian);
     expect(afterRevoke.map((x) => x.kind)).toEqual(expect.arrayContaining(["sharing"]));
     const before = afterRevoke.length;
-    // The dependent keeps the account shared for another family, say; new entries are theirs alone now.
     await ingest(db, s.checking, [entry()]);
     expect(await signals(s.guardian)).toHaveLength(before);
     expect((await signals(s.dependent)).some((x) => x.kind === "transactions")).toBe(true);

@@ -23,8 +23,9 @@
 // can't fix (a connection over the plan's limit, one Flow didn't make) is
 // logged and acknowledged.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { applyTransactionEvent, forgetItem, retryTombstones, SyncError, syncConnection } from "../_shared/bankSync.ts";
+import { applyTransactionEvent, forgetItem, SyncError, syncConnection } from "../_shared/bankSync.ts";
 import { adminClient, fail, inBackground, json, readEnv, safeEqual, type Env, type MakeClient } from "../_shared/http.ts";
+import { runMaintenance } from "../_shared/maintenance.ts";
 import { PluggyError, pluggyFromEnv, type Fetch, type PluggyItem } from "../_shared/pluggy.ts";
 import { deliverAlerts } from "../_shared/push.ts";
 
@@ -40,7 +41,6 @@ const ITEM_EVENTS = new Set([
 ]);
 const TRANSACTION_EVENTS = new Set(["transactions/created", "transactions/updated", "transactions/deleted"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const KEEP_EVENTS_DAYS = 30;
 
 interface Payload {
   eventId: string;
@@ -120,11 +120,9 @@ export async function handle(
     await inBackground(
       Promise.all([
         deliverAlerts(admin, { fetcher: pushFetcher, accessToken: env.expoAccessToken || undefined }),
-        retryTombstones(admin, pluggy, 3),
-        admin
-          .from("bank_webhook_events")
-          .delete()
-          .lt("received_at", new Date(Date.now() - KEEP_EVENTS_DAYS * 86_400_000).toISOString()),
+        // Housekeeping, at most hourly (0015): retention, connections nobody
+        // shares anymore, connections still to be ended at Pluggy.
+        runMaintenance(admin, pluggy),
       ]),
     );
     return json({ ok: true, outcome });
