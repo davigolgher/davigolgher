@@ -26,6 +26,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { applyTransactionEvent, forgetItem, SyncError, syncConnection } from "../_shared/bankSync.ts";
 import { adminClient, fail, inBackground, json, readEnv, safeEqual, type Env, type MakeClient } from "../_shared/http.ts";
 import { runMaintenance } from "../_shared/maintenance.ts";
+import { providersFromEnv } from "../_shared/providers.ts";
 import { PluggyError, pluggyFromEnv, type Fetch, type PluggyItem } from "../_shared/pluggy.ts";
 import { deliverAlerts } from "../_shared/push.ts";
 
@@ -122,7 +123,7 @@ export async function handle(
         deliverAlerts(admin, { fetcher: pushFetcher, accessToken: env.expoAccessToken || undefined }),
         // Housekeeping, at most hourly (0015): retention, connections nobody
         // shares anymore, connections still to be ended at Pluggy.
-        runMaintenance(admin, pluggy),
+        runMaintenance(admin, providersFromEnv(env, fetcher)),
       ]),
     );
     return json({ ok: true, outcome });

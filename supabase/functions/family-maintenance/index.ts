@@ -5,7 +5,8 @@
 //
 // Deploy with JWT verification ON (the default):
 //   supabase functions deploy family-maintenance
-// Secrets: PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET (optional PLUGGY_API_URL).
+// Secrets: those of the bank providers in use (see bank-connect-token), to end
+// connections at them.
 //
 // Only the service role may run it: the gateway accepts any valid JWT, so the
 // key itself is checked here. Schedule it from the database (pg_cron and
@@ -20,7 +21,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { adminClient, fail, json, readEnv, safeEqual, type Env, type MakeClient } from "../_shared/http.ts";
 import { runMaintenance } from "../_shared/maintenance.ts";
-import { pluggyFromEnv, type Fetch } from "../_shared/pluggy.ts";
+import type { Fetch } from "../_shared/pluggy.ts";
+import { providersFromEnv } from "../_shared/providers.ts";
 
 export async function handle(req: Request, env: Env = readEnv(), make: MakeClient = createClient, fetcher?: Fetch): Promise<Response> {
   if (req.method !== "POST") return fail("method_not_allowed", "Use POST.", 405);
@@ -29,7 +31,7 @@ export async function handle(req: Request, env: Env = readEnv(), make: MakeClien
   if (!env.url) return fail("unavailable", "Unavailable.", 503);
 
   try {
-    const result = await runMaintenance(adminClient(env, make), pluggyFromEnv(env, fetcher), { force: true, limit: 100 });
+    const result = await runMaintenance(adminClient(env, make), providersFromEnv(env, fetcher), { force: true, limit: 100 });
     return json({ ok: true, ...result });
   } catch (e) {
     console.error("family-maintenance:", (e as Error)?.message ?? String(e));

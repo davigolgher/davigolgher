@@ -74,9 +74,10 @@ function readEnv(): Env {
 const NO_SESSION = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false };
 
 /**
- * Flow Family: end the person's bank connections at Pluggy, the Open Finance
- * aggregator, before the rows that name them cascade away with the account.
- * Ending one there also ends the consent with the bank.
+ * Flow Family: end the person's bank connections at their aggregator (Pluggy
+ * in Brazil; Plaid or Salt Edge elsewhere) before the rows that name them
+ * cascade away with the account. Ending one there also ends the consent with
+ * the bank.
  *
  * Written out here rather than imported from _shared, so this file still
  * deploys on its own. One that can't be ended now is queued in
@@ -85,20 +86,43 @@ const NO_SESSION = { persistSession: false, autoRefreshToken: false, detectSessi
  * being down must not keep anyone's account alive. Without Flow Family's
  * tables there is nothing to do.
  */
-async function endBankConnections(admin: ReturnType<MakeClient>, userId: string, env: Env, fetcher: Fetch): Promise<void> {
-  let ids: string[] = [];
+async function endBankConnections(admin: ReturnType<MakeClient>, userId: string, env: Env, fetcher: Fetch): Promise<boolean> {
+  let rows: { id: string; provider?: string; external_item_id: string }[] = [];
   try {
-    const { data, error } = await admin.from("bank_connections").select("external_item_id").eq("user_id", userId);
-    if (error || !Array.isArray(data)) return;
-    ids = data.map((r: { external_item_id: string }) => r.external_item_id);
+    const { data, error } = await admin.from("bank_connections").select("id,provider,external_item_id").eq("user_id", userId);
+    if (error || !Array.isArray(data)) return false;
+    rows = data;
   } catch {
-    return;
+    return false;
   }
-  if (!ids.length) return;
+  if (!rows.length) return false;
+
+  // Plaid and Salt Edge (banks outside Brazil): queued with what's needed to
+  // end them — Plaid's access token stays encrypted — and ended by the
+  // family-maintenance function, called right after the account is gone.
+  const others = rows.filter((r) => r.provider && r.provider !== "pluggy");
+  for (const r of others) {
+    let credential: string | null = null;
+    let environment: string | null = null;
+    try {
+      const { data } = await admin.from("bank_credentials").select("secret,environment").eq("connection_id", r.id).maybeSingle();
+      credential = data?.secret ?? null;
+      environment = data?.environment ?? null;
+    } catch {
+      /* no credential table yet: nothing to carry */
+    }
+    await admin
+      .from("bank_item_tombstones")
+      .upsert(
+        { provider: r.provider, external_item_id: r.external_item_id, last_error: "account deleted", credential, environment },
+        { onConflict: "provider,external_item_id" },
+      )
+      .then(undefined, () => {});
+  }
 
   const base = (env.pluggyBaseUrl || "https://api.pluggy.ai").replace(/\/+$/, "");
   let apiKey: string | null = null;
-  for (const id of ids) {
+  for (const id of rows.filter((r) => !r.provider || r.provider === "pluggy").map((r) => r.external_item_id)) {
     try {
       if (!env.pluggyClientId || !env.pluggyClientSecret) throw new Error("Pluggy is not configured");
       if (!apiKey) {
@@ -122,6 +146,21 @@ async function endBankConnections(admin: ReturnType<MakeClient>, userId: string,
         .upsert({ provider: "pluggy", external_item_id: id, last_error: message }, { onConflict: "provider,external_item_id" })
         .then(undefined, () => {});
     }
+  }
+  return others.length > 0;
+}
+
+/** Ask family-maintenance to end the queued connections now; its daily run catches any it misses. */
+async function endQueuedNow(env: Env, fetcher: Fetch): Promise<void> {
+  try {
+    const res = await fetcher(`${env.url.replace(/\/+$/, "")}/functions/v1/family-maintenance`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.service}`, "Content-Type": "application/json" },
+      body: "{}",
+    });
+    if (!res.ok) console.error("delete-account: family-maintenance answered", res.status);
+  } catch (e) {
+    console.error("delete-account: family-maintenance:", (e as Error)?.message ?? String(e));
   }
 }
 
@@ -183,7 +222,7 @@ export async function handle(
     const admin = make(env.url, env.service, { auth: NO_SESSION });
 
     step = "bank";
-    await endBankConnections(admin, userId, env, fetcher);
+    const queued = await endBankConnections(admin, userId, env, fetcher);
 
     // Rows first. Most cascade from auth.users anyway, so a table that refuses
     // is worth logging but not worth stopping for — the account still has to
@@ -219,6 +258,7 @@ export async function handle(
       return json({ code: "delete_failed", step, error: "The account could not be deleted. Try again later." }, 500);
     }
 
+    if (queued) await endQueuedNow(env, fetcher);
     return json({ deleted: true });
   } catch (e) {
     console.error(`delete-account: ${step}:`, (e as Error)?.message ?? String(e));

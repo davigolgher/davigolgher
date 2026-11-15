@@ -224,6 +224,7 @@ export async function syncConnection(
     p_detail: detail,
     p_consent_expires: item.consentExpiresAt ?? null,
     p_synced: false,
+    p_country: "BR",
   });
 
   // While the bank is being read, or the person has to act, accounts and
@@ -315,9 +316,9 @@ export async function applyTransactionEvent(
   return ingest(admin, account.id, rows);
 }
 
-/** Pluggy says a connection is gone: forget it and what was read through it. */
-export async function forgetItem(admin: Admin, itemId: string): Promise<boolean> {
-  const { data } = await admin.from("bank_connections").select("id").eq("provider", "pluggy").eq("external_item_id", itemId).maybeSingle();
+/** A provider says a connection is gone: forget it and what was read through it. */
+export async function forgetItem(admin: Admin, itemId: string, provider: "pluggy" | "plaid" | "saltedge" = "pluggy"): Promise<boolean> {
+  const { data } = await admin.from("bank_connections").select("id").eq("provider", provider).eq("external_item_id", itemId).maybeSingle();
   if (!data) return false;
   await rpc(admin, "bank_remove_connection", { p_connection: data.id });
   return true;

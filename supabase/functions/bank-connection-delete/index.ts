@@ -1,18 +1,18 @@
-// Flow Family: disconnect a bank. Ends the connection at Pluggy (which ends
-// the Open Finance consent with the bank) and deletes everything Flow read
-// through it.
+// Flow Family: disconnect a bank, whichever provider made the connection.
+// Ends it at the provider (which ends the consent with the bank) and deletes
+// everything Flow read through it.
 //
 // Deploy with JWT verification ON (the default):
 //   supabase functions deploy bank-connection-delete
-// Secrets: PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET; optional PLUGGY_API_URL.
+// Secrets: as bank-connect-token.
 //
-// If Pluggy can't be reached the data is deleted anyway and the connection is
-// queued in bank_item_tombstones to be ended later: a person who disconnects
-// must never be told "try again" while Flow keeps their data.
+// If the provider can't be reached the data is deleted anyway and the
+// connection is queued in bank_item_tombstones to be ended later: a person
+// who disconnects must never be told "try again" while Flow keeps their data.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { endItems } from "../_shared/bankSync.ts";
 import { adminClient, callerId, corsHeaders, fail, json, readEnv, readJson, type Env, type MakeClient } from "../_shared/http.ts";
-import { pluggyFromEnv, type Fetch } from "../_shared/pluggy.ts";
+import type { Fetch } from "../_shared/pluggy.ts";
+import { endConnections, endTargetFor, providersFromEnv } from "../_shared/providers.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -33,18 +33,14 @@ export async function handle(req: Request, env: Env = readEnv(), make: MakeClien
     if (!connectionId) return fail("invalid_request", "Which connection? Send its connectionId.", 400);
 
     const admin = adminClient(env, make);
-    const { data: conn } = await admin
-      .from("bank_connections")
-      .select("id,external_item_id")
-      .eq("id", connectionId)
-      .eq("user_id", uid)
-      .maybeSingle();
+    const { data: conn } = await admin.from("bank_connections").select("id").eq("id", connectionId).eq("user_id", uid).maybeSingle();
     if (!conn) return fail("connection_not_found", "That bank connection wasn't found.", 404);
 
-    const { deferred } = await endItems(admin, pluggyFromEnv(env, fetcher), [conn.external_item_id]);
+    const target = await endTargetFor(admin, conn.id);
+    const { deferred } = await endConnections(admin, providersFromEnv(env, fetcher), target ? [target] : []);
     const { error } = await admin.rpc("bank_remove_connection", { p_connection: conn.id });
     if (error) throw new Error(`bank_remove_connection: ${error.message}`);
-    return json({ removed: true, providerPending: deferred.length > 0 });
+    return json({ removed: true, providerPending: deferred > 0 });
   } catch (e) {
     console.error("bank-connection-delete:", (e as Error)?.message ?? String(e));
     return fail("delete_failed", "Couldn't disconnect right now. Try again in a moment.", 500);

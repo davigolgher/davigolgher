@@ -37,7 +37,19 @@ const ENV: Env = {
   expoAccessToken: "",
   pluggyIncludeSandbox: true,
   pluggyOauthRedirectUri: "",
-  pluggySandboxUserIds: [],
+  sandboxUserIds: [],
+  plaidClientId: "",
+  plaidSecret: "",
+  plaidEnvironment: "sandbox",
+  plaidSandboxSecret: "",
+  saltedgeAppId: "",
+  saltedgeSecret: "",
+  saltedgePrivateKey: "",
+  saltedgeCallbackPublicKey: "",
+  saltedgeCallbackUrl: "",
+  saltedgeBaseUrl: "",
+  bankTokenKey: "",
+  bankReturnUrl: "flow://family/bank-return",
 };
 
 /* ── a fake Pluggy ─────────────────────────────────────────────────────────── */
@@ -274,7 +286,7 @@ describe("bank-connect-token", () => {
     const s = await sharing(db);
     const res = await tokenFor(s.dependent);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ connectToken: `connect-token-for-${s.dependent}`, includeSandbox: true });
+    expect(res.body).toEqual({ provider: "pluggy", connectToken: `connect-token-for-${s.dependent}`, includeSandbox: true });
     expect(JSON.stringify(res.body)).not.toContain(ENV.pluggyClientSecret);
     const tokenCall = pluggy.calls.find((c) => c.path === "/connect_token");
     expect(tokenCall?.body).toMatchObject({ options: { clientUserId: s.dependent, avoidDuplicates: true } });
@@ -294,7 +306,7 @@ describe("bank-connect-token", () => {
   it("offers Pluggy's test banks only to the listed review accounts", async () => {
     const s = await sharing(db);
     const other = await sharing(db);
-    const env = { ...ENV, pluggyIncludeSandbox: false, pluggySandboxUserIds: [s.dependent] };
+    const env = { ...ENV, pluggyIncludeSandbox: false, sandboxUserIds: [s.dependent] };
     expect((await tokenFor(s.dependent, {}, env)).body).toMatchObject({ includeSandbox: true });
     expect((await tokenFor(other.dependent, {}, env)).body).toMatchObject({ includeSandbox: false });
   });

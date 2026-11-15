@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Env, MakeClient } from "../../functions/_shared/http";
 import { runMaintenance } from "../../functions/_shared/maintenance";
+import { providersOf } from "../../functions/_shared/providers";
 import { Pluggy, type Fetch } from "../../functions/_shared/pluggy";
 import { handle as maintenanceFn } from "../../functions/family-maintenance/index";
 import { createDb, type TestDb } from "./harness";
@@ -82,11 +83,11 @@ describe("connections nobody shares", () => {
     await db.as(s.dependent).rpc("family_leave", { p_family: s.familyId });
     const pluggy = fakePluggy();
 
-    await runMaintenance(db.service(), pluggy.client, { force: true, limit: 100 });
+    await runMaintenance(db.service(), providersOf({ pluggy: pluggy.client }), { force: true, limit: 100 });
     expect(pluggy.deleted).not.toContain(s.bank.itemId);
 
     await db.admin("update public.bank_connections set orphaned_at = now() - interval '31 days' where id = $1", [s.bank.connectionId]);
-    const result = await runMaintenance(db.service(), pluggy.client, { force: true, limit: 100 });
+    const result = await runMaintenance(db.service(), providersOf({ pluggy: pluggy.client }), { force: true, limit: 100 });
     expect(result.ended).toBeGreaterThanOrEqual(1);
     expect(pluggy.deleted).toContain(s.bank.itemId);
     expect(await db.admin("select 1 from public.bank_connections where id = $1", [s.bank.connectionId])).toHaveLength(0);
@@ -99,13 +100,13 @@ describe("connections nobody shares", () => {
     await db.admin("update public.bank_connections set orphaned_at = now() - interval '31 days' where id = $1", [s.bank.connectionId]);
     const pluggy = fakePluggy();
     pluggy.setDown(true);
-    const result = await runMaintenance(db.service(), pluggy.client, { force: true, limit: 100 });
+    const result = await runMaintenance(db.service(), providersOf({ pluggy: pluggy.client }), { force: true, limit: 100 });
     expect(result.deferred).toBeGreaterThanOrEqual(1);
     expect(await db.admin("select 1 from public.bank_connections where id = $1", [s.bank.connectionId])).toHaveLength(0);
     expect(await db.admin("select 1 from public.bank_item_tombstones where external_item_id = $1", [s.bank.itemId])).toHaveLength(1);
 
     pluggy.setDown(false);
-    await runMaintenance(db.service(), pluggy.client, { force: true, limit: 100 });
+    await runMaintenance(db.service(), providersOf({ pluggy: pluggy.client }), { force: true, limit: 100 });
     expect(pluggy.deleted).toContain(s.bank.itemId);
     expect(await db.admin("select 1 from public.bank_item_tombstones where external_item_id = $1", [s.bank.itemId])).toHaveLength(0);
   });
@@ -209,7 +210,19 @@ describe("family-maintenance function", () => {
     expoAccessToken: "",
     pluggyIncludeSandbox: false,
     pluggyOauthRedirectUri: "",
-    pluggySandboxUserIds: [],
+    sandboxUserIds: [],
+    plaidClientId: "",
+    plaidSecret: "",
+    plaidEnvironment: "sandbox",
+    plaidSandboxSecret: "",
+    saltedgeAppId: "",
+    saltedgeSecret: "",
+    saltedgePrivateKey: "",
+    saltedgeCallbackPublicKey: "",
+    saltedgeCallbackUrl: "",
+    saltedgeBaseUrl: "",
+    bankTokenKey: "",
+    bankReturnUrl: "flow://family/bank-return",
   };
   const make: MakeClient = () => {
     const s = db.service();

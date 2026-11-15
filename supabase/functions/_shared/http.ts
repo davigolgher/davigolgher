@@ -23,13 +23,32 @@ export interface Env {
   /** "1" lets the connection widget list Pluggy's sandbox banks, for everyone (development only). */
   pluggyIncludeSandbox: boolean;
   /**
-   * Accounts that see Pluggy's sandbox banks in production: the App Review
+   * Accounts that see the providers' test banks in production: the App Review
    * demo accounts, so a reviewer can connect a test bank without anyone else
-   * ever being offered one. Comma-separated user ids.
+   * ever being offered one. Comma-separated user ids (BANK_SANDBOX_USER_IDS;
+   * PLUGGY_SANDBOX_USER_IDS is still read).
    */
-  pluggySandboxUserIds: string[];
+  sandboxUserIds: string[];
   /** Where a bank's Open Finance consent page returns to, when the app sets one. */
   pluggyOauthRedirectUri: string;
+  /** Plaid (US, CA, UK, EU/EEA). */
+  plaidClientId: string;
+  plaidSecret: string;
+  plaidEnvironment: "sandbox" | "production";
+  /** Optional: Plaid's sandbox secret, used only for sandboxUserIds when plaidEnvironment is production. */
+  plaidSandboxSecret: string;
+  /** Salt Edge (other countries). */
+  saltedgeAppId: string;
+  saltedgeSecret: string;
+  saltedgePrivateKey: string;
+  saltedgeCallbackPublicKey: string;
+  /** The exact callback URL configured at Salt Edge (part of what it signs). */
+  saltedgeCallbackUrl: string;
+  saltedgeBaseUrl: string;
+  /** 32 random bytes, base64: encrypts Plaid's access tokens at rest. */
+  bankTokenKey: string;
+  /** Where the providers' browser pages send the person back to the app. */
+  bankReturnUrl: string;
 }
 
 export function readEnv(): Env {
@@ -46,11 +65,23 @@ export function readEnv(): Env {
     webhookSecret: get("PLUGGY_WEBHOOK_SECRET"),
     expoAccessToken: get("EXPO_ACCESS_TOKEN"),
     pluggyIncludeSandbox: get("PLUGGY_INCLUDE_SANDBOX") === "1",
-    pluggySandboxUserIds: get("PLUGGY_SANDBOX_USER_IDS")
+    sandboxUserIds: (get("BANK_SANDBOX_USER_IDS") || get("PLUGGY_SANDBOX_USER_IDS"))
       .split(",")
       .map((s: string) => s.trim())
       .filter(Boolean),
     pluggyOauthRedirectUri: get("PLUGGY_OAUTH_REDIRECT_URI"),
+    plaidClientId: get("PLAID_CLIENT_ID"),
+    plaidSecret: get("PLAID_SECRET"),
+    plaidEnvironment: get("PLAID_ENV") === "production" ? "production" : "sandbox",
+    plaidSandboxSecret: get("PLAID_SANDBOX_SECRET"),
+    saltedgeAppId: get("SALTEDGE_APP_ID"),
+    saltedgeSecret: get("SALTEDGE_SECRET"),
+    saltedgePrivateKey: get("SALTEDGE_PRIVATE_KEY"),
+    saltedgeCallbackPublicKey: get("SALTEDGE_CALLBACK_PUBLIC_KEY"),
+    saltedgeCallbackUrl: get("SALTEDGE_CALLBACK_URL"),
+    saltedgeBaseUrl: get("SALTEDGE_API_URL"),
+    bankTokenKey: get("BANK_TOKEN_KEY"),
+    bankReturnUrl: get("BANK_RETURN_URL") || "flow://family/bank-return",
   };
 }
 
