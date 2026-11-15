@@ -1,0 +1,26 @@
+# Guardian: the dependent's spending appears (sandbox history), and a new
+# entry arrives without reopening the screen (Realtime, or the 30 s poll).
+appId: com.davigolgher.flow
+env:
+  EMAIL: ${GUARDIAN_EMAIL}
+  PASSWORD: ${GUARDIAN_PASSWORD}
+---
+- runFlow: _signin.yaml
+- runFlow:
+    when:
+      visible: "Here for Flow Family?"
+    commands:
+      - tapOn: "Here for Flow Family?"
+- runFlow:
+    when:
+      visible: "Settings"
+    commands:
+      - tapOn: "Settings"
+      - scrollUntilVisible:
+          element: "Flow Family"
+      - tapOn: "Flow Family"
+- tapOn: "E2E Dependent"
+- assertVisible:
+    text: "Spent in .*"
+- assertVisible: "By category"
+- assertVisible: "Entries"

@@ -1,0 +1,50 @@
+# Dependent: join with INVITE_CODE, read and accept the terms, connect a
+# Pluggy sandbox bank and share the checking account.
+# Needs the dependent's user id in PLUGGY_SANDBOX_USER_IDS (or a development
+# server with PLUGGY_INCLUDE_SANDBOX=1), so the widget lists test banks.
+appId: com.davigolgher.flow
+env:
+  EMAIL: ${DEPENDENT_EMAIL}
+  PASSWORD: ${DEPENDENT_PASSWORD}
+---
+- runFlow: _signin.yaml
+- runFlow:
+    when:
+      visible: "Here for Flow Family?"
+    commands:
+      - tapOn: "Here for Flow Family?"
+- tapOn: "I have an invitation code"
+- tapOn: "Invitation code"
+- inputText: ${INVITE_CODE}
+- tapOn: "Continue"
+- assertVisible: "Invitation from"
+- tapOn: "Review what's shared"
+- assertVisible: "What is never shared"
+- scrollUntilVisible:
+    element: "Agree and continue"
+- tapOn: "I'm 18 or older and I'm agreeing for myself."
+- tapOn:
+    text: "I've read what is shared.*"
+- tapOn: "Agree and continue"
+- assertVisible: "Connect a bank"
+- tapOn: "Connect a bank"
+# Pluggy Connect (web content): the sandbox bank and its documented test login.
+- extendedWaitUntil:
+    visible: "Pluggy Bank"
+    timeout: 30000
+- tapOn: "Pluggy Bank"
+- tapOn:
+    text: "User.*"
+- inputText: "user-ok"
+- tapOn:
+    text: "Password.*"
+- inputText: "password-ok"
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Choose below what to share"
+    timeout: 120000
+- tapOn:
+    text: "Account.*"
+    index: 0
+- assertVisible:
+    text: "Shared with .*"

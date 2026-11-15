@@ -59,7 +59,7 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
   expiração, menores e curatelados, maioridade, renovação e exclusões.
 
 **Pendências**
-- Telas (entram junto com as das fases 4–6).
+- ~~Telas~~ — feitas (ver "App" abaixo).
 - Aplicar no Supabase de produção: depende de você (projeto pausado; ver
   `relatorio-final.md` quando pronto).
 
@@ -106,7 +106,7 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
   cabeçalho `x-flow-webhook-secret`.
 
 **Pendências**
-- Tela de conexão (widget do Pluggy) no app — fase de telas.
+- ~~Tela de conexão (widget do Pluggy) no app~~ — feita (`app/family/connect.tsx`).
 - Não foi possível chamar o Pluggy nem o Expo daqui (o proxy bloqueia
   `api.pluggy.ai` e `exp.host`); os formatos seguem os tipos do `pluggy-sdk`
   0.94 e do `react-native-pluggy-connect` 1.6.
@@ -126,4 +126,65 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
 - `npm test` → `family_bank.test.ts` (34) e `family_alerts.test.ts` (22).
 
 **Pendências**
-- Telas do painel, orçamentos e alertas; assinatura do Realtime no app.
+- ~~Telas do painel, orçamentos e alertas; assinatura do Realtime no app~~ — feitas (ver "App" abaixo).
+
+## Fase 6 — privacidade, retenção, exportação (servidor)
+
+**Feito**
+- `0015_family_privacy.sql`:
+  - exportação dos dados do próprio titular (`family_export_my_data`), sem dados de terceiros;
+  - retenção: lançamentos 13 meses, alertas 12, auditoria 24, convites não usados 30 dias após expirar;
+  - conexões que ninguém mais compartilha: marcadas quando o último consentimento termina, nada novo é gravado, encerradas na Pluggy e excluídas após 30 dias (a tela mostra a data);
+  - manutenção no máximo de hora em hora.
+- Edge Function `family-maintenance` (só com a chave service role) para agendar uma vez por dia via `pg_cron` + `pg_net` (comando no cabeçalho do arquivo). O webhook também roda a manutenção.
+
+**Como testar**
+- `npm test` → `supabase/tests/pg/family_privacy.test.ts` (11).
+
+## App — todas as telas e as entradas (fases 2 a 6, lado do app)
+
+**Feito**
+- Cliente de dados: `src/lib/backend/family.ts` — todas as RPCs e funções, erros do servidor traduzidos em frases.
+- Lógica pura em `src/lib/family/`, reaproveitando `calc.ts` e `reports.ts` do Flow:
+  - `summary.ts`: mês contra o anterior, categorias e orçamentos; "Internal" nunca conta como gasto;
+  - `report.ts`: HTML do PDF, com escape de todo texto vindo do banco;
+  - `copy.ts`: textos de estados e do histórico de acessos.
+- Estado compartilhado: `mobile/src/features/family/FamilyProvider.tsx`.
+  - Realtime em `family_sync_signals`; consulta a cada 30 s só com uma tela da Família aberta e o canal fora do ar; recarga ao voltar ao app.
+  - Cópia offline por conta (`cache.ts`), apagada ao sair da conta; a cópia de um dependente que parou de compartilhar é descartada.
+- Telas em `mobile/src/app/family/`: `index`, `create`, `invite`, `join`, `consent`, `connect`, `sharing`, `dependent/[id]`, `budgets`, `alerts`, `manage`, `account`.
+- Entradas, todas atrás de `EXPO_PUBLIC_FLOW_FAMILY=1`:
+  - cartão na Home (para o dependente aparece sempre enquanto compartilha e não pode ser dispensado);
+  - linha "Family" em Ajustes;
+  - "Here for Flow Family? Continue free" no paywall, que abre só a área da Família;
+  - um link `flow://family/...` numa build sem a flag cai na Home.
+- Push: permissão pedida ao ligar um alerta; o token sai do servidor antes de sair da conta ou excluí-la.
+- PDF (plano pago) e exportação de dados entregues pela folha de compartilhar do sistema (`expo-print`, `expo-sharing`).
+- Tokens de design centralizados em `mobile/src/theme/tokens.js` (lidos pelo Tailwind e pelo código). Escala tipográfica nomeada, três cores de sinal, nenhum valor existente alterado.
+- Dependências novas no app, nas versões do SDK 57: `react-native-webview`, `react-native-pluggy-connect`, `expo-print`, `expo-sharing` (`npm run check:native` confere).
+
+**Como testar**
+- `npm test` → `src/lib/family/family.test.ts` (10), `mobile/src/features/family/screens.test.tsx` (11), `flagOff.test.tsx` (2).
+- No aparelho: `EXPO_PUBLIC_FLOW_FAMILY=1 npx expo start` (Expo Go não tem o módulo da WebView do Pluggy em versão garantida; use uma development build).
+
+## Fase 7 — polimento, E2E, conformidade
+
+**Feito**
+- Testes de tela cobrindo:
+  - carregando, vazio, erro com nova tentativa e offline com a cópia salva;
+  - consentimento que só grava com as duas caixas marcadas e recusa termo de outra versão;
+  - parar de compartilhar;
+  - painel com filtro por categoria e "compartilhamento encerrado";
+  - cartão da Home;
+  - build sem a flag.
+- Fluxos E2E para aparelho (Maestro) em `mobile/e2e/family/`: convite → consentimento → conexão sandbox → responsável vê → dependente revoga → responsável perde o acesso.
+- Conta de demonstração para revisão: `supabase/scripts/seed-demo-family.ts`, testada contra as migrations. Bancos de teste da Pluggy só para as contas em `PLUGGY_SANDBOX_USER_IDS`.
+- Documento legal "Flow Family Privacy & Terms" no app e no site (`/family-privacy`). Termos e Política principais dizem onde entram os menores; o rótulo de privacidade lista o que a Família coleta.
+- `app.config.js`: com a flag, adiciona o plugin de push e três tipos ao manifesto de privacidade; sem ela, devolve o `app.json` sem mudança (conferido).
+- Documentos: `conformidade-lojas.md`, `textos-loja.md`, `notas-revisor.md`, `politica-privacidade-rascunho.md`, `termos-rascunho.md`, `screenshots.md`, `inconsistencias-design.md`, `mobile/e2e/family/README.md`.
+
+**Pendências (todas dependem de você; detalhes no relatório final)**
+- Riscos de política: pessoa jurídica na Apple (R1), monitoramento de adultos no Google Play (R2), idade mínima (R3).
+- Contas e consoles: Pluggy (aplicação sandbox e depois produção), `eas init` (projectId do push), APNs/FCM, rótulos de privacidade, Data safety, declaração financeira.
+- Produção: reativar o projeto Supabase, aplicar 0009–0015, publicar as funções, configurar os segredos, criar o webhook na Pluggy, agendar a manutenção, criar as contas de demonstração.
+- Builds iOS e Android de produção (não é possível gerar neste ambiente).

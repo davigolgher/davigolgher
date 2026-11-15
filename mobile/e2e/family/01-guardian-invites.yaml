@@ -1,0 +1,42 @@
+# Guardian: open Flow Family, start a family if needed, invite an adult.
+# Output: the invitation code is on screen ("Invitation ready").
+appId: com.davigolgher.flow
+env:
+  EMAIL: ${GUARDIAN_EMAIL}
+  PASSWORD: ${GUARDIAN_PASSWORD}
+---
+- runFlow: _signin.yaml
+- runFlow:
+    when:
+      visible: "Here for Flow Family?"
+    commands:
+      - tapOn: "Here for Flow Family?"
+- runFlow:
+    when:
+      visible: "Settings"
+    commands:
+      - tapOn: "Settings"
+      - scrollUntilVisible:
+          element: "Flow Family"
+      - tapOn: "Flow Family"
+- runFlow:
+    when:
+      visible: "Start a family"
+    commands:
+      - tapOn: "Start a family"
+      - tapOn: "Family name"
+      - inputText: "E2E Family"
+      - tapOn: "Your name"
+      - inputText: "E2E Guardian"
+      - tapOn: "Create family"
+- runFlow:
+    when:
+      notVisible: "Who are you inviting?"
+    commands:
+      - tapOn: "Invite someone"
+- tapOn: "Adult"
+- tapOn: "Their name"
+- inputText: "E2E Dependent"
+- tapOn: "Create invitation"
+- assertVisible: "Invitation ready"
+- takeScreenshot: invitation-code

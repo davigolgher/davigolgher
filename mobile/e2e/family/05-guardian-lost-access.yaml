@@ -1,0 +1,22 @@
+# Guardian, right after 04: the dependent's data is gone.
+appId: com.davigolgher.flow
+env:
+  EMAIL: ${GUARDIAN_EMAIL}
+  PASSWORD: ${GUARDIAN_PASSWORD}
+---
+- runFlow: _signin.yaml
+- runFlow:
+    when:
+      visible: "Here for Flow Family?"
+    commands:
+      - tapOn: "Here for Flow Family?"
+- runFlow:
+    when:
+      visible: "Settings"
+    commands:
+      - tapOn: "Settings"
+      - scrollUntilVisible:
+          element: "Flow Family"
+      - tapOn: "Flow Family"
+- assertVisible:
+    text: "Not sharing.*"

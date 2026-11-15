@@ -1,0 +1,18 @@
+# Signs in with EMAIL / PASSWORD and gets past the first-run screens.
+# Used by the other flows with runFlow; not run on its own.
+appId: com.davigolgher.flow
+---
+- launchApp:
+    clearState: true
+- tapOn: "Email address"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- tapOn:
+    text: "Sign in"
+    index: 1
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"

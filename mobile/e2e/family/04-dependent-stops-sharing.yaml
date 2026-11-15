@@ -1,0 +1,27 @@
+# Dependent: Sharing shows who sees what and who looked; stopping ends access.
+# Then run 05 to check the guardian lost access.
+appId: com.davigolgher.flow
+env:
+  EMAIL: ${DEPENDENT_EMAIL}
+  PASSWORD: ${DEPENDENT_PASSWORD}
+---
+- runFlow: _signin.yaml
+- runFlow:
+    when:
+      visible: "Here for Flow Family?"
+    commands:
+      - tapOn: "Here for Flow Family?"
+- tapOn: "Sharing"
+- assertVisible: "Can see"
+- scrollUntilVisible:
+    element: "Access history"
+- assertVisible:
+    text: ".* viewed your spending"
+- scrollUntilVisible:
+    element: "Stop sharing"
+    direction: UP
+- tapOn: "Stop sharing"
+- tapOn:
+    text: "Stop sharing"
+    index: 1
+- assertVisible: "No access"
