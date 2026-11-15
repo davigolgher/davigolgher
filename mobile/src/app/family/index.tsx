@@ -113,7 +113,7 @@ export default function FamilyHome() {
               )}
               <View className="mt-3">
                 <Group>
-                  <GroupRow title="What you share" sub="Who sees what, history, stop sharing" onPress={() => router.push("/family/sharing")} />
+                  <GroupRow title="Sharing" sub="Who sees what, access history, stop sharing" onPress={() => router.push("/family/sharing")} />
                   <GroupRow title="Bank accounts" sub="Connect a bank and choose accounts" onPress={() => router.push("/family/connect")} />
                 </Group>
               </View>
@@ -169,6 +169,9 @@ function Welcome() {
       <Text className="mt-4 text-center text-caption text-chalk-mute">
         Free for one person and one account. A Flow subscription adds more people, more alerts and a monthly PDF report.
       </Text>
+      <Pressable onPress={() => router.push("/legal?doc=family")} accessibilityRole="link" className="mt-2 items-center py-2 active:opacity-60">
+        <Text className="text-footnote font-medium text-chalk-mute underline">Flow Family Privacy & Terms</Text>
+      </Pressable>
     </View>
   );
 }

@@ -10,9 +10,9 @@
  */
 import { APP } from "@/config/app";
 
-export type LegalDocId = "terms" | "privacy" | "ai" | "nutrition";
+export type LegalDocId = "terms" | "privacy" | "ai" | "nutrition" | "family";
 
-export const UPDATED = "September 2026";
+export const UPDATED = "November 2026";
 
 export interface Section {
   heading: string;
@@ -35,7 +35,13 @@ export const TERMS: Section[] = [
       "If you got the app from Apple's App Store, Apple's Licensed Application End User License Agreement (https://www.apple.com/legal/internet-services/itunes/appstore/dev/stdeula/) also applies to your use of it.",
     ],
   },
-  { heading: "3. Eligibility", body: ["You must be at least 18 years old, or the age of majority where you live, and able to form a binding contract."] },
+  {
+    heading: "3. Eligibility",
+    body: [
+      "You must be at least 18 years old, or the age of majority where you live, and able to form a binding contract.",
+      `The one exception is Flow Family, where it is available: a person under 18 may have an account only to share their spending with a parent or legal guardian, who invites them and consents for them. The Flow Family Privacy & Terms explain how.`,
+    ],
+  },
   { heading: "4. The service", body: [`${N} helps you record expenses and subscriptions and see summaries of them. It is an organizational tool for your personal use and does not provide financial, tax, accounting, or investment advice.`] },
   { heading: "5. Your account", body: ["You are responsible for the activity on your account and for keeping your credentials secure. You may delete your account at any time from Settings; deletion removes your data as described in the Privacy Policy."] },
   {
@@ -150,9 +156,100 @@ export const PRIVACY: Section[] = [
     ],
   },
   { heading: "Data retention", body: ["We keep your data while your account is active. Deleting your account from Settings deletes the account and every record it holds from our database straight away. After that, what's left is only our hosting provider's request logs and backups, which expire on their own rolling schedule, and any record the law requires us to keep."] },
-  { heading: "Children", body: [`${N} is for adults (18 and over). We don't knowingly collect data from children or teenagers; if you believe we have, write to us and we'll delete it.`] },
+  {
+    heading: "Children",
+    body: [
+      `${N} is for adults (18 and over). We don't knowingly collect data from children or teenagers outside Flow Family; if you believe we have, write to us and we'll delete it.`,
+      "Flow Family, where it is available, lets a parent or legal guardian follow the spending of a person under 18 with the specific consent the LGPD requires (art. 14). What is collected then, and why, is in the Flow Family Privacy & Terms.",
+    ],
+  },
   { heading: "Changes", body: ["We may update this policy; material changes will be notified in the app."] },
   { heading: "Contact", body: [`Privacy questions? Email ${APP.supportEmail}.`] },
+];
+
+/**
+ * Flow Family: its own privacy notice and terms, shown in builds with the
+ * feature (Settings → Family, the consent and account screens) and on the
+ * public site. Kept apart from the main documents so someone who never uses
+ * the feature isn't asked to read it.
+ */
+export const FAMILY: Section[] = [
+  {
+    heading: "What Flow Family is",
+    body: [
+      `Flow Family lets a guardian follow, read-only, the spending of someone they look after (a child, a teenager, an adult child, an older relative, or a person under curatela) from the bank accounts and cards that person chooses to share through Open Finance Brasil. It cannot move money, block purchases, issue cards or change anything at a bank.`,
+      `${OPERATOR} is the controller of the personal data processed in Flow Family, as in the main Privacy Policy. Contact: ${CONTACT}.`,
+    ],
+  },
+  {
+    heading: "Who is who",
+    bullets: [
+      "Guardian: creates a family, invites people, sees what they share, and sets alerts and monthly limits for themselves.",
+      "Dependent: accepts an invitation, connects their bank, chooses which accounts to share, sees exactly what the guardian sees, and can stop at any time.",
+      "Legal representative: for a person under 18 or under curatela, the guardian consents on their behalf and declares that they are their parent, legal guardian or curador.",
+    ],
+  },
+  {
+    heading: "What we collect",
+    bullets: [
+      "About the family: its name, the names members give themselves, each member's role and type (adult, under 18, under curatela) and, for a person under 18, their date of birth — kept only so sharing ends on their 18th birthday.",
+      "Consent records: the version of the terms agreed to, the date and time, the chosen period, who consented (the person or their representative), and the network (IP) address and app identifier the agreement came from — kept as proof of consent.",
+      "From the banks the dependent connects, through Pluggy: the institution, each account's type, name and last four digits, and — only for the accounts the dependent shares — each transaction's date, amount, description, merchant, category and status. Balances, credit limits and full account numbers are not stored.",
+      "What the guardian sets up: monthly limits, alert rules, and the alerts produced.",
+      "An access history: when the guardian opened the dependent's data, and the actions each member took (inviting, consenting, sharing an account, stopping).",
+      "For guardians who allow notifications: the phone's push token, to deliver alerts.",
+      "We never receive or store bank passwords or logins. They are entered in the bank's or Pluggy's authorised screen.",
+    ],
+  },
+  {
+    heading: "Why, and on what legal basis",
+    bullets: [
+      "To show the guardian the shared spending, produce alerts and reports, and let the dependent see and control the sharing: the dependent's consent (LGPD art. 7, I), and for a person under 18, the specific consent of a parent or legal guardian given in their best interest (art. 14, §1).",
+      "To keep proof of consent and the access history: compliance with the LGPD's accountability duties (art. 7, II and art. 8, §2), and our legitimate interest in demonstrating that each access was authorised (art. 7, IX).",
+      "Bank data is used for nothing else: not for advertising, not for credit decisions, not sold, not used to train AI, and not used to track anyone.",
+    ],
+  },
+  {
+    heading: "Who processes it for us",
+    bullets: [
+      "Pluggy (pluggy.ai) — a company authorised to connect to banks through Open Finance Brasil. It connects to the bank with the dependent's authorisation and passes us the data of the connection; it acts on our behalf.",
+      "Supabase — our database and authentication provider, as in the main Privacy Policy (United States; LGPD art. 33, IX).",
+      "Expo, Apple and Google — deliver push notifications to the guardian's phone. A notification says only that there is an alert and about whom; amounts, merchants and categories are never in it.",
+    ],
+  },
+  {
+    heading: "How long we keep it",
+    bullets: [
+      "Shared transactions: up to 13 months. Alerts: 12 months. Access history: 24 months. Unused invitations: 30 days after they expire.",
+      "When a dependent stops sharing with every family, nothing new is read from their banks; 30 days later the bank connections are ended and what was read is deleted, unless they share again.",
+      "Stopping sharing an account deletes what was read from it. Disconnecting a bank ends the connection at Pluggy (and the Open Finance consent with the bank) and deletes everything read through it.",
+      "Deleting your account deletes all of the above that is yours, ends your bank connections at Pluggy, and removes you from every family.",
+    ],
+  },
+  {
+    heading: "Your rights and controls",
+    bullets: [
+      "Dependents can, at any time and without giving a reason: see who sees what and every access (Family → Sharing → Access history), stop sharing (Family → Sharing → Stop sharing, effective immediately), stop sharing a single account, disconnect a bank, or leave the family.",
+      "Everyone can download a copy of their Flow Family data in the app, and delete their account in the app.",
+      `The other LGPD rights in the main Privacy Policy apply: write to ${CONTACT}, or complain to the ANPD (gov.br/anpd).`,
+    ],
+  },
+  {
+    heading: "Children and adolescents",
+    body: [
+      "A person under 18 joins only through an invitation from a parent or legal guardian, who consents for them. They confirm with their date of birth, see exactly what is shared, and can stop it themselves. The sharing ends at the latest on their 18th birthday; after that only they can renew it. We collect from them only what the feature needs, and never use it for advertising or profiling.",
+    ],
+  },
+  {
+    heading: "Terms of use",
+    bullets: [
+      "Invite only people you have a legitimate relationship with and who agree, or whom you represent by law. Using Flow Family to watch someone without their knowledge, to pressure or harm them, is forbidden and ends your access.",
+      "A guardian sees spending only while the dependent's consent is active. Monthly limits are numbers to compare against, not blocks.",
+      "Bank data comes from the banks through Pluggy. It may arrive late, be incomplete or be categorised imperfectly; check anything important with the bank. Flow Family is not financial advice.",
+      "Free plan: one dependent, one shared account, alerts for large purchases and stopped connections. A Flow subscription (sold and billed by the App Store or Google Play, as in the main Terms) adds unlimited dependents and accounts, category and budget alerts, and the monthly PDF report. If the subscription ends, nothing is deleted; the guardian sees one dependent and one account until it's back.",
+      "The main Terms of Service apply to everything else.",
+    ],
+  },
 ];
 
 export const AI: Section[] = [
@@ -201,6 +298,7 @@ export const NUTRITION: NutritionGroup[] = [
       "Usage Data — days you completed your daily review, for your streak",
       "Purchases — your subscription plan and its status",
       "Diagnostics — server request logs (IP address, time), kept briefly for security and troubleshooting",
+      "Flow Family, where available and only if you use it — Name (what you call yourself in a family), Financial Info (transactions of the bank accounts a dependent chooses to share), Identifiers (the push token for a guardian's alerts) and Other Data (a dependent's date of birth if under 18, and the network address recorded with a consent)",
     ],
   },
   { title: "Data not linked to you", note: "Not linked to your identity.", items: ["None"] },
@@ -211,4 +309,5 @@ export const LEGAL_TITLES: Record<LegalDocId, string> = {
   privacy: "Privacy Policy",
   ai: "AI Disclosure",
   nutrition: "Privacy Nutrition Label",
+  family: "Flow Family Privacy & Terms",
 };

@@ -9,7 +9,7 @@
  */
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AI, LEGAL_TITLES, NUTRITION, PRIVACY, TERMS, UPDATED, type LegalDocId, type Section } from "@/features/legal/content";
+import { AI, FAMILY, LEGAL_TITLES, NUTRITION, PRIVACY, TERMS, UPDATED, type LegalDocId, type Section } from "@/features/legal/content";
 import { APP } from "@/config/app";
 
 const DOCS: Record<LegalDocId, Section[] | null> = {
@@ -17,10 +17,11 @@ const DOCS: Record<LegalDocId, Section[] | null> = {
   privacy: PRIVACY,
   ai: AI,
   nutrition: null, // rendered as grouped chips below, not prose
+  family: FAMILY,
 };
 
 export function isDocId(v: unknown): v is LegalDocId {
-  return v === "terms" || v === "privacy" || v === "ai" || v === "nutrition";
+  return v === "terms" || v === "privacy" || v === "ai" || v === "nutrition" || v === "family";
 }
 
 function Prose({ sections }: { sections: Section[] }) {

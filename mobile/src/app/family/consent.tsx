@@ -11,7 +11,7 @@
  * to share.
  */
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { familyApi, type InvitePreview } from "@/lib/backend/family";
 import { CONSENT_DURATIONS, CONSENT_TERM_VERSION } from "@/lib/family/consentTerm";
@@ -111,6 +111,9 @@ export default function Consent() {
 
       <Section label="The terms">
         <TermView guardian={guardian} />
+        <Pressable onPress={() => router.push("/legal?doc=family")} accessibilityRole="link" className="mt-2 self-start py-2 active:opacity-60">
+          <Text className="text-footnote font-medium text-chalk-mute underline">Flow Family Privacy & Terms</Text>
+        </Pressable>
       </Section>
 
       <Section label="For how long" footer={kind === "minor" ? "Ends on this date, or on your 18th birthday if that comes first." : "It ends by itself on that date. You can stop sooner."}>

@@ -26,7 +26,7 @@ export default function FamilyLayout() {
       <Stack.Screen name="join" options={{ title: "Join a family" }} />
       <Stack.Screen name="consent" options={{ title: "Sharing terms" }} />
       <Stack.Screen name="connect" options={{ title: "Bank accounts" }} />
-      <Stack.Screen name="sharing" options={{ title: "What you share" }} />
+      <Stack.Screen name="sharing" options={{ title: "Sharing" }} />
       <Stack.Screen name="dependent/[id]" options={{ title: "" }} />
       <Stack.Screen name="budgets" options={{ title: "Budgets" }} />
       <Stack.Screen name="alerts" options={{ title: "Alerts" }} />

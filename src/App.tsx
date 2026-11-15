@@ -21,6 +21,7 @@ export default function App() {
         <Route path="/terms" element={<LegalPage doc="terms" />} />
         <Route path="/ai" element={<LegalPage doc="ai" />} />
         <Route path="/nutrition" element={<LegalPage doc="nutrition" />} />
+        <Route path="/family-privacy" element={<LegalPage doc="family" />} />
         {/* Anything else lands on Support, which links to all of the above. */}
         <Route path="*" element={<Navigate to="/support" replace />} />
       </Routes>

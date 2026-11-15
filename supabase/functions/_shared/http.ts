@@ -20,8 +20,14 @@ export interface Env {
   webhookSecret: string;
   /** Optional: Expo's push security token, if "enhanced security" is on for the project. */
   expoAccessToken: string;
-  /** "1" lets the connection widget list Pluggy's sandbox banks (development, review). */
+  /** "1" lets the connection widget list Pluggy's sandbox banks, for everyone (development only). */
   pluggyIncludeSandbox: boolean;
+  /**
+   * Accounts that see Pluggy's sandbox banks in production: the App Review
+   * demo accounts, so a reviewer can connect a test bank without anyone else
+   * ever being offered one. Comma-separated user ids.
+   */
+  pluggySandboxUserIds: string[];
   /** Where a bank's Open Finance consent page returns to, when the app sets one. */
   pluggyOauthRedirectUri: string;
 }
@@ -40,6 +46,10 @@ export function readEnv(): Env {
     webhookSecret: get("PLUGGY_WEBHOOK_SECRET"),
     expoAccessToken: get("EXPO_ACCESS_TOKEN"),
     pluggyIncludeSandbox: get("PLUGGY_INCLUDE_SANDBOX") === "1",
+    pluggySandboxUserIds: get("PLUGGY_SANDBOX_USER_IDS")
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean),
     pluggyOauthRedirectUri: get("PLUGGY_OAUTH_REDIRECT_URI"),
   };
 }

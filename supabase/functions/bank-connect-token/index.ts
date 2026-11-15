@@ -4,7 +4,8 @@
 // Deploy with JWT verification ON (the default):
 //   supabase functions deploy bank-connect-token
 // Secrets: PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET; optional PLUGGY_API_URL,
-// PLUGGY_INCLUDE_SANDBOX=1 (development and App Review only),
+// PLUGGY_INCLUDE_SANDBOX=1 (development only: everyone sees test banks),
+// PLUGGY_SANDBOX_USER_IDS (the App Review demo accounts, in production),
 // PLUGGY_OAUTH_REDIRECT_URI.
 //
 // The aggregator's keys never leave the server. The app receives a connect
@@ -67,7 +68,7 @@ export async function handle(req: Request, env: Env = readEnv(), make: MakeClien
       itemId,
       oauthRedirectUri: env.pluggyOauthRedirectUri || undefined,
     });
-    return json({ connectToken, includeSandbox: env.pluggyIncludeSandbox });
+    return json({ connectToken, includeSandbox: env.pluggyIncludeSandbox || env.pluggySandboxUserIds.includes(uid) });
   } catch (e) {
     console.error("bank-connect-token:", (e as Error)?.message ?? String(e));
     return fail("unavailable", "Couldn't start the bank connection. Try again in a moment.", 502);

@@ -37,6 +37,7 @@ const ENV: Env = {
   expoAccessToken: "",
   pluggyIncludeSandbox: true,
   pluggyOauthRedirectUri: "",
+  pluggySandboxUserIds: [],
 };
 
 /* ── a fake Pluggy ─────────────────────────────────────────────────────────── */
@@ -288,6 +289,14 @@ describe("bank-connect-token", () => {
 
     const other = await sharing(db);
     expect((await tokenFor(other.dependent, { itemId })).status).toBe(404);
+  });
+
+  it("offers Pluggy's test banks only to the listed review accounts", async () => {
+    const s = await sharing(db);
+    const other = await sharing(db);
+    const env = { ...ENV, pluggyIncludeSandbox: false, pluggySandboxUserIds: [s.dependent] };
+    expect((await tokenFor(s.dependent, {}, env)).body).toMatchObject({ includeSandbox: true });
+    expect((await tokenFor(other.dependent, {}, env)).body).toMatchObject({ includeSandbox: false });
   });
 
   it("is unavailable, not broken, without Pluggy's keys", async () => {

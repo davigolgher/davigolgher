@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { APP } from "@/config/app";
 import {
   AI,
+  FAMILY,
   LEGAL_TITLES,
   NUTRITION,
   PRIVACY,
@@ -25,6 +26,7 @@ const DOCS: Record<LegalDocId, Section[] | null> = {
   privacy: PRIVACY,
   ai: AI,
   nutrition: null, // rendered as grouped chips, not prose
+  family: FAMILY,
 };
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {

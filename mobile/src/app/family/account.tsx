@@ -21,7 +21,7 @@ import { FamilyScroll, Notice, Section } from "~/features/family/ui";
 import { clearAllCaches } from "~/features/family/cache";
 import { signOut } from "@/lib/backend/auth";
 
-const LEGAL: LegalDocId[] = ["terms", "privacy"];
+const LEGAL: LegalDocId[] = ["terms", "privacy", "family"];
 
 export default function FamilyAccount() {
   const auth = useAuth();

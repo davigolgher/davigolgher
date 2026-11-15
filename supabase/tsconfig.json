@@ -24,5 +24,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["functions", "tests"]
+  "include": ["functions", "tests", "scripts"]
 }

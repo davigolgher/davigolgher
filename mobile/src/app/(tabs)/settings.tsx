@@ -447,7 +447,7 @@ export default function Settings() {
 
       <Section label="Legal & privacy">
         <Group>
-          {LEGAL_ORDER.map((id) => (
+          {(FAMILY_ENABLED ? [...LEGAL_ORDER, "family" as const] : LEGAL_ORDER).map((id) => (
             <GroupRow key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
           ))}
         </Group>

@@ -209,6 +209,7 @@ describe("family-maintenance function", () => {
     expoAccessToken: "",
     pluggyIncludeSandbox: false,
     pluggyOauthRedirectUri: "",
+    pluggySandboxUserIds: [],
   };
   const make: MakeClient = () => {
     const s = db.service();
