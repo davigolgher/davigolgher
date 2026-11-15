@@ -13,7 +13,8 @@ contato golgherbusiness@gmail.com. Prazo de resposta a pedidos de titulares: 15 
 Recurso do Flow que permite a um **responsável** acompanhar, apenas em modo de
 leitura, os gastos de uma pessoa de quem cuida (filho menor ou maior, pessoa
 idosa, pessoa sob curatela) a partir das contas e cartões que essa pessoa
-escolhe compartilhar pelo Open Finance Brasil. Não movimenta dinheiro, não
+escolhe compartilhar por open banking: o Open Finance Brasil e as redes de
+open banking de outros países. Não movimenta dinheiro, não
 bloqueia compras, não emite cartões e não acessa senhas bancárias.
 
 ## 2. Papéis
@@ -28,7 +29,8 @@ bloqueia compras, não emite cartões e não acessa senhas bancárias.
 | --- | --- | --- |
 | Família | nome da família; nome que cada membro usa; papel; tipo (adulto, menor, curatelado); data de nascimento do menor | todos |
 | Prova de consentimento | versão do termo, data e hora, prazo escolhido, quem consentiu, IP, cadeia de IPs e identificação do aplicativo | dependente e representante |
-| Dados bancários (via Pluggy) | instituição; tipo, nome e 4 últimos dígitos de cada conta; das contas compartilhadas: data, valor, descrição, estabelecimento, categoria e situação de cada lançamento | dependente |
+| Dados bancários (via o provedor do país) | instituição e país; tipo, nome, moeda e 4 últimos dígitos de cada conta; das contas compartilhadas: data, valor, moeda, descrição, estabelecimento, categoria e situação de cada lançamento | dependente |
+| Fuso horário | o fuso do celular, para os meses terminarem à meia-noite local | dependente |
 | Configurações do responsável | orçamentos mensais, regras e eventos de alerta | responsável (sobre o dependente) |
 | Histórico de acessos | quem abriu os dados de quem e quando; ações (convidar, consentir, compartilhar, revogar) | todos |
 | Notificações | token de push do aparelho do responsável | responsável |
@@ -50,9 +52,19 @@ sensíveis pelo art. 5º, II.]
 
 ## 5. Operadores
 
-- **Pluggy Serviços de Tecnologia Ltda.** [confirmar razão social] — conexão com as instituições via Open Finance Brasil, em nome do controlador.
+- **Provedor de open banking do país do banco**, em nome do controlador:
+  - **Pluggy Serviços de Tecnologia Ltda.** [confirmar razão social] — Brasil (Open Finance Brasil);
+  - **Plaid Inc.** e suas afiliadas [confirmar a entidade por região] — EUA, Canadá, Reino Unido e EEE;
+  - **Salt Edge** [confirmar a entidade] — demais países.
+- No caso da Plaid, a chave de acesso emitida para cada conexão fica cifrada, só nos nossos servidores.
 - **Supabase Inc.** — banco de dados e autenticação, nos EUA (transferência internacional com base no art. 33, IX, e cláusulas contratuais).
 - **Expo (650 Industries), Apple e Google** — entrega de notificações; o conteúdo da notificação não contém valores, estabelecimentos nem categorias.
+
+## 5a. Transferências internacionais e outras leis
+
+- Banco de dados nos EUA (Supabase). Os dados bancários vão do banco ao provedor do país e dele para nós, cifrados em trânsito.
+- Saída do Brasil: art. 33, IX da LGPD. Saída da UE/EEE e do Reino Unido: cláusulas contratuais-padrão dos provedores e operadores.
+- Onde se aplica a GDPR ou a UK GDPR: base legal do consentimento (art. 6(1)(a)); crianças abaixo da idade de consentimento digital do país, com consentimento do titular da responsabilidade parental (art. 8). [Nomear representante na UE e no Reino Unido — art. 27 — antes de distribuir lá.]
 
 ## 6. Retenção
 
@@ -60,8 +72,8 @@ sensíveis pelo art. 5º, II.]
 - Alertas: 12 meses. Histórico de acessos: 24 meses.
 - Convites não usados: excluídos 30 dias após expirarem.
 - Dependente que deixa de compartilhar com todas as famílias: nada novo é lido; após 30 dias as conexões bancárias são encerradas e os dados lidos, excluídos — salvo se voltar a compartilhar.
-- Parar de compartilhar uma conta exclui o que foi lido dela; desconectar um banco encerra a conexão na Pluggy (e o consentimento Open Finance) e exclui o que foi lido.
-- Exclusão da conta: remove todos os dados acima do titular, encerra as conexões na Pluggy e o remove de todas as famílias. [Avaliar com o advogado se a prova de consentimento deve ser mantida por prazo maior após a exclusão, para defesa em processo — art. 16, II e IV. Hoje ela é excluída com a conta.]
+- Parar de compartilhar uma conta exclui o que foi lido dela; desconectar um banco encerra a conexão no provedor (e o consentimento dado no banco) e exclui o que foi lido.
+- Exclusão da conta: remove todos os dados acima do titular, encerra as conexões nos provedores e o remove de todas as famílias. [Avaliar com o advogado se a prova de consentimento deve ser mantida por prazo maior após a exclusão, para defesa em processo — art. 16, II e IV. Hoje ela é excluída com a conta.]
 
 ## 7. Direitos e controles
 

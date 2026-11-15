@@ -24,6 +24,15 @@ Nenhum item depende de código ainda não escrito.
 | R3 | **Idade mínima de dependentes menores.** Hoje qualquer idade abaixo de 18. Abaixo de 13 entra no escopo da política Families do Google e do COPPA (EUA), com exigências próprias (público-alvo, SDKs, revisão). | RISCO | Decidir um piso (recomendo **13 anos**: uma verificação de data de nascimento em `family_invite_create` e no aceite). Sem piso, declarar público-alvo com crianças no Play Console e cumprir a política Families. |
 | R4 | **Apple 3.2.1(viii)**: apps de investimento ou "gestão de dinheiro" devem ser enviados pela instituição financeira. A Família só lê dados; não movimenta dinheiro. O Flow já é um app de orçamento publicado. | RISCO (baixo) | Explicar nas notas de revisão que não há movimentação, só leitura com consentimento via Open Finance (texto pronto em `notas-revisor.md`). |
 
+### Bancos fora do Brasil (acréscimo de 15/11/2026, ver `bancos-mundo.md`)
+
+| # | Item | Status | O que fazer |
+| --- | --- | --- | --- |
+| R5 | **Representante na UE (GDPR art. 27)**: oferecer o serviço a pessoas na UE sem ter estabelecimento lá exige um representante nomeado. Vale o mesmo para o Reino Unido. | RISCO | Nomear um representante (há empresas que fazem isso) antes de distribuir na UE/Reino Unido, ou limitar os países de distribuição. |
+| R6 | **Salt Edge: confirmar a API** contra a documentação atual, que não abre neste ambiente. | VOCÊ | Primeiro teste com uma aplicação de teste da Salt Edge (`bancos-mundo.md`, seção 4). |
+| — | Contratos de tratamento de dados com Plaid, Salt Edge e Pluggy; aprovação de produção da Plaid (Transactions, Hosted Link) | VOCÊ | `bancos-mundo.md`, seção 5. |
+| — | Países de distribuição nas lojas | VOCÊ | Escolher onde distribuir conforme os provedores ligados e as obrigações acima. |
+
 ## 2. Privacidade e dados
 
 | Item | Status | Onde |
@@ -43,8 +52,8 @@ Nenhum item depende de código ainda não escrito.
 | ATT (App Tracking Transparency) | OK — não se aplica | Nenhum rastreamento, nenhum SDK de anúncios ou analytics; `NSPrivacyTracking: false` |
 | Push sem informação sensível (Apple 4.5.4) | OK | Texto genérico ("New alert about Ana"); testado em `family_sync.test.ts` |
 | Pedido de permissão de notificação só no contexto | OK | Pedido ao ligar uma regra de alerta (`app/family/alerts.tsx`) |
-| Credenciais bancárias nunca armazenadas | OK | Digitadas no widget da Pluggy; o app recebe só o `itemId` |
-| Chaves do agregador só no servidor | OK | Segredos das Edge Functions; o app recebe um token de conexão de curta duração |
+| Credenciais bancárias nunca armazenadas | OK | Digitadas na página do provedor ou do banco (widget da Pluggy; página da Plaid ou da Salt Edge no navegador seguro); o app recebe só identificadores |
+| Chaves dos agregadores só no servidor | OK | Segredos das Edge Functions; os tokens de acesso da Plaid ficam cifrados (AES-256-GCM) numa tabela sem acesso para o app |
 
 ## 3. Assinaturas e compras no app
 
@@ -66,7 +75,7 @@ Nenhum item depende de código ainda não escrito.
 | Classificação etária | VOCÊ | Responder o questionário sem "conteúdo infantil"; a Família não muda a classificação de conteúdo |
 | Sign in with Apple | OK — não se aplica | Só e-mail e senha; nenhum login de terceiros (4.8) |
 | Acessibilidade (VoiceOver, tamanho dinâmico) | OK | Rótulos, papéis (botão, cabeçalho, caixa de seleção, barra de progresso), texto que cresce com o sistema, contraste AA dos tokens |
-| Declaração de recursos financeiros (Google, obrigatória para todo app) | VOCÊ | Marcar "Other" (agregação de contas, só leitura) — texto em `textos-loja.md` |
+| Declaração de recursos financeiros (Google, obrigatória para todo app) | VOCÊ | Marcar "Other" (agregação de contas, só leitura, Pluggy/Plaid/Salt Edge) — texto em `textos-loja.md` |
 | Política de dados do usuário do Google: divulgação proeminente antes do consentimento | OK | A tela de consentimento mostra o que é coletado antes do aceite |
 | Builds de produção iOS e Android | VOCÊ | Não é possível gerar daqui (sem EAS/Xcode/credenciais). Comandos no relatório final |
 | Android: ícones, `google-services.json` para push (FCM) | VOCÊ | Necessário para push no Android |

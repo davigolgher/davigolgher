@@ -18,26 +18,26 @@ na descrição da loja).
 **EN**
 
 > FLOW FAMILY
-> Follow the spending of a child, a teenager or an older parent — read-only, from the bank accounts and cards they choose to share through Open Finance Brasil.
+> Follow the spending of a child, a teenager or an older parent — read-only, from the bank accounts and cards they choose to share through open banking: in Brazil, the US, Canada, the UK, Europe and many more countries.
 >
 > • They choose. Nothing is shared without their consent (or a parent's, for under-18s). They pick the accounts, see exactly what you see, see every time you looked, and can stop sharing at any time.
 > • See where money goes: this month against last month, by category, and every purchase as it arrives.
 > • Alerts that matter: a purchase above an amount, betting sites, a monthly budget passed, a bank connection that stopped.
 > • Monthly budgets to follow — numbers to compare, never blocks.
-> • See, never touch: Flow Family can't move money, block purchases or see bank passwords. Bank connections are made through Pluggy, an authorised Open Finance partner.
+> • See, never touch: Flow Family can't move money, block purchases or see bank passwords. Bank connections are made through regulated open banking providers (Pluggy, Plaid, Salt Edge).
 >
 > Free for one person and one account. A Flow subscription adds unlimited people and accounts, category and budget alerts, and a monthly PDF report.
 
 **PT-BR**
 
 > FLOW FAMÍLIA
-> Acompanhe os gastos de um filho, um adolescente ou um pai ou mãe idosos — só leitura, nas contas e cartões que a pessoa escolhe compartilhar pelo Open Finance Brasil.
+> Acompanhe os gastos de um filho, um adolescente ou um pai ou mãe idosos — só leitura, nas contas e cartões que a pessoa escolhe compartilhar por open banking: no Brasil, nos EUA, no Canadá, no Reino Unido, na Europa e em muitos outros países.
 >
 > • A pessoa escolhe. Nada é compartilhado sem o consentimento dela (ou do responsável, para menores de 18). Ela escolhe as contas, vê exatamente o que você vê, vê cada vez que você olhou e pode parar quando quiser.
 > • Veja para onde vai o dinheiro: o mês contra o anterior, por categoria, e cada compra assim que chega.
 > • Alertas que importam: compra acima de um valor, sites de apostas, orçamento do mês estourado, conexão com o banco interrompida.
 > • Orçamentos mensais para acompanhar — números para comparar, nunca bloqueios.
-> • Ver, nunca mexer: a Família não movimenta dinheiro, não bloqueia compras e não vê senhas do banco. A conexão é feita pela Pluggy, parceira autorizada do Open Finance.
+> • Ver, nunca mexer: a Família não movimenta dinheiro, não bloqueia compras e não vê senhas do banco. A conexão é feita por provedores regulados de open banking (Pluggy, Plaid, Salt Edge).
 >
 > Grátis para uma pessoa e uma conta. A assinatura do Flow libera pessoas e contas ilimitadas, alertas de categoria e orçamento e o relatório mensal em PDF.
 
@@ -49,7 +49,7 @@ na descrição da loja).
 
 ### Palavras-chave (100 caracteres, EN)
 
-`family,spending,parents,teen,allowance,budget,open finance,alerts,bank,expenses,kids money,elderly`
+`family,spending,parents,teen,allowance,budget,open banking,alerts,bank,expenses,kids money,elderly`
 
 ### Privacidade do app (App Store Connect) — o que acrescentar
 
@@ -74,9 +74,9 @@ Para cada tipo: **Linked to the user: Yes · Used for tracking: No · Purpose: A
 
 Usar a mesma seção "FLOW FAMILY" da App Store (acima), mais esta frase no fim:
 
-**EN** — Flow Family shares bank transactions that the account holder chose to share, through Open Finance. It does not collect anything from their phone, and it is always visible to them in the app.
+**EN** — Flow Family shares bank transactions that the account holder chose to share, through open banking. It does not collect anything from their phone, and it is always visible to them in the app.
 
-**PT-BR** — A Flow Família compartilha lançamentos bancários que o titular escolheu compartilhar, pelo Open Finance. Nada é coletado do celular dele, e o compartilhamento está sempre visível para ele no app.
+**PT-BR** — A Flow Família compartilha lançamentos bancários que o titular escolheu compartilhar, por open banking. Nada é coletado do celular dele, e o compartilhamento está sempre visível para ele no app.
 
 ### Data safety — respostas
 
@@ -97,7 +97,7 @@ Usar a mesma seção "FLOW FAMILY" da App Store (acima), mais esta frase no fim:
 
 Marcar **Other** e descrever:
 
-> Read-only account aggregation through Open Finance Brasil, provided by Pluggy (an authorised connection provider). Users connect their own bank accounts and choose which to share, view-only, with a family member. The app does not offer loans, payments, transfers, trading or credit.
+> Read-only account aggregation through open banking, provided by regulated connection providers: Pluggy (Brazil), Plaid (United States, Canada, United Kingdom, EU/EEA) and Salt Edge (other countries). Users connect their own bank accounts and choose which to share, view-only, with a family member. The app does not offer loans, payments, transfers, trading or credit.
 
 ### Público-alvo
 

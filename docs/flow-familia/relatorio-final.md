@@ -100,6 +100,31 @@ eas build --platform ios --profile production
 eas build --platform android --profile production
 ```
 
+## 4a. Bancos do mundo inteiro (acréscimo de 15/11/2026)
+
+A conexão bancária deixou de ser só brasileira. Detalhes em `bancos-mundo.md`.
+
+| Região | Provedor | Como abre |
+| --- | --- | --- |
+| Brasil | Pluggy | widget dentro do app (como antes) |
+| EUA, Canadá, Reino Unido, 17 países da UE/EEE | Plaid | página da Plaid no navegador seguro do sistema |
+| Demais países com open banking | Salt Edge | página da Salt Edge no navegador seguro do sistema |
+
+- **Banco de dados:** migration `0016_bank_worldwide.sql`, só com acréscimos.
+  - Provedor e país de cada conexão.
+  - Tokens da Plaid cifrados.
+  - Moeda em orçamentos e alertas.
+  - Mês no fuso do dependente.
+  - Nova versão do termo (`2026-11.2`) citando os provedores; quem consentiu na `2026-11` segue válido.
+- **Funções:** `plaid-webhook` e `saltedge-webhook` novas; `bank-connect-token`, `bank-connection-sync`, `bank-connection-delete`, manutenção e `delete-account` passaram a funcionar com os três provedores.
+- **App:**
+  - "Where is your bank?" com o país do celular primeiro;
+  - painel somando uma moeda por vez;
+  - orçamentos e alertas com moeda;
+  - nova dependência `expo-web-browser`, na versão do SDK 57.
+- **Testes:** 387 no total. Plaid e Salt Edge simulados, com assinaturas reais geradas a cada execução.
+- **Sem a flag:** o pacote do app continua idêntico (1854 módulos, nada da Família).
+
 ## 5. O que depende de você
 
 ### Decisões (antes de enviar)
@@ -112,8 +137,8 @@ eas build --platform android --profile production
 5. **Pluggy:** criar a aplicação (sandbox primeiro, produção depois) e assinar o contrato. Criar o webhook `all` apontando para `https://<ref>.supabase.co/functions/v1/pluggy-webhook`, com o cabeçalho `x-flow-webhook-secret`.
 6. **Supabase** (o projeto está pausado):
    - reativar;
-   - aplicar `0009` a `0015` em ordem;
-   - publicar as funções: `supabase functions deploy bank-connect-token bank-connection-sync bank-connection-delete family-maintenance delete-account`, e `pluggy-webhook` com `--no-verify-jwt`;
+   - aplicar `0009` a `0016` em ordem;
+   - publicar as funções: `supabase functions deploy bank-connect-token bank-connection-sync bank-connection-delete family-maintenance delete-account`, e `pluggy-webhook`, `plaid-webhook` e `saltedge-webhook` com `--no-verify-jwt`;
    - definir os segredos: `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_WEBHOOK_SECRET` e, para a revisão, `PLUGGY_SANDBOX_USER_IDS`;
    - agendar a manutenção diária (SQL no cabeçalho de `family-maintenance/index.ts`).
 7. **Push:**
@@ -126,6 +151,17 @@ eas build --platform android --profile production
    - chave Android no RevenueCat;
    - usar essa chave em `purchases.ts` quando `Platform.OS === "android"`.
    O plano grátis da Família já funciona no Android sem isso.
+
+### Bancos fora do Brasil
+- **Plaid:** conta, acesso a Transactions e Hosted Link, segredos (`PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `BANK_TOKEN_KEY`), publicar `plaid-webhook` com `--no-verify-jwt`.
+- **Salt Edge:**
+  - conta e acesso de produção;
+  - segredos: `SALTEDGE_APP_ID`, `SALTEDGE_SECRET`, `SALTEDGE_PRIVATE_KEY`, `SALTEDGE_CALLBACK_PUBLIC_KEY`, `SALTEDGE_CALLBACK_URL`;
+  - callbacks no painel;
+  - publicar `saltedge-webhook` com `--no-verify-jwt`;
+  - **confirmar a API v5** contra a documentação atual (não acessível daqui).
+- **Aplicar `0016_bank_worldwide.sql`.**
+- **Para distribuir na UE/Reino Unido:** representante pelo art. 27 da GDPR (R5) e contratos de tratamento de dados com os provedores.
 
 ### Lojas
 10. **App Store Connect:**

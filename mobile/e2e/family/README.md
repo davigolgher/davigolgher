@@ -34,6 +34,13 @@ Pass `-e` to override any variable. Flow 02 uses Pluggy's sandbox bank
 ("Pluggy Bank", login `user-ok` / `password-ok`, as Pluggy's sandbox
 documents); if Pluggy renames them, adjust the two `inputText` lines.
 
+Banks outside Brazil open in the system's secure browser (Plaid Hosted
+Link, Salt Edge Connect). To run flow 02 with them, pick the country on
+"Where is your bank?" and use Plaid's sandbox login (`user_good` /
+`pass_good`, "First Platypus Bank") or Salt Edge's "Fake Bank"; Maestro can
+drive the browser sheet on iOS, but expect to adjust selectors to the
+provider's current pages.
+
 ## What's covered without a device
 
 The same paths are exercised in CI-friendly tests that run with `npm test`:

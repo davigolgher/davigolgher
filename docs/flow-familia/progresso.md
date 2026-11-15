@@ -202,3 +202,41 @@ cd mobile && npm ci && npx tsc --noEmit && npm run check:native
 
 **Pendências**
 - As da seção 5 do relatório final — todas dependem de decisões, contas ou consoles, nenhuma de código.
+
+## Bancos do mundo inteiro (pedido de 15/11/2026)
+
+**Feito**
+- Três provedores, escolhidos pelo país do banco (`supabase/functions/_shared/regions.ts`):
+  - Pluggy: Brasil;
+  - Plaid: EUA, Canadá, Reino Unido e 17 países da UE/EEE;
+  - Salt Edge: demais países.
+- `0016_bank_worldwide.sql`:
+  - provedor e país por conexão;
+  - tabelas só do servidor: tokens da Plaid cifrados, "customer" da Salt Edge por pessoa, janelas de conexão;
+  - moeda em orçamentos e no valor do alerta;
+  - meses no fuso do dependente;
+  - termo `2026-11.2`.
+- Conectores:
+  - `_shared/plaid.ts`, a partir do SDK oficial v51;
+  - `_shared/saltedge.ts`, API v5, a confirmar;
+  - `_shared/crypto.ts`: AES-GCM, JWT ES256 e RSA;
+  - `_shared/providers.ts`.
+- Funções: `plaid-webhook` e `saltedge-webhook`; as demais (token, sync, delete, manutenção, exclusão de conta) passaram a funcionar com os três provedores.
+- App:
+  - escolha do país;
+  - páginas da Plaid e da Salt Edge no navegador seguro do sistema (`expo-web-browser`);
+  - painel, orçamentos e alertas por moeda;
+  - envio do fuso;
+  - textos sem "só Brasil";
+  - documento legal com provedores por região, transferências internacionais e GDPR.
+- Documentos: `bancos-mundo.md` (novo), conformidade (R5, R6), textos de loja, notas ao revisor, rascunho da política, `.env.example`, relatório final.
+
+**Como testar**
+- `npm test` → `family_worldwide.test.ts` (9), `family_world_sync.test.ts` (23), `family.test.ts` (12), `screens.test.tsx` (12, incluindo a conexão no exterior).
+- Sandbox real: Plaid ("First Platypus Bank", `user_good`/`pass_good`) e Salt Edge ("Fake Bank"), com as contas em `BANK_SANDBOX_USER_IDS`.
+
+**Pendências (suas)**
+- Contas e segredos da Plaid e da Salt Edge.
+- Confirmar a API da Salt Edge.
+- Aplicar a 0016.
+- Representante GDPR antes de distribuir na UE/Reino Unido.
