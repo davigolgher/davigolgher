@@ -104,9 +104,11 @@ export const PRIVACY: Section[] = [
     bullets: [
       "Account: your email address. Your password is never stored — only a hash of it, held by our authentication provider.",
       "Financial data you enter: expenses, income, subscriptions, budgets, categories, and notes.",
-      "Usage: the calendar days you complete your daily review, stored with your account to count your streak. Opening the app isn't recorded.",
+      "Bank data, only if you connect a bank where that's available: the bank's name, each account's type, name, currency and last four digits, and the purchases of the accounts you choose to bring into Flow (date, amount, description, merchant, category). They become expenses you can edit or delete. Your bank password is never asked for or stored: you sign in on your bank's or a regulated open banking provider's own page.",
+      "Review days: the calendar days you complete your daily review, stored with your account to count your streak.",
+      "Usage statistics: which screens and features you use and when (for example, that you finished the introduction, opened the app, or connected a bank), with a random identifier created on your phone. Never amounts, merchants, names, notes or anything you type, and no advertising identifier. You can turn this off in Settings → Legal & privacy.",
       "Your subscription: which plan you have, whether it's active or in a free trial, and when it renews or ends — reported by Apple through RevenueCat and stored with your account, so the app can unlock on any of your devices. We never see your card or Apple ID payment details.",
-      "Technical data our hosting provider records when the app talks to our server — such as IP address and the time of the request — kept for a short period for security and troubleshooting. We don't use analytics, advertising or crash-reporting tools.",
+      "Technical data our hosting provider records when the app talks to our server — such as IP address and the time of the request — kept for a short period for security and troubleshooting. We don't use third-party analytics, advertising or crash-reporting tools: the usage statistics above go to our own database only.",
     ],
   },
   { heading: "How we use it", bullets: ["To provide the app's features (tracking, summaries, reminders), process your subscription, support you, keep the app secure, and comply with law. We do not sell your personal data."] },
@@ -115,6 +117,8 @@ export const PRIVACY: Section[] = [
     bullets: [
       "Your account, financial data, review days and subscription status: to perform the contract you enter into when you create an account and subscribe (LGPD art. 7, V).",
       "Server request logs: our legitimate interest in keeping the service secure and working (LGPD art. 7, IX).",
+      "Usage statistics: our legitimate interest in understanding whether the app is useful and improving it (LGPD art. 7, IX), limited to what's described above and with a switch to turn it off.",
+      "Bank data: your consent, given at your bank and in the app when you connect (LGPD art. 7, I). Disconnecting withdraws it.",
       "Records the law requires us to keep: compliance with a legal obligation (LGPD art. 7, II).",
       "Renewal reminders are scheduled on your phone only if you turn them on, and nothing about them is sent to us.",
     ],
@@ -142,6 +146,7 @@ export const PRIVACY: Section[] = [
       "Supabase — database and authentication (our backend/hosting provider).",
       "Apple — processes your subscription purchase through the App Store; we never receive your card details.",
       "RevenueCat — records which subscription you hold so the app can unlock; it does not receive payment details.",
+      "Open banking providers, only if you connect a bank: Pluggy (Brazil), Plaid (United States, Canada, United Kingdom, EU/EEA) or Salt Edge (other countries) connect to your bank with your consent and pass on the accounts and purchases you approve. Their keys are held on our server, never in the app.",
       "Legal/safety: disclosed when required by law or to protect rights and safety.",
       "We do not sell your personal data or share it with advertising data brokers.",
     ],
@@ -155,7 +160,13 @@ export const PRIVACY: Section[] = [
       "You can also complain to Brazil's data protection authority (ANPD, gov.br/anpd).",
     ],
   },
-  { heading: "Data retention", body: ["We keep your data while your account is active. Deleting your account from Settings deletes the account and every record it holds from our database straight away. After that, what's left is only our hosting provider's request logs and backups, which expire on their own rolling schedule, and any record the law requires us to keep."] },
+  {
+    heading: "Data retention",
+    body: [
+      "We keep your data while your account is active. Deleting your account from Settings deletes the account and every record it holds from our database straight away. After that, what's left is only our hosting provider's request logs and backups, which expire on their own rolling schedule, and any record the law requires us to keep.",
+      "Usage statistics are deleted after 13 months. If you connect a bank, the bank's own copy of each purchase is deleted after 13 months; what you brought into Flow stays as your expenses until you delete it. Disconnecting a bank ends the connection and lets you choose whether to keep or delete what it brought in.",
+    ],
+  },
   {
     heading: "Children",
     body: [

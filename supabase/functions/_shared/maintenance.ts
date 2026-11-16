@@ -1,9 +1,11 @@
 /**
- * Housekeeping for Flow Family (0015's family_maintenance, made
- * provider-aware in 0016), plus the part the database can't do itself:
- * ending connections at Pluggy, Plaid or Salt Edge.
+ * Housekeeping (0015's family_maintenance, made provider-aware in 0016 and
+ * aware of personal imports in 0017), plus the part the database can't do
+ * itself: ending connections at Pluggy, Plaid or Salt Edge. Also ages out
+ * product events (0018).
  *
- * Connections whose owner stopped sharing with every family are ended 30 days
+ * Connections nobody uses any more (not shared with a family, not imported
+ * into the owner's own Flow) are ended 30 days
  * later: at their provider (which ends the consent with the bank), then here,
  * with everything read through them. If the provider can't be reached the
  * data goes now anyway and the connection waits in bank_item_tombstones.
@@ -43,5 +45,12 @@ export async function runMaintenance(admin: Admin, p: Providers, options: { forc
     if (res.error) console.error("runMaintenance: bank_remove_connection:", res.error.message);
   }
   const retried = await retryAllTombstones(admin, p, 5);
-  return { skipped: Boolean(data?.skipped), removed: data?.removed ?? {}, ended: due.length - deferred, deferred, retried };
+  const removed: Record<string, number> = { ...(data?.removed ?? {}) };
+  // Product events are kept 13 months (0018). Before that migration is
+  // applied the function doesn't exist yet: nothing to purge.
+  if (!data?.skipped) {
+    const purge = await admin.rpc("product_events_purge");
+    if (!purge.error && typeof purge.data === "number") removed.product_events = purge.data;
+  }
+  return { skipped: Boolean(data?.skipped), removed, ended: due.length - deferred, deferred, retried };
 }
