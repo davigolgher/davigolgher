@@ -12,7 +12,7 @@ import { KIND_LABEL } from "@/lib/family/copy";
 import { Button, Group, GroupRow } from "~/components/ui";
 import { useFamily, useFamilyLive } from "~/features/family/FamilyProvider";
 import { useFamilyQuery } from "~/features/family/useFamilyQuery";
-import { Badge, Empty, Failed, FamilyScroll, Lead, Loading, Notice, SavedNotice, Section } from "~/features/family/ui";
+import { Badge, Empty, Failed, FamilyScroll, Lead, Loading, Notice, Point, SavedNotice, Section } from "~/features/family/ui";
 import { BellIcon, ShieldIcon, UsersIcon } from "~/features/family/icons";
 import { iconSize } from "~/theme/tokens";
 
@@ -180,14 +180,4 @@ function Welcome() {
   );
 }
 
-function Point({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <View className="flex-row gap-3" accessible>
-      <View className="mt-0.5">{icon}</View>
-      <View className="min-w-0 flex-1">
-        <Text className="text-body font-semibold text-chalk">{title}</Text>
-        <Text className="mt-1 text-footnote text-chalk-mute">{children}</Text>
-      </View>
-    </View>
-  );
-}
+
