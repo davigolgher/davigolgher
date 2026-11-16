@@ -276,10 +276,12 @@ describe("bank-connect-token", () => {
     expect((await tokenFor(undefined)).status).toBe(401);
   });
 
-  it("is only for someone sharing with a family", async () => {
+  it("is for someone sharing with a family or with a Flow subscription", async () => {
     const loner = await user(db, "loner");
     const res = await tokenFor(loner);
-    expect(res).toMatchObject({ status: 403, body: { code: "not_a_dependent" } });
+    expect(res).toMatchObject({ status: 402, body: { code: "subscription_required" } });
+    await paid(db, loner);
+    expect((await tokenFor(loner)).status).toBe(200);
   });
 
   it("gives a dependent a token made for them, and never the aggregator's keys", async () => {
@@ -570,6 +572,31 @@ describe("pluggy-webhook", () => {
     expect(await db.admin("select 1 from public.push_tokens where user_id = $1", [c.guardian])).toHaveLength(0);
     const events = await db.admin<{ push_status: string }>("select push_status from public.family_alert_events where dependent_id = $1", [c.dependent]);
     expect(events.map((e) => e.push_status)).toEqual(["failed"]);
+  });
+});
+
+describe("a bank in Flow itself (0017)", () => {
+  it("a subscriber connects with no family: the last 90 days arrive as their expenses, and disconnecting can keep or delete them", async () => {
+    const me = await user(db, "subscriber");
+    await paid(db, me);
+    const itemId = pluggy.connect(me);
+    pluggy.addTxn(`${itemId}-acc-checking`, { date: new Date(Date.now() - 40 * 86_400_000).toISOString() });
+    pluggy.addTxn(`${itemId}-acc-card`);
+    expect((await sync(me, itemId)).status).toBe(200);
+    const conn = await connectionOf(itemId);
+    // Nothing is read until the person switches accounts on.
+    expect(await db.admin("select 1 from public.bank_transactions where user_id = $1", [me])).toHaveLength(0);
+
+    const defaults = await db.as(me).rpc("bank_connection_import_defaults", { p_connection: conn.id, p_currency: "BRL" });
+    expect(defaults.data).toEqual({ imported_accounts: 2, other_accounts: 0 });
+    expect((await sync(me, itemId)).body).toMatchObject({ status: "active", inserted: 2 });
+    const mine = (await db.as(me).from("transactions").select("description,source,category")).data as { source: string }[];
+    expect(mine).toHaveLength(2);
+    expect(mine.every((t) => t.source === "bank")).toBe(true);
+
+    const res = await call(deleteConnection(req("bank-connection-delete", { connectionId: conn.id, keepImported: false }, { as: me }), ENV, make, pluggy.fetch));
+    expect(res).toEqual({ status: 200, body: { removed: true, providerPending: false } });
+    expect((await db.as(me).from("transactions").select("id")).data).toHaveLength(0);
   });
 });
 

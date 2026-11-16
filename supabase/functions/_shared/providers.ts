@@ -11,7 +11,7 @@
  */
 import { categorize, type FamilyCategory } from "./categories.ts";
 import { openSecret, sealSecret } from "./crypto.ts";
-import { ingest, SyncError, type AccountRow, type ConnectionStatus, type TransactionRow } from "./bankSync.ts";
+import { ingest, isRead, SyncError, type AccountRow, type ConnectionStatus, type TransactionRow } from "./bankSync.ts";
 import type { Env } from "./http.ts";
 import { Plaid, PlaidApiError, type PlaidAccount, type PlaidEnvironment, type PlaidItem, type PlaidTransaction } from "./plaid.ts";
 import { pluggyFromEnv, type Fetch, type Pluggy } from "./pluggy.ts";
@@ -228,6 +228,7 @@ interface StoredAccount {
   kind: AccountRow["kind"];
   currency: string;
   shared: boolean;
+  import_to_flow?: boolean;
 }
 
 interface StoredConnection {
@@ -422,8 +423,8 @@ export async function syncPlaidConnection(admin: Admin, p: Providers, connection
   });
   if (conn.orphaned_at) return { connectionId, status, accounts: accounts.length, inserted: 0 };
 
-  const shared = accounts.filter((a) => a.shared);
-  // A newly shared account has nothing stored: read from the beginning again
+  const shared = accounts.filter(isRead);
+  // A newly read account (shared or imported) has nothing stored: read from the beginning again
   // (entries already stored are recognised, not doubled).
   let cursor: string | null = cred.sync_cursor;
   for (const a of shared) if (!(await hasEntries(admin, a.id))) cursor = null;
@@ -545,7 +546,7 @@ export async function syncSaltEdgeConnection(
   if (known?.orphaned_at) return { connectionId: conn.connection_id, status, accounts: accounts.length, inserted: 0 };
 
   let inserted = 0;
-  for (const a of accounts.filter((x) => x.shared)) {
+  for (const a of accounts.filter(isRead)) {
     const rows = (await se.transactions(c.id, a.external_account_id)).filter((t) => !t.duplicated).map((t) => saltEdgeTransactionRow(t, a));
     if (rows.length) inserted += await ingest(admin, a.id, rows);
   }

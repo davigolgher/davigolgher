@@ -16,7 +16,7 @@ import type { Pluggy, PluggyAccount, PluggyItem, PluggyTransaction } from "./plu
 
 export type ConnectionStatus = "updating" | "active" | "needs_attention" | "expired" | "error";
 
-/** How far back the first read of a shared account goes. */
+/** How far back the first read of an account goes. */
 export const FIRST_SYNC_DAYS = 90;
 /** Later reads overlap the previous one by this much, to catch late postings. */
 const RESYNC_OVERLAP_DAYS = 7;
@@ -150,6 +150,15 @@ interface StoredAccount {
   kind: AccountRow["kind"];
   currency: string;
   shared: boolean;
+  import_to_flow?: boolean;
+}
+
+/**
+ * Is this account read from the bank? Shared with a family, or imported into
+ * the person's own Flow (0017). Nothing is read from any other account.
+ */
+export function isRead(account: { shared: boolean; import_to_flow?: boolean | null }): boolean {
+  return Boolean(account.shared || account.import_to_flow);
 }
 
 async function rpc<T>(admin: Admin, fn: string, args: Record<string, unknown>): Promise<T> {
@@ -178,7 +187,7 @@ export interface SyncResult {
 
 /**
  * Read one connection from Pluggy and store it: its state, its accounts, and
- * the entries of the shared accounts since the last read.
+ * the entries of the accounts it reads (shared or imported) since the last read.
  *
  * `userId` is who the connection must belong to. Pluggy records the
  * `clientUserId` the connect token was made for; a connection made for
@@ -251,8 +260,8 @@ export async function syncConnection(
   }
 
   let inserted = 0;
-  for (const account of accounts.filter((a) => a.shared)) {
-    // An account shared since the last read has nothing stored yet: it gets
+  for (const account of accounts.filter(isRead)) {
+    // An account switched on since the last read has nothing stored yet: it gets
     // the full first read, not just the overlap.
     const { data: existing } = await admin.from("bank_transactions").select("id").eq("account_id", account.id).limit(1);
     const fresh = !existing?.length || !Number.isFinite(last);
@@ -279,7 +288,7 @@ export async function syncConnection(
 
 /**
  * Entries Pluggy says are new, changed or gone in one account. Ignored for an
- * account Flow doesn't know or that isn't shared.
+ * account Flow doesn't know or doesn't read.
  */
 export async function applyTransactionEvent(
   admin: Admin,
@@ -296,11 +305,11 @@ export async function applyTransactionEvent(
   if (!conn) return 0;
   const { data: account } = await admin
     .from("bank_accounts")
-    .select("id,external_account_id,kind,currency,shared")
+    .select("id,external_account_id,kind,currency,shared,import_to_flow")
     .eq("connection_id", conn.id)
     .eq("external_account_id", event.accountId)
     .maybeSingle();
-  if (!account || !account.shared) return 0;
+  if (!account || !isRead(account)) return 0;
 
   if (event.event === "transactions/deleted") {
     return rpc<number>(admin, "bank_delete_transactions", { p_account: account.id, p_external_ids: event.transactionIds ?? [] });

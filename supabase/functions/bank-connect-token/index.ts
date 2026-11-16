@@ -23,7 +23,8 @@
 //
 // The providers' keys never leave the server, and bank logins never pass
 // through Flow: they're typed into the provider's or the bank's own page.
-// Who may connect: someone sharing with a family, within their plan.
+// Who may connect: a Flow subscriber, for their own Flow, or someone sharing
+// with a family, within its plan (bank_connection_allowance, 0017).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { SyncError } from "../_shared/bankSync.ts";
 import { adminClient, callerId, corsHeaders, fail, json, readEnv, readJson, type Env, type MakeClient } from "../_shared/http.ts";
@@ -33,6 +34,7 @@ import { providerFor, type ProviderId } from "../_shared/regions.ts";
 
 const LIMIT_MESSAGES: Record<string, [string, number]> = {
   not_a_dependent: ["Join a family before connecting a bank.", 403],
+  subscription_required: ["Connecting a bank comes with a Flow subscription.", 402],
   plan_limit_connections: ["The free plan includes one bank connection. The family's guardian can upgrade for more.", 402],
   too_many_connections: ["You've reached the maximum number of bank connections.", 409],
   provider_unavailable: ["Bank connections in this country aren't available yet.", 503],

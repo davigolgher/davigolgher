@@ -109,10 +109,14 @@ describe("accounts and sharing", () => {
     );
   });
 
-  it("how many banks someone may connect follows the family's plan", async () => {
+  it("how many banks someone may connect follows the family's plan, or their own subscription", async () => {
     const loner = await user(db, "loner");
     const none = await db.service().rpc<Record<string, unknown>>("bank_connection_allowance", { p_user: loner });
-    expect(none.data).toMatchObject({ allowed: false, reason: "not_a_dependent" });
+    expect(none.data).toMatchObject({ allowed: false, reason: "subscription_required", max: 0 });
+    // A Flow subscriber connects for their own Flow (0017), with no family.
+    await paid(db, loner);
+    const personal = await db.service().rpc<Record<string, unknown>>("bank_connection_allowance", { p_user: loner });
+    expect(personal.data).toMatchObject({ allowed: true, plan: "personal", max: 10 });
 
     const s = await sharing(db);
     const first = await db.service().rpc<Record<string, unknown>>("bank_connection_allowance", { p_user: s.dependent });

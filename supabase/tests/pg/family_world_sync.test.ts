@@ -368,7 +368,7 @@ describe("choosing the provider", () => {
   it("still checks the plan before opening anything", async () => {
     const loner = await sharing(db);
     await db.as(loner.dependent).rpc("family_leave", { p_family: loner.familyId });
-    expect((await token(loner.dependent, { country: "US" })).body).toMatchObject({ code: "not_a_dependent" });
+    expect((await token(loner.dependent, { country: "US" })).body).toMatchObject({ code: "subscription_required" });
     expect(plaid.calls).toHaveLength(0);
   });
 });

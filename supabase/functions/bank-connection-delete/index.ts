@@ -1,6 +1,7 @@
-// Flow Family: disconnect a bank, whichever provider made the connection.
+// Disconnect a bank, whichever provider made the connection.
 // Ends it at the provider (which ends the consent with the bank) and deletes
-// everything Flow read through it.
+// everything Flow read through it. What it brought into the person's own
+// Flow expenses is kept unless they send { keepImported: false } (0017).
 //
 // Deploy with JWT verification ON (the default):
 //   supabase functions deploy bank-connection-delete
@@ -38,7 +39,8 @@ export async function handle(req: Request, env: Env = readEnv(), make: MakeClien
 
     const target = await endTargetFor(admin, conn.id);
     const { deferred } = await endConnections(admin, providersFromEnv(env, fetcher), target ? [target] : []);
-    const { error } = await admin.rpc("bank_remove_connection", { p_connection: conn.id });
+    const keepImported = body.keepImported !== false;
+    const { error } = await admin.rpc("bank_remove_connection", { p_connection: conn.id, p_keep_imported: keepImported });
     if (error) throw new Error(`bank_remove_connection: ${error.message}`);
     return json({ removed: true, providerPending: deferred > 0 });
   } catch (e) {
