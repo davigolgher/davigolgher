@@ -23,7 +23,7 @@ vi.mock("react-native-svg", () => {
 });
 vi.mock("react-native-pluggy-connect", () => ({ PluggyConnect: () => <div>Pluggy Connect</div> }));
 vi.mock("expo-localization", () => ({ getLocales: () => [{ regionCode: "US" }] }));
-const browser = vi.hoisted(() => ({ openAuthSessionAsync: vi.fn(async () => ({ type: "success", url: "flow://family/bank-return?provider=plaid" })) }));
+const browser = vi.hoisted(() => ({ openAuthSessionAsync: vi.fn(async () => ({ type: "success", url: "flow://bank-return?provider=plaid" })) }));
 vi.mock("expo-web-browser", () => browser);
 
 const nav = vi.hoisted(() => ({
@@ -344,7 +344,7 @@ describe("the guardian's dashboard", () => {
 describe("connecting a bank abroad", () => {
   it("asks where the bank is, opens the provider's page in the secure browser, then reads what was connected", async () => {
     api.myState.mockResolvedValue(dependentState);
-    api.connectToken.mockResolvedValue({ provider: "plaid", url: "https://hosted.plaid.test/link/abc", session: "11111111-2222-4333-8444-555555555555", returnUrl: "flow://family/bank-return" });
+    api.connectToken.mockResolvedValue({ provider: "plaid", url: "https://hosted.plaid.test/link/abc", session: "11111111-2222-4333-8444-555555555555", returnUrl: "flow://bank-return" });
     wrap(<Connect />);
 
     expect(await screen.findByRole("heading", { name: "Where is your bank?" })).toBeInTheDocument();
@@ -355,7 +355,7 @@ describe("connecting a bank abroad", () => {
 
     await waitFor(() => expect(api.syncConnection).toHaveBeenCalledWith({ session: "11111111-2222-4333-8444-555555555555" }));
     expect(api.connectToken).toHaveBeenCalledWith({ country: "US" });
-    expect(browser.openAuthSessionAsync).toHaveBeenCalledWith("https://hosted.plaid.test/link/abc", "flow://family/bank-return");
+    expect(browser.openAuthSessionAsync).toHaveBeenCalledWith("https://hosted.plaid.test/link/abc", "flow://bank-return");
     expect(await screen.findByText(/Connected — 2 accounts found/)).toBeInTheDocument();
   });
 });

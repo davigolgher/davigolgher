@@ -7,6 +7,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, Vi
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
+import { track } from "~/lib/analytics";
 import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { FREQUENCY_LABEL, type Frequency } from "@/lib/recurrence";
@@ -71,6 +72,7 @@ export default function AddSubscription() {
         categoryId,
         reminders: remind,
       });
+      track("subscription_added", { kind: frequency, source: "manual" });
     }
     hapticSuccess();
     router.back();

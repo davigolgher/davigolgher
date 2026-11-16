@@ -222,7 +222,7 @@ describe("family-maintenance function", () => {
     saltedgeCallbackUrl: "",
     saltedgeBaseUrl: "",
     bankTokenKey: "",
-    bankReturnUrl: "flow://family/bank-return",
+    bankReturnUrl: "flow://bank-return",
   };
   const make: MakeClient = () => {
     const s = db.service();

@@ -67,6 +67,7 @@ export const TextInput = ({ value, onChangeText, placeholder, accessibilityLabel
   />
 );
 export const ActivityIndicator = () => <span role="progressbar" />;
+export const KeyboardAvoidingView = ({ children }: P & { children?: ReactNode }) => <div>{children}</div>;
 export const RefreshControl = () => null;
 export const Modal = ({ visible, children }: P) => (visible ? <div role="dialog">{children}</div> : null);
 

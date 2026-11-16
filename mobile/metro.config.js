@@ -25,11 +25,17 @@ config.resolver.nodeModulesPaths = [path.resolve(projectRoot, "node_modules")];
 // screens out of the bundle entirely, rather than shipping them unreachable:
 // App Review asks for no dormant features (Guideline 2.3.1). The routes are
 // guarded at runtime too (app/family/_layout redirects to Home).
-if (process.env.EXPO_PUBLIC_FLOW_FAMILY !== "1") {
-  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const familyRoutes = new RegExp(`^${escape(path.join(projectRoot, "src", "app", "family"))}[\\/].*`);
+//
+// Banks in Flow itself (EXPO_PUBLIC_FLOW_BANKS) works the same way.
+const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const routesOf = (dir) => new RegExp(`^${escape(path.join(projectRoot, "src", "app", dir))}[\\/].*`);
+const blocked = [
+  ...(process.env.EXPO_PUBLIC_FLOW_FAMILY !== "1" ? [routesOf("family")] : []),
+  ...(process.env.EXPO_PUBLIC_FLOW_BANKS !== "1" ? [routesOf("banks")] : []),
+];
+if (blocked.length) {
   const existing = config.resolver.blockList;
-  config.resolver.blockList = [...(Array.isArray(existing) ? existing : existing ? [existing] : []), familyRoutes];
+  config.resolver.blockList = [...(Array.isArray(existing) ? existing : existing ? [existing] : []), ...blocked];
 }
 
 module.exports = withNativeWind(config, { input: "./src/global.css" });

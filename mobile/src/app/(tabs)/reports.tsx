@@ -11,6 +11,10 @@ import { Donut } from "~/components/Donut";
 import { LineChart } from "~/components/LineChart";
 import { ChartPager } from "~/components/ChartPager";
 import { useTabScreenPadding } from "~/lib/screen";
+import { router } from "expo-router";
+import { Button } from "~/components/ui";
+import { SampleBanner } from "~/features/sample/SampleMode";
+import { BANKS_ENABLED } from "~/features/bank/flag";
 
 function BarRow({ label, value, barPct }: { label: string; value: string; barPct: number }) {
   return (
@@ -52,6 +56,7 @@ export default function Reports() {
       contentContainerStyle={padding}
     >
       <ScreenHeader eyebrow={`${money.format(spent)} spent this month`} title="Reports" />
+      <SampleBanner />
 
       <FadeIn className="mt-6" delay={60}>
         <Card>
@@ -63,9 +68,23 @@ export default function Reports() {
               ]}
             />
           ) : (
-            <Text className="py-6 text-center text-[15px] leading-relaxed text-chalk-mute">
-              Log a few expenses and the charts show up here.
-            </Text>
+            <View className="items-center py-6">
+              <Text className="text-center text-[15px] font-semibold text-chalk">Your charts appear here</Text>
+              <Text className="mt-2 text-center text-[14px] leading-relaxed text-chalk-mute">
+                Where your money goes by category, and how each month compares. They fill in from your first few expenses
+                {BANKS_ENABLED ? " — or all at once, from your bank's last 90 days." : "."}
+              </Text>
+              <View className="mt-4 gap-2">
+                {BANKS_ENABLED && !data.isSimulated ? (
+                  <Button variant="primary" size="sm" onPress={() => router.push("/banks")}>
+                    Connect your bank
+                  </Button>
+                ) : null}
+                <Button variant={BANKS_ENABLED && !data.isSimulated ? "ghost" : "primary"} size="sm" onPress={() => router.push("/add-expense")}>
+                  Add an expense
+                </Button>
+              </View>
+            </View>
           )}
         </Card>
       </FadeIn>
@@ -86,7 +105,7 @@ export default function Reports() {
           </View>
         ) : (
           <View className="mt-3 rounded-card border border-dashed border-line-strong p-5">
-            <Text className="text-center text-[14px] text-chalk-mute">No active subscriptions.</Text>
+            <Text className="text-center text-[14px] text-chalk-mute">No active subscriptions. Add them in Subscriptions to see what each costs a year.</Text>
           </View>
         )}
       </FadeIn>

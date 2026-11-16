@@ -7,6 +7,7 @@ import { Text, View } from "react-native";
 import { useStore } from "@/data/store";
 import { Button, Input, PressableScale } from "./ui";
 import { hapticSelection } from "~/lib/haptics";
+import { SAMPLE_CATEGORIES } from "@/data/sample";
 
 export function CategoryPicker({ value, onChange }: { value: string; onChange: (label: string) => void }) {
   const { data, addCategory } = useStore();
@@ -45,6 +46,20 @@ export function CategoryPicker({ value, onChange }: { value: string; onChange: (
             </PressableScale>
           );
         })}
+
+        {data.categories.length === 0 && !adding ? (
+          <PressableScale
+            onPress={() => {
+              for (const label of SAMPLE_CATEGORIES) addCategory(label);
+              hapticSelection();
+              onChange(SAMPLE_CATEGORIES[0]);
+            }}
+            accessibilityRole="button"
+            className="rounded-pill border border-chalk bg-chalk px-3.5 py-2"
+          >
+            <Text className="text-[13px] font-medium text-ink-950">Use suggested categories</Text>
+          </PressableScale>
+        ) : null}
 
         {!adding ? (
           <PressableScale

@@ -81,7 +81,7 @@ export function readEnv(): Env {
     saltedgeCallbackUrl: get("SALTEDGE_CALLBACK_URL"),
     saltedgeBaseUrl: get("SALTEDGE_API_URL"),
     bankTokenKey: get("BANK_TOKEN_KEY"),
-    bankReturnUrl: get("BANK_RETURN_URL") || "flow://family/bank-return",
+    bankReturnUrl: get("BANK_RETURN_URL") || "flow://bank-return",
   };
 }
 

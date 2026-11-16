@@ -57,10 +57,17 @@ export default function Connect() {
       }
     };
     if (on) return apply();
-    Alert.alert("Stop sharing this account?", `${who} stop seeing it, and what Flow read from it is deleted.`, [
+    const imported = conn.accounts.find((a) => a.id === accountId)?.import_to_flow;
+    Alert.alert(
+      "Stop sharing this account?",
+      imported
+        ? `${who} stop seeing it. It stays in your own Flow expenses.`
+        : `${who} stop seeing it, and what Flow read from it is deleted.`,
+      [
       { text: "Cancel", style: "cancel" },
       { text: "Stop sharing", style: "destructive", onPress: () => void apply() },
-    ]);
+      ],
+    );
   };
 
   const disconnect = (conn: MyConnection) =>

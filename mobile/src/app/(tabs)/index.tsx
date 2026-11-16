@@ -1,5 +1,14 @@
-/** Home — ported from the web app's HomeScreen, same data and same layout. */
-import { useMemo } from "react";
+/**
+ * Home — the month at a glance, and never a screen of zeros.
+ *
+ * Above the numbers: what needs the person (a bank to reconnect) or the one
+ * most valuable next step for where they are (connect a bank, a first
+ * expense, subscriptions Flow found, a budget…). Under them: insights about
+ * their own month once there's enough to say something true, and "welcome
+ * back" after a few days away. While exploring the sample month, a banner
+ * says so on top.
+ */
+import { useEffect, useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useStore } from "@/data/store";
@@ -14,6 +23,9 @@ import { SyncNotice } from "~/components/SyncNotice";
 import { useTabScreenPadding } from "~/lib/screen";
 import { FAMILY_ENABLED } from "~/features/family/flag";
 import { FamilyHomeCard } from "~/features/family/HomeCard";
+import { SampleBanner } from "~/features/sample/SampleMode";
+import { Insights, NextStepCard, useActivationMoments, useNextStep, WelcomeBack } from "~/features/home/HomeGuide";
+import { track } from "~/lib/analytics";
 
 export default function Home() {
   const padding = useTabScreenPadding();
@@ -40,6 +52,11 @@ export default function Home() {
     () => [...txs].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 5),
     [txs],
   );
+  const step = useNextStep();
+  useActivationMoments();
+  useEffect(() => track("home_viewed", { screen: data.isSimulated ? "sample" : "account" }), [data.isSimulated]);
+  // Income and savings mean something only for someone who records income.
+  const recordsIncome = txs.some((t) => t.direction === "income");
 
   return (
     <ScrollView
@@ -63,10 +80,17 @@ export default function Home() {
         }
       />
 
+      <SampleBanner />
       <SyncNotice />
 
       {/* Flow Family builds: who this person shares with, or the people they follow. */}
       {FAMILY_ENABLED ? <FamilyHomeCard /> : null}
+
+      {step ? (
+        <FadeIn className="mt-6" delay={30}>
+          <NextStepCard step={step} />
+        </FadeIn>
+      ) : null}
 
       {/* Budget hero — big number, status pill, spend progress. */}
       <FadeIn className="mt-6" delay={60}>
@@ -80,7 +104,7 @@ export default function Home() {
           </FitNumber>
           <Text className="mt-2 text-[13px] text-chalk-mute">
             {!hasBudget
-              ? "Set a monthly budget in Settings"
+              ? "No monthly budget yet"
               : income > 0
                 ? `${money.format(budget)} budget + ${money.format(income)} income − ${money.format(spent)} spent`
                 : `${money.format(spent)} spent of ${money.format(budget)}`}
@@ -89,22 +113,38 @@ export default function Home() {
             <View className="mt-4 h-1.5 w-full overflow-hidden rounded-pill bg-ink-750">
               <View className="h-full rounded-pill bg-chalk" style={{ width: `${Math.max(3, pct)}%` }} />
             </View>
+          ) : step?.id !== "set_budget" ? (
+            <View className="mt-4 self-start">
+              <Button variant="secondary" size="sm" onPress={() => router.push("/budget")}>
+                Set a budget
+              </Button>
+            </View>
           ) : null}
         </Card>
       </FadeIn>
 
-      <FadeIn className="mt-4 flex-row gap-4" delay={120}>
-        <StatCard label="Income" value={money.format(income)} sub="Received" />
-        <StatCard
-          label="Savings"
-          value={money.format(savings)}
-          sub={savings < 0 ? "Spending over income" : "Income − spending"}
-        />
+      {recordsIncome ? (
+        <FadeIn className="mt-4 flex-row gap-4" delay={120}>
+          <StatCard label="Income" value={money.format(income)} sub="Received" />
+          <StatCard
+            label="Savings"
+            value={money.format(savings)}
+            sub={savings < 0 ? "Spending over income" : "Income − spending"}
+          />
+        </FadeIn>
+      ) : null}
+
+      <FadeIn className="mt-4 gap-3" delay={150}>
+        <WelcomeBack />
+        <Insights />
       </FadeIn>
 
-      <FadeIn className="mt-4" delay={180}>
-        <StreakCard />
-      </FadeIn>
+      {/* The streak means something once there is one. */}
+      {data.activeDays.length > 0 ? (
+        <FadeIn className="mt-4" delay={180}>
+          <StreakCard />
+        </FadeIn>
+      ) : null}
 
       <FadeIn className="mt-6" delay={240}>
         <Eyebrow>Recent</Eyebrow>
@@ -115,7 +155,9 @@ export default function Home() {
             ))}
           </View>
         ) : (
-          <Text className="py-6 text-[15px] text-chalk-mute">No transactions yet. Add one to get started.</Text>
+          <Text className="py-6 text-[15px] text-chalk-mute">
+            Your latest expenses appear here{step?.id === "connect_bank" ? ", by themselves once your bank is connected" : ""}.
+          </Text>
         )}
       </FadeIn>
     </ScrollView>

@@ -2,7 +2,7 @@
  * Settings: budget, currency, categories, password, the legal documents,
  * subscription management, and account deletion.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -34,6 +34,10 @@ import { useTabScreenPadding } from "~/lib/screen";
 import { FAMILY_ENABLED } from "~/features/family/flag";
 import { unregisterPush } from "~/features/family/push";
 import { clearAllCaches } from "~/features/family/cache";
+import { BANKS_ENABLED } from "~/features/bank/flag";
+import { useBankConnections } from "~/features/bank/useBankConnections";
+import { SampleBanner, useSampleMode } from "~/features/sample/SampleMode";
+import { isOptedOut, setOptedOut } from "~/lib/analytics";
 
 const LEGAL_ORDER: LegalDocId[] = ["terms", "privacy", "ai", "nutrition"];
 
@@ -203,6 +207,8 @@ export default function Settings() {
     ]);
   };
 
+  if (data.isSimulated) return <SampleSettings />;
+
   return (
     <ScrollView
       className="flex-1 bg-ink-950"
@@ -220,6 +226,8 @@ export default function Settings() {
           {data.subscriptions.length} subscription{data.subscriptions.length === 1 ? "" : "s"} synced to your account.
         </Text>
       </View>
+
+      {BANKS_ENABLED ? <BanksRow /> : null}
 
       <Section label="Monthly budget">
         <View className="flex-row items-center gap-2">
@@ -451,6 +459,7 @@ export default function Settings() {
             <GroupRow key={id} title={LEGAL_TITLES[id]} onPress={() => router.push(`/legal?doc=${id}`)} />
           ))}
         </Group>
+        <UsageStatsRow />
       </Section>
 
       <Section label="Subscription">
@@ -529,6 +538,83 @@ export default function Settings() {
       <Text className="mt-8 text-[12px] text-chalk-mute">
         {APP.name} v{APP.version}
       </Text>
+    </ScrollView>
+  );
+}
+
+/** Connected banks, one tap from the top of Settings. */
+function BanksRow() {
+  const banks = useBankConnections();
+  const n = banks.data?.length ?? 0;
+  return (
+    <Section label="Bank accounts">
+      <Group>
+        <GroupRow
+          title={n ? `${n} bank${n === 1 ? "" : "s"} connected` : "Connect your bank"}
+          sub={n ? "Purchases come in by themselves" : "Your last 90 days, sorted into categories, in a minute"}
+          onPress={() => router.push("/banks")}
+        />
+      </Group>
+    </Section>
+  );
+}
+
+/** The product-events switch (lib/analytics). On unless turned off. */
+function UsageStatsRow() {
+  const [off, setOff] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void isOptedOut().then((v) => alive && setOff(v));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <View className="mt-3 rounded-card-sm bg-ink-800 px-4 py-3" style={CONTINUOUS}>
+      <View className="flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-[15px] font-medium text-chalk">Share usage statistics</Text>
+          <Text className="mt-0.5 text-[12px] leading-relaxed text-chalk-mute">
+            Which screens and features are used, so we can make Flow better. Never amounts, merchants or anything you type.
+          </Text>
+        </View>
+        <Switch
+          value={off === null ? true : !off}
+          disabled={off === null}
+          onValueChange={(on) => {
+            setOff(!on);
+            void setOptedOut(!on);
+          }}
+          accessibilityLabel="Share usage statistics"
+        />
+      </View>
+    </View>
+  );
+}
+
+/** While exploring the sample month: nothing here belongs to an account yet. */
+function SampleSettings() {
+  const padding = useTabScreenPadding();
+  const { exit } = useSampleMode();
+  return (
+    <ScrollView className="flex-1 bg-ink-950" contentInsetAdjustmentBehavior="automatic" contentContainerStyle={padding}>
+      <ScreenHeader eyebrow="Sample" title="Settings" />
+      <SampleBanner />
+      <Text className="mt-6 text-[15px] leading-relaxed text-chalk-mute">
+        Budget, currency, categories, reminders and banks are set up for your own account. Create one to keep what you
+        enter, or go back to the start.
+      </Text>
+      <View className="mt-6 gap-3">
+        <Button variant="primary" fullWidth onPress={() => exit("signUp")}>
+          Create my account
+        </Button>
+        <Button variant="secondary" fullWidth onPress={() => exit("signIn")}>
+          I already have an account
+        </Button>
+        <Button variant="ghost" fullWidth onPress={() => exit("welcome")}>
+          Leave the sample
+        </Button>
+      </View>
     </ScrollView>
   );
 }

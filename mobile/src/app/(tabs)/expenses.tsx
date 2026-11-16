@@ -9,6 +9,8 @@ import { Button, FadeIn, ScreenHeader } from "~/components/ui";
 import { PlusIcon } from "~/components/icons";
 import { ExpenseRow } from "~/components/rows";
 import { useTabScreenPadding } from "~/lib/screen";
+import { SampleBanner } from "~/features/sample/SampleMode";
+import { BANKS_ENABLED } from "~/features/bank/flag";
 
 export default function Expenses() {
   const padding = useTabScreenPadding();
@@ -42,6 +44,8 @@ export default function Expenses() {
         }
       />
 
+      <SampleBanner />
+
       {all.length > 0 ? (
         <FadeIn className="mt-5" delay={60}>
           {all.map((t) => (
@@ -50,9 +54,24 @@ export default function Expenses() {
           <Text className="mt-3 text-[12px] text-chalk-mute">Tap to edit · press and hold to delete.</Text>
         </FadeIn>
       ) : (
-        <Text className="mt-8 text-[15px] leading-relaxed text-chalk-mute">
-          Nothing logged yet. Tap Add to record what you spent — or switch to Income to record money that came in.
-        </Text>
+        <View className="mt-8 rounded-card border border-dashed border-line-strong p-6">
+          <Text className="text-center text-[15px] font-semibold text-chalk">Nothing logged yet</Text>
+          <Text className="mt-2 text-center text-[14px] leading-relaxed text-chalk-mute">
+            {BANKS_ENABLED
+              ? "Connect your bank and your last 90 days arrive here, sorted into categories. Or add an expense yourself: an amount and a tap."
+              : "Add what you spend: an amount and a tap. Income works the same way, from the switch at the top."}
+          </Text>
+          <View className="mt-4 items-center gap-2">
+            {BANKS_ENABLED && !data.isSimulated ? (
+              <Button variant="primary" size="sm" onPress={() => router.push("/banks")}>
+                Connect your bank
+              </Button>
+            ) : null}
+            <Button variant={BANKS_ENABLED && !data.isSimulated ? "ghost" : "primary"} size="sm" onPress={() => router.push("/add-expense")}>
+              Add an expense
+            </Button>
+          </View>
+        </View>
       )}
     </ScrollView>
   );

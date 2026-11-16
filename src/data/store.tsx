@@ -32,6 +32,7 @@ type Action =
   | { type: "remove-category"; id: string }
   | { type: "update-prefs"; prefs: Partial<Preferences> }
   | { type: "hydrate"; data: Partial<AppData> }
+  | { type: "replace"; data: AppData }
   | { type: "mark-active-day"; day: string }
   | { type: "reset-all" };
 
@@ -87,6 +88,8 @@ function reducer(state: AppData, action: Action): AppData {
     case "mark-active-day":
       if (state.activeDays.includes(action.day)) return state;
       return { ...state, activeDays: [...state.activeDays, action.day] };
+    case "replace":
+      return action.data;
     case "reset-all":
       return createInitialData();
     default:
@@ -161,10 +164,16 @@ export function StoreProvider({
   children,
   seed,
   simulateLoading = true,
+  sample = null,
 }: {
   children: ReactNode;
   seed?: AppData;
   simulateLoading?: boolean;
+  /**
+   * Sample data to show while nobody is signed in (data/sample.ts): labelled
+   * as such by the screens, kept in memory only, never sent anywhere.
+   */
+  sample?: AppData | null;
 }) {
   // Today, for every "this month" and "today" total. Fixed at launch it went
   // stale: iOS keeps an app in memory for days, and Home went on showing
@@ -226,7 +235,11 @@ export function StoreProvider({
 
   // Connected mode: hydrate from Supabase when a user signs in; clear on sign-out.
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) {
+      // Local (development) mode: the sample month still replaces what's shown.
+      if (sample) dispatch({ type: "replace", data: sample });
+      return;
+    }
     let cancelled = false;
     if (userId) {
       const q = queueRef.current;
@@ -253,13 +266,15 @@ export function StoreProvider({
           if (!cancelled) setSync((prev) => ({ ...prev, loadFailed: true }));
         }
       })();
+    } else if (sample) {
+      dispatch({ type: "replace", data: sample });
     } else {
       dispatch({ type: "reset-all" });
     }
     return () => {
       cancelled = true;
     };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, sample]);
 
   const retrySync = useCallback(() => {
     void queueRef.current?.flush();

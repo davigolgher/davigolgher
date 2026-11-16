@@ -16,10 +16,11 @@ import { Button, Input } from "~/components/ui";
 import { MailIcon } from "~/components/icons";
 import { LogoMark } from "~/components/Logo";
 import { LegalModal } from "./LegalDoc";
+import { track } from "~/lib/analytics";
 
-export function SignInScreen() {
+export function SignInScreen({ initialMode = "signUp", onBack }: { initialMode?: "signUp" | "signIn"; onBack?: () => void } = {}) {
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<"signUp" | "signIn">("signUp");
+  const [mode, setMode] = useState<"signUp" | "signIn">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -44,8 +45,14 @@ export function SignInScreen() {
     try {
       // On success the auth listener in AuthProvider swaps this screen out.
       const address = normalizeEmail(email);
-      if (creating) await signUpWithPassword(address, password);
-      else await signInWithPassword(address, password);
+      if (creating) {
+        track("signup_started");
+        await signUpWithPassword(address, password);
+        track("signup_completed");
+      } else {
+        await signInWithPassword(address, password);
+        track("signin_completed");
+      }
     } catch (e) {
       const message = (e as Error)?.message || "Something went wrong. Try again.";
       // Supabase deliberately returns the same error for a wrong password and an
@@ -91,6 +98,13 @@ export function SignInScreen() {
         }}
         keyboardShouldPersistTaps="handled"
       >
+        {onBack ? (
+          <View className="absolute left-0" style={{ top: insets.top + 8 }}>
+            <Button variant="ghost" size="sm" onPress={onBack}>
+              Back
+            </Button>
+          </View>
+        ) : null}
         <View className="mb-10 items-center">
           <LogoMark size={44} />
           <Text className="mt-5 text-[30px] font-bold tracking-tight text-chalk">

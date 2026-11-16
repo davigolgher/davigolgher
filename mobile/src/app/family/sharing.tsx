@@ -75,7 +75,7 @@ export default function Sharing() {
 
       {families.length > 0 ? (
         <>
-          <Section label="What they see" footer="Only these accounts, from the day you shared them, and only while you're sharing.">
+          <Section label="What they see" footer="Only these accounts — including up to 90 days before you shared them — and only while you're sharing.">
             {shared.length ? (
               <Group>
                 {shared.map((s) => (

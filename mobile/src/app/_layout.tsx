@@ -26,6 +26,10 @@ import { useFlowFlags } from "~/lib/flow";
 import { clearReminders } from "~/lib/notifications";
 import { FAMILY_ENABLED } from "~/features/family/flag";
 import { FamilyProvider } from "~/features/family/FamilyProvider";
+import { WelcomeScreen } from "~/features/WelcomeScreen";
+import { BANKS_ENABLED } from "~/features/bank/flag";
+import { SampleModeProvider, useSampleMode } from "~/features/sample/SampleMode";
+import { flush, startAnalytics, track } from "~/lib/analytics";
 
 // The streak's days used to be one log for the whole phone. They're stored with
 // each account now (see the `activity_days` table); the old log can't be told
@@ -44,6 +48,7 @@ export default function RootLayout() {
   // auth resolves.
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
+    startAnalytics();
   }, []);
 
   return (
@@ -52,14 +57,26 @@ export default function RootLayout() {
       {/* AuthProvider and StoreProvider are the web app's, imported unchanged —
           they are pure React, and the platform differences live below them in
           client.native.ts / auth.native.ts. */}
-      <AuthProvider>
-        <StoreProvider simulateLoading={false}>
-          <Gate />
-        </StoreProvider>
-      </AuthProvider>
+      <SampleModeProvider>
+        <AuthProvider>
+          <Store>
+            <Gate />
+          </Store>
+        </AuthProvider>
+      </SampleModeProvider>
       {/* Last, so it draws over everything — modals and the tour included. */}
       <PrivacyShield />
     </SafeAreaProvider>
+  );
+}
+
+/** The store, holding the sample month while someone explores without an account. */
+function Store({ children }: { children: React.JSX.Element }) {
+  const { data } = useSampleMode();
+  return (
+    <StoreProvider simulateLoading={false} sample={data}>
+      {children}
+    </StoreProvider>
   );
 }
 
@@ -72,14 +89,18 @@ function Splash() {
 }
 
 /**
- * The first run, in order: sign in → what the app is for → the paywall → the
- * app, with the tour over it once.
+ * The first run, in order: welcome (with the sample month one tap away) →
+ * sign up → what you want from Flow → the paywall → the app, where Home's
+ * next step leads to the first value (connect your bank, or a first expense).
  *
- * The intro comes before the paywall deliberately. Asking someone to subscribe
- * to something they haven't been shown is a worse trade than two screens.
+ * The sample comes before any form deliberately: seeing a filled-in Flow is
+ * the fastest way to understand it (docs/produto/estrategia.md). The intro
+ * still comes before the paywall: asking someone to subscribe to something
+ * they haven't been shown is a worse trade than a screen.
  */
 function Gate() {
   const auth = useAuth();
+  const sample = useSampleMode();
   const entitlement = useEntitlement();
   const { flags, mark } = useFlowFlags();
   // Set when a purchase succeeds, or when a dev build skips past the paywall.
@@ -111,12 +132,33 @@ function Gate() {
     if (!auth.userId || (previous && previous !== auth.userId)) void clearReminders();
   }, [auth.configured, auth.loading, auth.userId]);
 
+  // Events wait on the phone until there is an account to send them for.
+  useEffect(() => {
+    if (auth.userId) void flush();
+  }, [auth.userId]);
+
+  const paywallShown =
+    auth.configured &&
+    Boolean(auth.session) &&
+    Boolean(flags?.onboardingDone) &&
+    !(FAMILY_ENABLED && flags?.familyOnly) &&
+    !entitlement.loading &&
+    !entitlement.entitled &&
+    !unlocked;
+  useEffect(() => {
+    if (paywallShown) track("paywall_viewed");
+  }, [paywallShown]);
+
   // Local mode, with no backend, is for development only, and so is a paywall
   // with no store behind it. A release build in either state was built without
   // its settings and must not pass for working.
   if (!__DEV__ && missingSettings.length > 0) return <MissingConfigScreen missing={missingSettings} />;
   if (auth.configured && auth.loading) return <Splash />;
-  if (auth.configured && !auth.session) return <SignInScreen />;
+  if (auth.configured && !auth.session) {
+    if (sample.data) return <AppStack familyOnly={false} tour={false} />;
+    if (sample.entry === "welcome") return <WelcomeScreen />;
+    return <SignInScreen key={sample.entry} initialMode={sample.entry} onBack={() => sample.setEntry("welcome")} />;
+  }
   // Wait for the flags rather than flashing a screen that's about to be
   // replaced — it's one local read, so the wait is imperceptible.
   if (auth.configured && flags === null) return <Splash />;
@@ -126,7 +168,7 @@ function Gate() {
   if (auth.configured && entitlement.loading && !unlocked) return <Splash />;
 
   if (auth.configured && flags && !flags.onboardingDone) {
-    return <OnboardingScreen onDone={() => mark({ onboardingDone: true })} />;
+    return <OnboardingScreen onDone={(goals) => mark({ onboardingDone: true, goals })} />;
   }
 
   // Flow Family builds only: someone who chose, on the paywall, to use just
@@ -139,32 +181,44 @@ function Gate() {
       <PaywallScreen
         canSkip={entitlement.canSkip}
         onUnlocked={() => {
+          track("paywall_converted");
           setUnlocked(true);
           entitlement.refresh();
         }}
-        onFamilyOnly={FAMILY_ENABLED ? () => mark({ familyOnly: true }) : undefined}
+        onFamilyOnly={
+          FAMILY_ENABLED
+            ? () => {
+                track("family_only_chosen");
+                mark({ familyOnly: true });
+              }
+            : undefined
+        }
       />
     );
   }
 
+  return <AppStack familyOnly={familyOnly} tour={Boolean(flags && !flags.tutorialDone) && !familyOnly} onTourDone={() => mark({ tutorialDone: true })} />;
+}
+
+/** The app itself: tabs and the screens over them, for an account or the sample. */
+function AppStack({ familyOnly, tour, onTourDone }: { familyOnly: boolean; tour: boolean; onTourDone?: () => void }) {
   const app = (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FFFFFF" } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="add-expense" options={{ presentation: "modal" }} />
         <Stack.Screen name="add-subscription" options={{ presentation: "modal" }} />
+        <Stack.Screen name="budget" options={{ presentation: "modal" }} />
         <Stack.Screen name="legal" options={{ presentation: "modal" }} />
         <Stack.Screen name="review" options={{ presentation: "modal" }} />
         <Stack.Screen name="streak" options={{ presentation: "modal" }} />
         {FAMILY_ENABLED ? <Stack.Screen name="family" /> : null}
+        {BANKS_ENABLED ? <Stack.Screen name="banks" /> : null}
       </Stack>
 
       {/* Always mounted, shown by `visible` — see TutorialOverlay. The tour
           is of the tabs, which a Family-only account doesn't have. */}
-      <TutorialOverlay
-        visible={Boolean(flags && !flags.tutorialDone) && !familyOnly}
-        onDone={() => mark({ tutorialDone: true })}
-      />
+      <TutorialOverlay visible={tour} onDone={() => onTourDone?.()} />
     </>
   );
 

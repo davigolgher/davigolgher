@@ -31,6 +31,14 @@ export interface Flags {
    * just Flow Family without subscribing, from the paywall. Never set otherwise.
    */
   familyOnly?: boolean;
+  /** What the person said they want from Flow (onboarding): "spending", "subscriptions", "budget", "family". */
+  goals?: string[];
+  /** When this account first saw its own month on Home (the "aha"); measured once. */
+  ahaAt?: string;
+  /** When this account had its first expense in Flow, typed or imported; measured once. */
+  firstExpenseAt?: string;
+  /** The last time Home was opened, for "welcome back". */
+  lastSeenAt?: string;
 }
 
 const DEFAULTS: Flags = { onboardingDone: false, tutorialDone: false };

@@ -10,6 +10,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
+import { track } from "~/lib/analytics";
 import { useMoney } from "@/lib/useMoney";
 import { currencyByCode } from "@/data/currencies";
 import { amountTextToCents, centsToAmountText, sanitizeAmountText } from "~/lib/amount";
@@ -66,6 +67,7 @@ export default function AddExpense() {
         date: new Date().toISOString(),
         direction,
       });
+      track("expense_added", { kind: direction, count: data.transactions.length + 1 });
     }
     hapticSuccess();
     router.back();

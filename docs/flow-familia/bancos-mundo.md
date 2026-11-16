@@ -61,7 +61,7 @@ conectar banco por API autorizada. O app diz isso com clareza
 | Item | Por quê |
 | --- | --- |
 | **Salt Edge: API v5 contra a documentação atual** | `docs.saltedge.com` não abre neste ambiente. Caminhos, cabeçalhos e assinatura seguem o cliente da comunidade `saltedge-api` 0.0.22 (API v5). Se a Salt Edge exigir a v6, o ajuste fica em `_shared/saltedge.ts` (um arquivo). Conferir também o formato do callback e as credenciais do banco de teste ("Fake Bank"). |
-| Plaid: Hosted Link habilitado e URI de retorno | O Hosted Link precisa estar ativo na conta Plaid. Confirmar que `flow://family/bank-return` é aceito como `completion_redirect_uri`; se não for, usar uma página https sua que redirecione para o app (`BANK_RETURN_URL`). |
+| Plaid: Hosted Link habilitado e URI de retorno | O Hosted Link precisa estar ativo na conta Plaid. Confirmar que `flow://bank-return` é aceito como `completion_redirect_uri` (o app também aceita o antigo `flow://family/bank-return`); se não for, usar uma página https sua que redirecione para o app (`BANK_RETURN_URL`). |
 | Plaid: acesso de produção ao produto Transactions | A Plaid aprova o caso de uso antes de liberar produção, especialmente na Europa. |
 | Primeiro teste em sandbox de cada provedor | Os formatos da Plaid vêm do SDK oficial v51; os da Salt Edge, do cliente da comunidade. |
 

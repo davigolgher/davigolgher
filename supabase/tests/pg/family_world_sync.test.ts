@@ -377,7 +377,7 @@ describe("Plaid", () => {
   it("opens Hosted Link for this person and country, returning to the app", async () => {
     const s = await sharing(db);
     const res = await token(s.dependent, { country: "CA" });
-    expect(res.body).toMatchObject({ provider: "plaid", returnUrl: "flow://family/bank-return" });
+    expect(res.body).toMatchObject({ provider: "plaid", returnUrl: "flow://bank-return" });
     expect(String(res.body.url)).toMatch(/^https:\/\/hosted\.plaid\.test\/link\//);
     const sent = [...plaid.linkTokens.values()][0].body as Record<string, any>;
     expect(sent).toMatchObject({
@@ -385,7 +385,7 @@ describe("Plaid", () => {
       user: { client_user_id: s.dependent },
       products: ["transactions"],
       webhook: "https://flow.test/functions/v1/plaid-webhook",
-      hosted_link: { completion_redirect_uri: "flow://family/bank-return?provider=plaid", is_mobile_app: true },
+      hosted_link: { completion_redirect_uri: "flow://bank-return?provider=plaid", is_mobile_app: true },
     });
   });
 
@@ -514,7 +514,7 @@ describe("Salt Edge", () => {
       allowed_countries: ["MX"],
       include_fake_providers: false,
       consent: { scopes: ["account_details", "transactions_details"] },
-      attempt: { return_to: "flow://family/bank-return?provider=saltedge" },
+      attempt: { return_to: "flow://bank-return?provider=saltedge" },
     });
     // "Another country": no filter, Salt Edge's own list.
     await token(s.dependent, { country: "XX" });

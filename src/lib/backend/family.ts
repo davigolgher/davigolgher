@@ -139,7 +139,17 @@ export interface MyConnection {
   last_synced_at: string | null;
   orphaned_at: string | null;
   created_at: string;
-  accounts: { id: string; kind: string; name: string; last4: string | null; currency: string; shared: boolean; shared_at: string | null }[];
+  accounts: {
+    id: string;
+    kind: string;
+    name: string;
+    last4: string | null;
+    currency: string;
+    shared: boolean;
+    shared_at: string | null;
+    /** Copied into the owner's own Flow expenses (0017). */
+    import_to_flow?: boolean;
+  }[];
 }
 
 export interface AuditEntry {
@@ -162,6 +172,7 @@ const MESSAGES: Record<string, string> = {
   not_a_guardian: "Only the family's guardian can do that.",
   not_the_owner: "Only the person who created the family can do that.",
   not_a_dependent: "Join a family before connecting a bank.",
+  subscription_required: "Connecting a bank comes with a Flow subscription.",
   family_exists: "You already have a family. Manage it from the Family screen.",
   already_a_member: "You're already part of this family.",
   cannot_join_own_family: "That's your own invitation. Send it to the person you want to add.",
@@ -230,7 +241,7 @@ function fromPostgrest(error: { message?: string; code?: string } | null): Famil
   return new FamilyError(code);
 }
 
-async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
+export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   try {
     const { data, error } = await client().rpc(fn, args);
     if (error) throw fromPostgrest(error);
@@ -241,7 +252,7 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T
   }
 }
 
-async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
+export async function invoke<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const c = client();
   const { data: auth } = await c.auth.getSession();
   if (!auth.session) throw new FamilyError("not_signed_in");
@@ -366,7 +377,7 @@ export const familyApi = {
     const { data, error } = await client()
       .from("bank_connections")
       .select(
-        "id,external_item_id,provider,country_code,institution_name,status,status_detail,consent_expires_at,last_synced_at,orphaned_at,created_at,accounts:bank_accounts(id,kind,name,last4,currency,shared,shared_at)",
+        "id,external_item_id,provider,country_code,institution_name,status,status_detail,consent_expires_at,last_synced_at,orphaned_at,created_at,accounts:bank_accounts(id,kind,name,last4,currency,shared,shared_at,import_to_flow)",
       )
       .order("created_at");
     if (error) throw fromPostgrest(error);

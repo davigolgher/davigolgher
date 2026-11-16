@@ -28,7 +28,12 @@ export function ExpenseRow({ transaction: t }: { transaction: Transaction }) {
     ]);
   };
 
-  const meta = [t.merchant || t.categoryId, formatRelativeDay(t.date)].filter(Boolean).join(" · ");
+  const fromBank = t.source === "bank";
+  // Imported entries are titled with the merchant, so the line under shows
+  // the category instead of repeating it.
+  const meta = [fromBank ? t.categoryId : t.merchant || t.categoryId, formatRelativeDay(t.date), fromBank ? "From your bank" : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Pressable

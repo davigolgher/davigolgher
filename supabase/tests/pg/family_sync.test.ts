@@ -49,7 +49,7 @@ const ENV: Env = {
   saltedgeCallbackUrl: "",
   saltedgeBaseUrl: "",
   bankTokenKey: "",
-  bankReturnUrl: "flow://family/bank-return",
+  bankReturnUrl: "flow://bank-return",
 };
 
 /* ── a fake Pluggy ─────────────────────────────────────────────────────────── */

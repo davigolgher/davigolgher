@@ -28,7 +28,7 @@ export const BASE_ENV: Env = {
   saltedgeCallbackUrl: "",
   saltedgeBaseUrl: "",
   bankTokenKey: "",
-  bankReturnUrl: "flow://family/bank-return",
+  bankReturnUrl: "flow://bank-return",
 };
 
 export const PASSWORD = "correct horse battery";

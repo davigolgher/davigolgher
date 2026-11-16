@@ -34,7 +34,8 @@ export interface Transaction {
   /** Who it was paid to / received from (e.g. "Dunkin'"). */
   merchant?: string;
   currency: string;
-  source?: "manual";
+  /** "bank": imported from a connected bank (editable like any other). */
+  source?: "manual" | "bank";
   receipt?: Receipt;
 }
 
