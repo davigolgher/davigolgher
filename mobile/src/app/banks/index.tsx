@@ -40,7 +40,7 @@ const KIND: Record<string, string> = { checking: "Account", savings: "Savings", 
 type Result = { inserted: number; banks: number } | null;
 
 export default function Banks() {
-  const { data: store, refresh } = useStore();
+  const { data: store, refresh, setCurrency } = useStore();
   const money = useMoney();
   const q = useBankConnections();
   const [adding, setAdding] = useState(false);
@@ -66,9 +66,17 @@ export default function Banks() {
     try {
       const list = await bankApi.list();
       const fresh = list.filter(untouched);
+      // Someone with nothing in Flow yet takes their bank's currency: their
+      // first bank in another currency would otherwise bring nothing in.
+      let target = currency;
+      const theirs = [...new Set(fresh.flatMap((c) => c.accounts.map((a) => a.currency)))];
+      if (store.transactions.length === 0 && theirs.length === 1 && theirs[0] !== currency) {
+        target = theirs[0];
+        setCurrency(target);
+      }
       let inserted = 0;
       for (const c of fresh) {
-        await bankApi.importDefaults(c.id, currency);
+        await bankApi.importDefaults(c.id, target);
         const read = await bankApi.sync({ connectionId: c.id }).catch(() => null);
         inserted += read?.inserted ?? 0;
       }

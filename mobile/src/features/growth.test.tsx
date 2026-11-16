@@ -21,7 +21,8 @@ vi.mock("react-native-svg", () => {
   return { default: Pass, Svg: Pass, G: Pass, Path: () => null, Circle: () => null, Rect: () => null, Line: () => null, Polyline: () => null };
 });
 vi.mock("react-native-pluggy-connect", () => ({ PluggyConnect: () => <div>Pluggy Connect</div> }));
-vi.mock("expo-localization", () => ({ getLocales: () => [{ regionCode: "US", currencyCode: "USD", languageTag: "en-US" }] }));
+const locale = vi.hoisted(() => ({ currencyCode: "USD" }));
+vi.mock("expo-localization", () => ({ getLocales: () => [{ regionCode: "US", currencyCode: locale.currencyCode, languageTag: "en-US" }] }));
 const browser = vi.hoisted(() => ({ openAuthSessionAsync: vi.fn(async () => ({ type: "success", url: "flow://bank-return?provider=plaid" })) }));
 vi.mock("expo-web-browser", () => browser);
 
@@ -189,6 +190,25 @@ describe("first minute", () => {
   });
 });
 
+describe("a new account in its own currency", () => {
+  it("finishing onboarding with nothing logged adopts the phone's currency", async () => {
+    locale.currencyCode = "BRL";
+    function Probe() {
+      const { data } = useStore();
+      return <span>{`currency:${data.preferences.currency}`}</span>;
+    }
+    wrap(
+      <>
+        <OnboardingScreen onDone={() => {}} />
+        <Probe />
+      </>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    expect(screen.getByText("currency:BRL")).toBeInTheDocument();
+    locale.currencyCode = "USD";
+  });
+});
+
 describe("Home is never a screen of zeros", () => {
   it("a new account with banks on is offered its last 90 days first, typing second", async () => {
     wrap(<Home />);
@@ -286,6 +306,36 @@ describe("the bank screen", () => {
     expect(tracked("bank_import_completed")[0][1]).toEqual({ banks: 1, entries: 42 });
     fireEvent.click(screen.getByRole("button", { name: "See your month" }));
     expect(nav.replace).toHaveBeenCalledWith("/");
+  });
+
+  it("someone with nothing in Flow yet takes their first bank's currency, so it brings everything in", async () => {
+    const fresh = {
+      id: "c7",
+      institution_name: "Banco Exemplo",
+      status: "active",
+      provider: "pluggy",
+      external_item_id: "item-7",
+      country_code: "BR",
+      last_synced_at: null,
+      accounts: [{ id: "a7", kind: "checking", name: "Conta", last4: "4321", currency: "BRL", shared: false, shared_at: null, import_to_flow: false }],
+    };
+    function Currency() {
+      const { data } = useStore();
+      return <span>{`currency:${data.preferences.currency}`}</span>;
+    }
+    wrap(
+      <>
+        <Banks />
+        <Currency />
+      </>,
+    );
+    const go = await screen.findByRole("button", { name: "Connect a bank in United States" });
+    bank.list.mockResolvedValue([fresh]);
+    await act(async () => {
+      fireEvent.click(go);
+    });
+    await waitFor(() => expect(bank.importDefaults).toHaveBeenCalledWith("c7", "BRL"));
+    expect(screen.getByText("currency:BRL")).toBeInTheDocument();
   });
 
   it("a connection needing the person says so and offers to reconnect; disconnecting asks what to keep", async () => {

@@ -21,7 +21,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStore } from "@/data/store";
 import { SAMPLE_CATEGORIES } from "@/data/sample";
 import { useMoney } from "@/lib/useMoney";
-import { currencyByCode } from "@/data/currencies";
+import { CURRENCIES, currencyByCode } from "@/data/currencies";
+import * as Localization from "expo-localization";
 import { amountTextToCents, sanitizeAmountText } from "~/lib/amount";
 import { Button, FadeIn, FitNumber, Input, PressableScale } from "~/components/ui";
 import { hapticSelection } from "~/lib/haptics";
@@ -41,9 +42,19 @@ export const GOALS = [
 
 const PRESETS = [500, 1000, 2000, 5000];
 
+/** The phone's currency, when Flow supports it. */
+export function phoneCurrency(): string | null {
+  try {
+    const code = Localization.getLocales()[0]?.currencyCode ?? null;
+    return code && CURRENCIES.some((c) => c.code === code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 export function OnboardingScreen({ onDone }: { onDone: (goals: string[]) => void }) {
   const insets = useSafeAreaInsets();
-  const { data, setMonthlyBudget, addCategory } = useStore();
+  const { data, setMonthlyBudget, addCategory, setCurrency } = useStore();
   const money = useMoney();
   const [step, setStep] = useState<Step>("goals");
   const [goals, setGoals] = useState<string[]>([]);
@@ -59,6 +70,13 @@ export function OnboardingScreen({ onDone }: { onDone: (goals: string[]) => void
 
   const finish = (how: "completed" | "skipped") => {
     if (data.categories.length === 0) for (const label of SAMPLE_CATEGORIES) addCategory(label);
+    // A new account starts in the phone's own currency, not in dollars for
+    // everyone: a Brazilian's first bank would otherwise import nothing (Flow
+    // imports the accounts in its currency) and every total would read "$".
+    if (data.transactions.length === 0) {
+      const local = phoneCurrency();
+      if (local && local !== data.preferences.currency) setCurrency(local);
+    }
     track(how === "completed" ? "onboarding_completed" : "onboarding_skipped", { step, goals: goals.join(",") });
     onDone(goals);
   };
